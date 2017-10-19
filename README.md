@@ -1,2 +1,2 @@
-# typescript-game-studio-build
+# TypeScriptGameStudioBuild
 Build server for the TypeScript Game Sutdio
