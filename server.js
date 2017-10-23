@@ -2,23 +2,24 @@ var express = require('express');
 var fs = require('fs');
 const { spawn } = require('child_process');
 var app = express();
+
 var str = "";
 var compileQ = [];
 
-app.set('port', (process.env.PORT || 5000));
+
+app.listen(process.env.PORT || 5000, function () {
+	console.log("App now running on port", process.env.PORT || 5000);
+});
+
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', function(request, response) {
   response.send('Hello World!' + str);
 });
 
-app.listen(app.get('port'), function() {
-  console.log("Node app is running at localhost:" + app.get('port'))
-});
-
 app.post("/compile", function(req, res){
 
-	console.log(req);
+	console.log(req.content);
 
 });
 
