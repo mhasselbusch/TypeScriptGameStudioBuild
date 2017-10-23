@@ -1,8 +1,13 @@
 var express = require('express');
 var fs = require('fs');
 const { spawn } = require('child_process');
+var bodyParser = require('body-parser');
+
 var app = express();
-app.use(express.bodyParser());
+
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false }))
+
 var str = "";
 var compileQ = [];
 
