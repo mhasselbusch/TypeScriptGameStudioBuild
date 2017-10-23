@@ -2,7 +2,7 @@ var express = require('express');
 var fs = require('fs');
 const { spawn } = require('child_process');
 var app = express();
-
+app.use(express.bodyParser());
 var str = "";
 var compileQ = [];
 
