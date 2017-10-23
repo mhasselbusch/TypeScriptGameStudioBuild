@@ -19,7 +19,7 @@ app.get('/', function(request, response) {
 
 app.post("/compile", function(req, res){
 
-	console.log(req.content);
+	console.log(req.body.content);
 
 });
 
