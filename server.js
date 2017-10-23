@@ -18,7 +18,7 @@ app.listen(app.get('port'), function() {
 
 app.post("/compile", function(req, res){
 
-	console.log(req.body.content);
+	console.log(req);
 
 });
 
