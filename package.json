@@ -1,8 +1,8 @@
 {
-  "name": "node-js-sample",
+  "name": "type-script-game-studio-build",
   "version": "0.2.0",
   "description": "Build server for the TypeScript Game Studio",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
@@ -10,7 +10,7 @@
     "express": "^4.13.3"
   },
   "engines": {
-    "node": "4.0.0"
+    "node": "6.11.1"
   },
   "repository": {
     "type": "git",
