@@ -54,21 +54,29 @@ mongodb.MongoClient.connect(database_url, function(err, db) {
 
 ==============*/
 
+/*
+	Main endpoint for the build server.
+
+	Need to send along the email of the user and the content to compile.
+*/
 app.post("/compile", function(req, res){
 
-	if(req.body.email != undefined){
+	if(req.body.email != undefined && req.body.id != undefined){
 		connection.collection('accounts').findOne({
-		user_email : req.body.email
+			user_email : req.body.email,
+			user_id : req.body.id
 		}, function(err, object){
-		if(!err){ 
-		  res.write(JSON.stringify(object));
-		  res.status(200);
-		  res.end();
-		}
-		else{
-		  res.status(500);
-		  res.end();
-		}
+
+			//The user exists and we can proceed with the compilation
+			if(!err){ 
+				res.write(JSON.stringify(object));
+				res.status(200);
+				res.end();
+			}
+			else{
+				res.status(500);
+				res.end();
+			}
 		});
 	}
 });
