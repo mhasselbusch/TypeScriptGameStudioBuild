@@ -55,22 +55,22 @@ mongodb.MongoClient.connect(database_url, function(err, db) {
 ==============*/
 
 app.post("/compile", function(req, res){
-	
-  if(req.user){
-	  connection.collection('accounts').findOne({
-	    user_email : req.body.email
-	  }, function(err, object){
-	    if(!err){ 
-	      res.write(JSON.stringify(object));
-	      res.status(200);
-	      res.end();
-	    }
-	    else{
-	      res.status(500);
-	      res.end();
-	    }
-	  });
-  }
+
+	if(req.body.email != undefined){
+		connection.collection('accounts').findOne({
+		user_email : req.body.email
+		}, function(err, object){
+		if(!err){ 
+		  res.write(JSON.stringify(object));
+		  res.status(200);
+		  res.end();
+		}
+		else{
+		  res.status(500);
+		  res.end();
+		}
+		});
+	}
 });
 
 /*============
