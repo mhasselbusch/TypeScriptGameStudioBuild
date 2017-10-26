@@ -42,8 +42,8 @@ mongodb.MongoClient.connect(database_url, function(err, db) {
 
 	console.log("We are connected to the database");
 
-	app.listen(5001, function () {
-		console.log("App now running on port", 5001);
+	app.listen(process.env.PORT || 5000, function () {
+		console.log("App now running on port", process.env.PORT || 5000);
 	});
 });
 
