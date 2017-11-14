@@ -38,83 +38,75 @@ function main(speed: number) {
     }
   })
 
-  let myMedia = new Media();
-  let mainScene = new MainScene(myConfig, myMedia);
-  let hud = new HudScene(myConfig, myMedia);
-  let mgr = new LolManager(mainScene, hud);
-  let game = new Lol(mgr, myConfig);
+  //let myMedia = new Media();
+  //let mainScene = new MainScene(myConfig, myMedia);
+  //let hud = new HudScene(myConfig, myMedia);
+  let game = new Lol(myConfig);
+  game.create();
   document.body.appendChild(game.mRenderer.view);
 
-  let myHero = new Hero(game, mainScene, 25, 25, heroImg);
-  myHero.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.DYNAMIC, 100, 100);
-  myHero.updateVelocity(speed, 0);
+  //mgr.mHud.addText(400, 0, "Arial", "Blue", 24, "Score: ", "", mgr.mGoodiesCollected[1], 2);
 
-  mainScene.addActor(myHero, 1);
-  mainScene.chaseActor(myHero);
+  //let myHero = new Hero(game, mainScene, 25, 25, heroImg);
+  //myHero.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.DYNAMIC, 100, 100);
+  //myHero.updateVelocity(speed, 0);
 
-  let Obstacle1 = new Obstacle(game, mainScene, 25, 25, obstImg);
-  Obstacle1.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.KINEMATIC, 0, 0);
+  let myHero = game.mManager.mLevel.makeHeroAsBox(100, 100, 25, 25, heroImg);
+  game.mManager.mLevel.setCameraChase(myHero);
+  game.mManager.mLevel.setArrowKeyControls(myHero, 25);
+  //game.mManager.mWorld.mChaseActor = myHero;
 
-  let Obstacle2 = new Obstacle(game, mainScene, 50, 50, obstImg);
-  Obstacle2.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.KINEMATIC, 200, 200);
+  // let Obstacle1 = new Obstacle(game, mainScene, 25, 25, obstImg);
+  // Obstacle1.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.KINEMATIC, 0, 0);
+  let Obstacle1 = game.mManager.mLevel.makeObstacleAsBox(0, 0, 25, 25, obstImg);
 
-  let Obstacle3 = new Obstacle(game, mainScene, 50, 50, obstImg);
-  Obstacle3.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.KINEMATIC, 75, 25);
+  // let Obstacle2 = new Obstacle(game, mainScene, 50, 50, obstImg);
+  // Obstacle2.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.KINEMATIC, 200, 200);
+  let Obstacle2 = game.mManager.mLevel.makeObstacleAsBox(200, 200, 50, 50, obstImg);
 
-  mainScene.addActor(Obstacle1, 0);
-  mainScene.addActor(Obstacle2, 0);
-  mainScene.addActor(Obstacle3, 0);
+  // let Obstacle3 = new Obstacle(game, mainScene, 50, 50, obstImg);
+  // Obstacle3.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.KINEMATIC, 75, 25);
+  let Obstacle3 = game.mManager.mLevel.makeObstacleAsBox(75, 75, 50, 50, obstImg);
 
-  let zoominBtn = new SceneActor(hud, zoomInImg, 25, 25);
-  let zoomoutBtn = new SceneActor(hud, zoomOutImg, 25, 25);
+  // mainScene.addActor(Obstacle1, 0);
+  // mainScene.addActor(Obstacle2, 0);
+  // mainScene.addActor(Obstacle3, 0);
+
+  let zoominBtn = new SceneActor(game.mManager.mHud, zoomInImg, 25, 25);
+  let zoomoutBtn = new SceneActor(game.mManager.mHud, zoomOutImg, 25, 25);
   zoominBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 50, 10);
   zoomoutBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 10, 10);
 
-  hud.addActor(zoominBtn, 2);
-  hud.addActor(zoomoutBtn, 2);
+  game.mManager.mHud.addActor(zoominBtn, 2);
+  game.mManager.mHud.addActor(zoomoutBtn, 2);
 
-  let upBtn = new SceneActor(hud, upImg, 25, 25);
-  let downBtn = new SceneActor(hud, downImg, 25, 25);
+  let upBtn = new SceneActor(game.mManager.mHud, upImg, 25, 25);
+  let downBtn = new SceneActor(game.mManager.mHud, downImg, 25, 25);
   upBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 400, 380);
   downBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 400, 420);
-  hud.addActor(upBtn, 2);
-  hud.addActor(downBtn, 2);
+  game.mManager.mHud.addActor(upBtn, 2);
+  game.mManager.mHud.addActor(downBtn, 2);
 
-  let leftBtn = new SceneActor(hud, leftImg, 25, 25);
-  let rightBtn = new SceneActor(hud, rightImg, 25, 25);
+  let leftBtn = new SceneActor(game.mManager.mHud, leftImg, 25, 25);
+  let rightBtn = new SceneActor(game.mManager.mHud, rightImg, 25, 25);
   leftBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 380, 400);
   rightBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 420, 400);
-  hud.addActor(leftBtn, 2);
-  hud.addActor(rightBtn, 2);
+  game.mManager.mHud.addActor(leftBtn, 2);
+  game.mManager.mHud.addActor(rightBtn, 2);
 
-  mgr.mContainer.interactive = true;
+  game.mManager.mContainer.interactive = true;
   zoominBtn.mSprite.interactive = true;
   zoomoutBtn.mSprite.interactive = true;
   upBtn.mSprite.interactive = true;
   downBtn.mSprite.interactive = true;
   leftBtn.mSprite.interactive = true;
   rightBtn.mSprite.interactive = true;
-  zoominBtn.mSprite.on('click', () => mgr.mWorld.mCamera.zoomInOut(1.25));
-  zoomoutBtn.mSprite.on('click', () => mgr.mWorld.mCamera.zoomInOut(0.75));
+  zoominBtn.mSprite.on('click', () => game.mManager.mWorld.mCamera.zoomInOut(1.25));
+  zoomoutBtn.mSprite.on('click', () => game.mManager.mWorld.mCamera.zoomInOut(0.75));
   upBtn.mSprite.on('click', () =>   myHero.updateVelocity(0, -speed));
   downBtn.mSprite.on('click', () =>   myHero.updateVelocity(0, speed));
   leftBtn.mSprite.on('click', () =>   myHero.updateVelocity(-speed, 0));
   rightBtn.mSprite.on('click', () =>   myHero.updateVelocity(speed, 0));
-
-  // mgr.mWorld.mWorld.SetContactListener(new (class myContactListener extends PhysicsType2d.Dynamics.ContactListener {
-  //   constructor() {
-  //     super();
-  //   }
-  //   public BeginContact(contact: PhysicsType2d.Dynamics.Contacts.Contact): void {
-  //     console.log("CONTACT!");
-  //   }
-  //   public EndContact(contact: PhysicsType2d.Dynamics.Contacts.Contact): void {
-  //   }
-  //   public PreSolve(contact: PhysicsType2d.Dynamics.Contacts.Contact, oldManifold: PhysicsType2d.Collision.Manifold): void {
-  //   }
-  //   public PostSolve(contact: PhysicsType2d.Dynamics.Contacts.Contact, impulse: PhysicsType2d.Dynamics.ContactImpulse): void {
-  //   }
-  // })());
 
   requestAnimationFrame(() => gameLoop2(game));
 }

@@ -23,7 +23,8 @@ abstract class LolScene {
   /// The physics world in which all actors interact
   readonly mWorld: PhysicsType2d.Dynamics.World;
   /// Anything in the world that can be rendered, in 5 planes [-2, -1, 0, 1, 2]
-  readonly mRenderables: Array<Array<Renderable>>;
+  readonly mRenderables: Array<Renderable>;
+  //TODO: CHANGE THIS TO AN ARRAY OF ARRAYS
 
   // The container to group sprites for rendering
   mContainer: PIXI.Container;
@@ -37,7 +38,7 @@ abstract class LolScene {
   /// This callback is used to get a touched actor from the physics world
   //final mTouchCallback: QueryCallback;
   /// When there is a touch of an actor in the physics world, this is how we find it
-  mHitActor: BaseActor
+  //mHitActor: BaseActor
 
   /// Use this for determining bounds of text boxes
   //private final mGlyphLayout: GlyphLayout;
@@ -47,7 +48,7 @@ abstract class LolScene {
   /// Events that get processed on the next render, then discarded
   readonly mOneTimeEvents: Array<LolAction>;
   /// Events that get processed on every render
-  readonly mRepeatEvents: Array<LolAction>;
+  //readonly mRepeatEvents: ArrayList<LolAction>;
 
   /**
    * Construct a new scene
@@ -80,12 +81,7 @@ abstract class LolScene {
 
     // create a world with no default gravitational forces
     this.mWorld = new PhysicsType2d.Dynamics.World(new PhysicsType2d.Vector2(0, 0));
-
-    // set up the containers for holding anything we can render
-    this.mRenderables = new Array<Array<Renderable>>(5);
-    for (let i = 0; i < 5; ++i) {
-      this.mRenderables[i] = new Array<Renderable>();
-    }
+    this.mRenderables = new Array<Renderable>();
   }
 
   /**
@@ -94,78 +90,17 @@ abstract class LolScene {
    * @param actor  The actor to add
    * @param zIndex The z plane. valid values are -2, -1, 0, 1, and 2. 0 is the default.
    */
-  addActor(actor: Renderable, zIndex: number) {
+  addActor(actor: BaseActor, zIndex: number) {
+    //TODO: change actor to a RENDERABLE type
     // Coerce index into legal range, then add the actor
-    zIndex = (zIndex < -2) ? -2 : zIndex;
-    zIndex = (zIndex > 2) ? 2 : zIndex;
-    this.mRenderables[zIndex+2].push(actor);
+    // zIndex = (zIndex < -2) ? -2 : zIndex;
+    // zIndex = (zIndex > 2) ? 2 : zIndex;
+    // mRenderables.get(zIndex + 2).add(actor);
 
+    this.mRenderables.push(actor);
     this.mContainer.addChild(actor.mSprite);
     this.mCamera.mContainer.addChild(this.mContainer);
   }
-
-  /**
-  * Remove an actor from its z plane
-  *
-  * @param actor  The actor to remove
-  * @param zIndex The z plane where it is expected to be
-  */
-  removeActor(actor: Renderable, zIndex: number): void {
-    // Coerce index into legal range, then remove the actor
-    zIndex = (zIndex < -2) ? -2 : zIndex;
-    zIndex = (zIndex > 2) ? 2 : zIndex;
-    let i = this.mRenderables[zIndex + 2].indexOf(actor);
-    this.mRenderables[zIndex + 2].splice(i, 1);
-  }
-
-  /**
-  * Reset a scene by clearing all of its lists
-  */
-  reset(): void {
-    //this.mTapHandlers.length = 0;
-    this.mOneTimeEvents.length = 0;
-    this.mRepeatEvents.length = 0;
-    for (let a of this.mRenderables) {
-      a.length = 0;
-    }
-  }
-
-  // /**
-  //  * Draw some text in the scene, using a bottom-left coordinate
-  //  *
-  //  * @param x         The x coordinate of the bottom left corner
-  //  * @param y         The y coordinate of the bottom left corner
-  //  * @param fontName  The name of the font to use
-  //  * @param fontColor The color of the font
-  //  * @param fontSize  The size of the font
-  //  * @param prefix    Prefix text to put before the generated text
-  //  * @param suffix    Suffix text to put after the generated text
-  //  * @param tp        A TextProducer that will generate the text to display
-  //  * @param zIndex    The z index of the text
-  //  * @return A Renderable of the text, so it can be enabled/disabled by program code
-  //  */
-  // public addText(x: number, y: number, fontName: string, fontColor: string,
-  //                           fontSize: number, prefix: string, suffix: string,
-  //                           tp: Object, zIndex: number): Renderable {
-  //     // Choose a font color and get the BitmapFont
-  //     //final Color mColor = Color.valueOf(fontColor);
-  //     //final BitmapFont mFont = mMedia.getFont(fontName, fontSize);
-  //     // Create a renderable that updates its text on every render, and add it to the scene
-  //     var superThis = this;
-  //     let d: Renderable = new (class _ extends Renderable {
-  //         //@Override
-  //         onRender(): void {
-  //             //mFont.setColor(mColor);
-  //             //String txt = prefix + tp.makeText() + suffix;
-  //             //renderText(x, y, txt, mFont, sb);
-  //             let txt = prefix + tp.toString() + suffix;
-  //             let newText = new PIXI.Text(txt, {fontFamily: fontName, fontSize: fontSize, fill: 0xffffff, align: 'center'});
-  //             superThis.mContainer.addChild(newText);
-  //         }
-  //     })();
-  //     this.addActor(d, zIndex);
-  //     return d;
-  // }
 
   /**
    * Render this scene

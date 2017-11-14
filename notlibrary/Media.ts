@@ -17,7 +17,7 @@ class Media {
      *
      * @param config The game-wide configuration object, which contains lists of images and sounds
      */
-    constructor(config: Config) {
+    Media(config: Config) {
         // mConfig = config;
         // for (String imgName : config.mImageNames) {
         //     TextureRegion tr = new TextureRegion(new Texture(Gdx.files.internal(imgName)));

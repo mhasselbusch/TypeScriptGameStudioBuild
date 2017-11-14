@@ -4,8 +4,8 @@
 // and the scene it is acting as a camera for
 class Camera {
   mContainer: PIXI.Container;
-  //mScene: LolScene;
-  //mChaseActor: WorldActor;
+  mScene: LolScene;
+  mChaseActor: WorldActor;
   mHeight: number;
   mWidth: number;
 
@@ -28,26 +28,26 @@ class Camera {
     this.mContainer.position.y = y - this.mHeight / 2;
   }
 
-  // updatePosition() {
-  //   this.mContainer.pivot = this.mChaseActor.mSprite.position;
-  //   this.mContainer.position.x = this.mWidth / 2;
-  //   this.mContainer.position.y = this.mHeight / 2;
-  // }
-
-  // setChase(chaseActor: WorldActor) {
-  //   this.mChaseActor = chaseActor;
-  // }
-
-  setZoom(zoom: number) {
-    this.mContainer.scale.set((1 / zoom), (1 / zoom));
+  updatePosition() {
+    this.mContainer.pivot = this.mChaseActor.mSprite.position;
+    this.mContainer.position.x = this.mWidth / 2;
+    this.mContainer.position.y = this.mHeight / 2;
   }
 
-  getZoom(): number {
-    return (1 / this.mContainer.scale.x);
+  setChase(chaseActor: WorldActor) {
+    this.mChaseActor = chaseActor;
+  }
+
+  setZoom(zoom: number) {
+    this.mContainer.scale.set(zoom, zoom);
+  }
+
+  getZoom(): PIXI.Point | PIXI.ObservablePoint {
+    return this.mContainer.scale;
   }
 
   zoomInOut(zoom: number) {
     let z = this.mContainer.scale;
-    this.mContainer.scale.set(z.x * (1 / zoom), z.y * (1 /zoom));
+    this.mContainer.scale.set(z.x * zoom, z.y * zoom);
   }
 }
