@@ -61,7 +61,7 @@ mongodb.MongoClient.connect(database_url, function(err, db) {
 */
 app.post("/compile", function(req, res){
 
-	res.write(req.body);
+	res.write(JSON.stringify(req.body));
 	res.status(200);
 	res.end();
 	/*
