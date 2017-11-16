@@ -62,11 +62,11 @@ mongodb.MongoClient.connect(database_url, function(err, db) {
 app.post("/compile", function(req, res){
 		
 	console.log(req.body);
-	
+
 	if(req.body.email != undefined && req.body.id != undefined){
 		connection.collection('accounts').findOne({
-			user_email : req.body.postData.email,
-			user_id : req.body.postData.id
+			user_email : req.body.email,
+			user_id : req.body.id
 		}, function(err, object){
 
 			//The user exists and we can proceed with the compilation
