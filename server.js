@@ -12,6 +12,7 @@ var app = module.exports = express();
 var mongodb = require('mongodb');
 var bodyParser = require('body-parser');
 const { spawn } = require('child_process');
+var compilation = require('./lib/compilation')
 
 /*============
 
@@ -61,8 +62,6 @@ mongodb.MongoClient.connect(database_url, function(err, db) {
 */
 app.post("/compile", function(req, res){
 		
-	console.log(req.body);
-
 	if(req.body.email != undefined && req.body.id != undefined){
 		connection.collection('accounts').findOne({
 			user_email : req.body.email,
@@ -70,8 +69,8 @@ app.post("/compile", function(req, res){
 		}, function(err, object){
 
 			//The user exists and we can proceed with the compilation
-			if(!err){ 
-				res.write(JSON.stringify(object));
+			if(!err){ 			
+				compilation.execute(fs, spawn);
 				res.status(200);
 				res.end();
 			}
@@ -97,7 +96,7 @@ app.post("/compile", function(req, res){
 	In the future, we will spawn child processes to run tsc on typescript files
 
 ============*/
-
+/*
 const ls = spawn('ls', ['-lh', './']);
 
 ls.stdout.on('data', (data) => {
@@ -112,3 +111,4 @@ ls.stderr.on('data', (data) => {
 ls.on('close', (code) => {
   console.log(`child process exited with code ${code}`);
 });
+*/
