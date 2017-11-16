@@ -63,8 +63,8 @@ app.post("/compile", function(req, res){
 	
 	if(req.body.postData.email != undefined && req.body.postData.id != undefined){
 		connection.collection('accounts').findOne({
-			user_email : req.body.email,
-			user_id : req.body.id
+			user_email : req.body.postData.email,
+			user_id : req.body.postData.id
 		}, function(err, object){
 
 			//The user exists and we can proceed with the compilation
@@ -74,10 +74,16 @@ app.post("/compile", function(req, res){
 				res.end();
 			}
 			else{
+				res.write("invalid");
 				res.status(500);
 				res.end();
 			}
 		});
+	}
+	else{
+		res.status(200);
+		res.write("parameter error");
+		res.end();
 	}
 	
 });
