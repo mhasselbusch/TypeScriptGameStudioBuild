@@ -43,8 +43,8 @@ mongodb.MongoClient.connect(database_url, function(err, db) {
 
 	console.log("We are connected to the database");
 
-	app.listen(process.env.PORT || 5000, function () {
-		console.log("App now running on port", process.env.PORT || 5000);
+	app.listen(5001, function () {
+		console.log("App now running on port", 5001);
 	});
 });
 
@@ -70,7 +70,7 @@ app.post("/compile", function(req, res){
 
 			//The user exists and we can proceed with the compilation
 			if(!err){ 			
-				compilation.execute(fs, spawn);
+				compilation.execute(fs);
 				res.status(200);
 				res.end();
 			}
@@ -88,27 +88,3 @@ app.post("/compile", function(req, res){
 	}
 	
 });
-
-/*============
-	
-	Quick sample spawning of child process to run the ls command.
-
-	In the future, we will spawn child processes to run tsc on typescript files
-
-============*/
-/*
-const ls = spawn('ls', ['-lh', './']);
-
-ls.stdout.on('data', (data) => {
-  console.log(`stdout: ${data}`);
-  str = `stdout: ${data}`;
-});
-
-ls.stderr.on('data', (data) => {
-  console.log(`stderr: ${data}`);
-});
-
-ls.on('close', (code) => {
-  console.log(`child process exited with code ${code}`);
-});
-*/
