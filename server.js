@@ -60,12 +60,8 @@ mongodb.MongoClient.connect(database_url, function(err, db) {
 	Need to send along the email of the user and the content to compile.
 */
 app.post("/compile", function(req, res){
-
-	console.log(req.body.email);
-	console.log(req.body.id);
-
 	
-	if(req.body.email != undefined && req.body.id != undefined){
+	if(req.body.postData.email != undefined && req.body.postData.id != undefined){
 		connection.collection('accounts').findOne({
 			user_email : req.body.email,
 			user_id : req.body.id
