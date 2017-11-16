@@ -22,7 +22,7 @@ class Enemy extends WorldActor {
     /// When the enemy collides with an invincible hero, does it stay alive and damage the hero?
     mAlwaysDoesDamage: boolean;
     /// A callback to run when the enemy is defeated
-    //private mDefeatCallback: LolActorEvent;
+    private mDefeatCallback: LolActorEvent;
 
     /**
      * Create a basic Enemy.  The enemy won't yet have any physics attached to it.
@@ -112,23 +112,24 @@ class Enemy extends WorldActor {
     //     mOnDefeatHeroText = message;
     // }
     //
-    // /**
-    //  * When an enemy is defeated, this this code figures out how gameplay should change.
-    //  *
-    //  * @param increaseScore Indicate if we should increase the score when this enemy is defeated
-    //  */
-    // public void defeat(boolean increaseScore) {
-    //     // remove the enemy from the screen
-    //     remove(false);
-    //
-    //     // possibly update score
-    //     if (increaseScore)
-    //         mGame.mManager.onDefeatEnemy();
-    //
-    //     // run any defeat callbacks
-    //     if (mDefeatCallback != null)
-    //         mDefeatCallback.go(this);
-    // }
+    /**
+     * When an enemy is defeated, this this code figures out how gameplay should change.
+     *
+     * @param increaseScore Indicate if we should increase the score when this enemy is defeated
+     */
+    public defeat(increaseScore: boolean): void {
+        // remove the enemy from the screen
+        this.remove(false);
+
+        // possibly update score
+        if (increaseScore) {
+            this.mGame.mManager.onDefeatEnemy();
+
+        }
+        // run any defeat callbacks
+        if (this.mDefeatCallback != null)
+            this.mDefeatCallback.go(this);
+    }
     //
     // /**
     //  * Indicate that this enemy can be defeated by crawling into it

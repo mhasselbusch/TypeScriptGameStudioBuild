@@ -15,51 +15,51 @@
     /// The default screen height (note: it will be stretched to fill the phone screen)
     public mHeight: number; //int
     /// Should the phone vibrate on certain events?
-    protected mEnableVibration: boolean;
+    /* protected */ mEnableVibration: boolean;
 
     /// The game title.  This only matters in Desktop mode.
-    public mGameTitle: String;
+    public mGameTitle: string;
     /// Default text to display when a level is won
-    protected mDefaultWinText: String;
+    /* protected */ mDefaultWinText: string;
     /// Default text to display when a level is lost
-    protected mDefaultLoseText: String;
+    /* protected */ mDefaultLoseText: string;
 
     /// When this is true, the game will show an outline corresponding to the physics body behind
     /// each WorldActor
-    protected mShowDebugBoxes: boolean;
+    /* protected */ mShowDebugBoxes: boolean;
 
     /// Total number of levels. This helps the transition when a level is won
-    protected mNumLevels: number; //int
+    /* protected */ mNumLevels: number; //int
     /// Should the level chooser be activated?
-    protected mEnableChooser: boolean;
+    /* protected */ mEnableChooser: boolean;
     /// Should all levels be unlocked?
-    protected mUnlockAllLevels: boolean;
+    /* protected */ mUnlockAllLevels: boolean;
 
     /// A per-game string, to use for storing information on an Android device
-    protected mStorageKey: String;
+    /* protected */ mStorageKey: string;
 
     /// The default font face to use when writing text to the screen
-    protected mDefaultFontFace: String;
+    /* protected */ mDefaultFontFace: string;
     /// Default font size
-    protected mDefaultFontSize: number; //int
+    /* protected */ mDefaultFontSize: number; //int
     /// Default font color, as #RRGGBB value
-    protected mDefaultFontColor: String;
+    /* protected */ mDefaultFontColor: string;
 
     /// The list of image files that will be used by the game
-    protected mImageNames: Array<String>;
+    /* protected */ mImageNames: Array<string>;
     /// The list of audio files that will be used as sound effects by the game
-    protected mSoundNames: Array<String>;
+    /* protected */ mSoundNames: Array<string>;
     /// The list of audio files that will be used as (looping) background music by the game
-    protected mMusicNames: Array<String>;
+    /* protected */ mMusicNames: Array<string>;
 
     /// An object to draw the main levels of the game
-    protected mLevels: ScreenManager;
+    /* protected */ mLevels: ScreenManager;
     /// An object to draw the level chooser
-    protected mChooser: ScreenManager;
+    /* protected */ mChooser: ScreenManager;
     /// An object to draw the help screens
-    protected mHelp: ScreenManager;
+    /* protected */ mHelp: ScreenManager;
     /// An object to draw the opening "splash" screen
-    protected mSplash: ScreenManager;
+    /* protected */ mSplash: ScreenManager;
     /// An object to draw the store screens
-    protected mStore: ScreenManager;
+    /* protected */ mStore: ScreenManager;
 }
