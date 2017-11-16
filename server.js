@@ -61,6 +61,10 @@ mongodb.MongoClient.connect(database_url, function(err, db) {
 */
 app.post("/compile", function(req, res){
 
+	res.write("Success");
+	res.status(200);
+	res.end();
+	/*
 	if(req.body.email != undefined && req.body.id != undefined){
 		connection.collection('accounts').findOne({
 			user_email : req.body.email,
@@ -79,6 +83,7 @@ app.post("/compile", function(req, res){
 			}
 		});
 	}
+	*/
 });
 
 /*============
