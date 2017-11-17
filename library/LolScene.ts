@@ -100,7 +100,8 @@ abstract class LolScene {
     zIndex = (zIndex > 2) ? 2 : zIndex;
     this.mRenderables[zIndex+2].push(actor);
 
-    this.mContainer.addChild(actor.mSprite);
+    if(actor.mSprite) this.mContainer.addChild(actor.mSprite);
+    if(actor.mText) this.mContainer.addChild(actor.mText);
     this.mCamera.mContainer.addChild(this.mContainer);
   }
 
@@ -166,6 +167,39 @@ abstract class LolScene {
   //     this.addActor(d, zIndex);
   //     return d;
   // }
+
+  /**
+   * Draw some text in the scene, using a bottom-left coordinate
+   *
+   * @param x         The x coordinate of the bottom left corner
+   * @param y         The y coordinate of the bottom left corner
+   * @param fontName  The name of the font to use
+   * @param fontColor The color of the font
+   * @param fontSize  The size of the font
+   * @param text      Text to put on screen
+   * @param zIndex    The z index of the text
+   * @return A Renderable of the text, so it can be enabled/disabled by program code
+   */
+  public addStaticText(x: number, y: number, fontName: string, fontColor: number,
+                fontSize: number, text: string, zIndex: number): Renderable {
+
+      // Create a renderable that updates its text on every render, and add it to the scene
+      let d: Renderable = new (class _ extends Renderable {
+          //@Override
+          onRender(): void {
+              // let newText = new PIXI.Text("Hello Darkness My Old Friend", {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
+              // newText.position.x = x;
+              // newText.position.y = y;
+              // this.mText = newText;
+          }
+      })();
+      let newText = new PIXI.Text(text, {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
+      d.mText = newText;
+      d.mText.position.x = x;
+      d.mText.position.y = y;
+      this.addActor(d, zIndex);
+      return d;
+  }
 
   /**
    * Render this scene

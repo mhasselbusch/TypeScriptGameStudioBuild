@@ -392,26 +392,27 @@ class MainScene extends LolScene {
     let x: number = this.mChaseActor.mBody.GetWorldCenter().x + this.mChaseActor.mCameraOffset.x;
     let y: number = this.mChaseActor.mBody.GetWorldCenter().y + this.mChaseActor.mCameraOffset.y;
 
-    // if x or y is too close to MAX,MAX, stick with max acceptable values
-    if (x > this.mCamBound.x - this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-      x = this.mCamBound.x - this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-    }
-    if (y > this.mCamBound.y - this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-      y = this.mCamBound.y - this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-    }
-    // if x or y is too close to 0,0, stick with minimum acceptable values
-    //
-    // NB: we do MAX before MIN, so that if we're zoomed out, we show extra
-    // space at the top instead of the bottom
-    if (x < this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-      x = this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-    }
-    if (y < this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-      y = this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-    }
+    // // if x or y is too close to MAX,MAX, stick with max acceptable values
+    // if (x > this.mCamBound.x - this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
+    //   x = this.mCamBound.x - this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
+    // }
+    // if (y > this.mCamBound.y - this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
+    //   y = this.mCamBound.y - this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
+    // }
+    // // if x or y is too close to 0,0, stick with minimum acceptable values
+    // //
+    // // NB: we do MAX before MIN, so that if we're zoomed out, we show extra
+    // // space at the top instead of the bottom
+    // if (x < this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
+    //   x = this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
+    // }
+    // if (y < this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
+    //   y = this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
+    // }
 
     // update the camera position
-    this.mCamera.setPosition(x, y);
+    this.mCamera.centerOn(x, y);
+    this.mCamera.setPosition(this.mConfig.mWidth/2, this.mConfig.mHeight/2);
   }
 
   // /**

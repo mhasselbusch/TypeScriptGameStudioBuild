@@ -12,6 +12,9 @@ abstract class Renderable {
   /// The Sprite used for rendering
   mSprite: PIXI.Sprite;
 
+  /// The text used for rendering
+  mText: PIXI.Text;
+
   /**
   * Specify whether this Renderable object is enabled or disabled.  When it is disabled, it
   * effectively does not exist in the game.

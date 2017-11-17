@@ -1,4 +1,4 @@
-
+//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
 
 /**
 * Level provides a broad, public, declarative interface to the core functionality of LibLOL.
@@ -384,16 +384,16 @@ class Level {
   //     public void loseLevel() {
   //       mGame.mManager.endLevel(false);
   //     }
-  //
-  //     /**
-  //     * Change the gravity in a running level
-  //     *
-  //     * @param newXGravity The new X gravity
-  //     * @param newYGravity The new Y gravity
-  //     */
-  //     public void resetGravity(float newXGravity, float newYGravity) {
-  //       mGame.mManager.mWorld.mWorld.setGravity(new Vector2(newXGravity, newYGravity));
-  //     }
+
+  /**
+  * Change the gravity in a running level
+  *
+  * @param newXGravity The new X gravity
+  * @param newYGravity The new Y gravity
+  */
+  public resetGravity(newXGravity: number, newYGravity: number): void {
+    this.mGame.mManager.mWorld.mWorld.SetGravity(new PhysicsType2d.Vector2(newXGravity, newYGravity));
+  }
   //
   //     /**
   //     * Turn on accelerometer support so that tilt can control actors in this level
@@ -682,29 +682,29 @@ class Level {
   //         public void setStopwatch(float newVal) {
   //           this.mGame.mManager.mStopWatchProgress = newVal;
   //         }
-  //
-  //         /**
-  //         * Add a button that pauses the game (via a single tap) by causing a PauseScene to be
-  //         * displayed. Note that you must configure a PauseScene, or pressing this button will cause your
-  //         * game to crash.
-  //         *
-  //         * @param x       The X coordinate of the bottom left corner (in pixels)
-  //         * @param y       The Y coordinate of the bottom left corner (in pixels)
-  //         * @param width   The width of the image
-  //         * @param height  The height of the image
-  //         * @param imgName The name of the image to display. Use "" for an invisible button
-  //         * @param action  The action to run in response to a tap
-  //         */
-  //         public SceneActor addTapControl(float x, float y, float width, float height, String imgName,
-  //           final TouchEventHandler action) {
-  //             SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-  //             c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-  //             c.mTapHandler = action;
-  //             action.mSource = c;
-  //             mGame.mManager.mHud.addActor(c, 0);
-  //             return c;
-  //           }
-  //
+
+  /**
+  * Add a button that performs an action when clicked.
+  *
+  * @param x       The X coordinate of the bottom left corner (in pixels)
+  * @param y       The Y coordinate of the bottom left corner (in pixels)
+  * @param width   The width of the image
+  * @param height  The height of the image
+  * @param imgName The name of the image to display. Use "" for an invisible button
+  * @param action  The action to run in response to a tap
+  */
+  public addTapControl(x: number, y: number, width: number, height: number,
+    imgName: string, action: LolAction): SceneActor {
+      let c: SceneActor = new SceneActor(this.mGame.mManager.mHud, imgName, width, height);
+      c.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y);
+      //c.mTapHandler = action;
+      //action.mSource = c;
+      c.mSprite.interactive = true;
+      c.mSprite.on('click', () => action.go());
+      this.mGame.mManager.mHud.addActor(c, 0);
+      return c;
+  }
+
   //           /**
   //           * An action to pause the game.  This action can be used as the action taken on a Control tap.
   //           */
@@ -1226,24 +1226,24 @@ class Level {
   //                                 mGame.mManager.mHud.addActor(c, 0);
   //                                 return c;
   //                               }
-  //
-  //                               /**
-  //                               * Add an image to the heads-up display. Touching the image has no effect
-  //                               *
-  //                               * @param x       The X coordinate of the bottom left corner (in pixels)
-  //                               * @param y       The Y coordinate of the bottom left corner (in pixels)
-  //                               * @param width   The width of the image
-  //                               * @param height  The height of the image
-  //                               * @param imgName The name of the image to display. Use "" for an invisible button
-  //                               * @return The image that was created
-  //                               */
-  //                               public SceneActor addImage(int x, int y, int width, int height, String imgName) {
-  //                                 final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-  //                                 c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-  //                                 mGame.mManager.mHud.addActor(c, 0);
-  //                                 return c;
-  //                               }
-  //
+
+  /**
+  * Add an image to the heads-up display. Touching the image has no effect
+  *
+  * @param x       The X coordinate of the bottom left corner (in pixels)
+  * @param y       The Y coordinate of the bottom left corner (in pixels)
+  * @param width   The width of the image
+  * @param height  The height of the image
+  * @param imgName The name of the image to display. Use "" for an invisible button
+  * @return The image that was created
+  */
+  public addImage(x: number, y: number, width: number, height: number, imgName: string): SceneActor {
+    let c: SceneActor = new SceneActor(this.mGame.mManager.mHud, imgName, width, height);
+    c.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y);
+    this.mGame.mManager.mHud.addActor(c, 0);
+    return c;
+  }
+
   //                               /**
   //                               * Add a control with callbacks for down, up, and pan
   //                               *
@@ -1428,7 +1428,16 @@ class Level {
   //                                 public void setBackgroundColor(String color) {
   //                                   mGame.mManager.mBackground.mColor = Color.valueOf(color);
   //                                 }
-  //
+
+  /**
+  * Set the background color for the current level
+  *
+  * @param color The color, formatted as a hex number
+  */
+  public setBackgroundColor(color: number) {
+    //this.mGame.mRenderer = PIXI.autoDetectRenderer(this.mConfig.mWidth, this.mConfig.mHeight, {backgroundColor: color});
+  }
+
   //                                 /**
   //                                 * Add a picture that may repeat in the X dimension
   //                                 *
@@ -1626,24 +1635,24 @@ class Level {
   //                                                         public QuickScene getWinScene() {
   //                                                           return mGame.mManager.mWinScene;
   //                                                         }
-  //
-  //                                                         /**
-  //                                                         * Make an enemy that has an underlying rectangular shape.
-  //                                                         *
-  //                                                         * @param x       The X coordinate of the bottom left corner
-  //                                                         * @param y       The Y coordinate of the bottom right corner
-  //                                                         * @param width   The width of the enemy
-  //                                                         * @param height  The height of the enemy
-  //                                                         * @param imgName The name of the image to display
-  //                                                         * @return The enemy, so that it can be modified further
-  //                                                         */
-  //                                                         public Enemy makeEnemyAsBox(float x, float y, float width, float height, String imgName) {
-  //                                                           Enemy e = new Enemy(mGame, mGame.mManager.mWorld, width, height, imgName);
-  //                                                           mGame.mManager.mEnemiesCreated++;
-  //                                                           e.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-  //                                                           mGame.mManager.mWorld.addActor(e, 0);
-  //                                                           return e;
-  //                                                         }
+
+  /**
+  * Make an enemy that has an underlying rectangular shape.
+  *
+  * @param x       The X coordinate of the bottom left corner
+  * @param y       The Y coordinate of the bottom right corner
+  * @param width   The width of the enemy
+  * @param height  The height of the enemy
+  * @param imgName The name of the image to display
+  * @return The enemy, so that it can be modified further
+  */
+  public makeEnemyAsBox(x: number, y: number, width: number, height: number, imgName: string): Enemy {
+    let e: Enemy = new Enemy(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+    this.mGame.mManager.mEnemiesCreated++;
+    e.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y);
+    this.mGame.mManager.mWorld.addActor(e, 0);
+    return e;
+  }
   //
   //                                                         /**
   //                                                         * Draw an enemy with an underlying polygon shape
@@ -1685,25 +1694,25 @@ class Level {
   //                                                             return e;
   //                                                           }
   //
-  //                                                           /**
-  //                                                           * Make a destination that has an underlying rectangular shape.
-  //                                                           *
-  //                                                           * @param x       The X coordinate of the bottom left corner
-  //                                                           * @param y       The Y coordinate of the bottom right corner
-  //                                                           * @param width   The width of the destination
-  //                                                           * @param height  The height of the destination
-  //                                                           * @param imgName The name of the image to display
-  //                                                           * @return The destination, so that it can be modified further
-  //                                                           */
-  //                                                           public Destination makeDestinationAsBox(float x, float y, float width, float height,
-  //                                                             String imgName) {
-  //                                                               Destination d = new Destination(mGame, mGame.mManager.mWorld, width, height, imgName);
-  //                                                               d.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-  //                                                               d.setCollisionsEnabled(false);
-  //                                                               mGame.mManager.mWorld.addActor(d, 0);
-  //                                                               return d;
-  //                                                             }
-  //
+  /**
+  * Make a destination that has an underlying rectangular shape.
+  *
+  * @param x       The X coordinate of the bottom left corner
+  * @param y       The Y coordinate of the bottom right corner
+  * @param width   The width of the destination
+  * @param height  The height of the destination
+  * @param imgName The name of the image to display
+  * @return The destination, so that it can be modified further
+  */
+  public makeDestinationAsBox(x: number, y: number, width: number,
+    height: number, imgName: string): Destination {
+      let d: Destination = new Destination(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+      d.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y);
+      d.setCollisionsEnabled(false);
+      this.mGame.mManager.mWorld.addActor(d, 0);
+      return d;
+    }
+
   //                                                             /**
   //                                                             * Draw a destination with an underlying polygon shape
   //                                                             *
@@ -2121,67 +2130,83 @@ class Level {
   //                                                                                 public boolean getVolume() {
   //                                                                                   return getGameFact("volume", 1) == 1;
   //                                                                                 }
-  //
-  //                                                                                 /**
-  //                                                                                 * Draw a picture on the current level
-  //                                                                                 * <p>
-  //                                                                                 * Note: the order in which this is called relative to other actors will determine whether they
-  //                                                                                 * go under or over this picture.
-  //                                                                                 *
-  //                                                                                 * @param x       X coordinate of bottom left corner
-  //                                                                                 * @param y       Y coordinate of bottom left corner
-  //                                                                                 * @param width   Width of the picture
-  //                                                                                 * @param height  Height of this picture
-  //                                                                                 * @param imgName Name of the picture to display
-  //                                                                                 * @param zIndex  The z index of the image. There are 5 planes: -2, -2, 0, 1, and 2. By default,
-  //                                                                                 *                everything goes to plane 0
-  //                                                                                 */
-  //                                                                                 public void drawPicture(final float x, final float y, final float width, final float height,
-  //                                                                                   final String imgName, int zIndex) {
-  //                                                                                     mGame.mManager.mWorld.makePicture(x, y, width, height, imgName, zIndex);
-  //                                                                                   }
-  //
-  //                                                                                   /**
-  //                                                                                   * Draw some text in the scene, using a bottom-left coordinate
-  //                                                                                   *
-  //                                                                                   * @param x         The x coordinate of the bottom left corner
-  //                                                                                   * @param y         The y coordinate of the bottom left corner
-  //                                                                                   * @param fontName  The name of the font to use
-  //                                                                                   * @param fontColor The color of the font
-  //                                                                                   * @param fontSize  The size of the font
-  //                                                                                   * @param prefix    Prefix text to put before the generated text
-  //                                                                                   * @param suffix    Suffix text to put after the generated text
-  //                                                                                   * @param tp        A TextProducer that will generate the text to display
-  //                                                                                   * @param zIndex    The z index of the text
-  //                                                                                   * @return A Renderable of the text, so it can be enabled/disabled by program code
-  //                                                                                   */
-  //                                                                                   public Renderable addText(float x, float y, String fontName, String fontColor, int fontSize,
-  //                                                                                     String prefix, String suffix, TextProducer tp, int zIndex) {
-  //                                                                                       return mGame.mManager.mWorld.addText(x, y, fontName, fontColor, fontSize, prefix, suffix,
-  //                                                                                         tp, zIndex);
-  //                                                                                       }
-  //
-  //                                                                                       /**
-  //                                                                                       * Draw some text in the scene, centering it on a specific point
-  //                                                                                       *
-  //                                                                                       * @param centerX   The x coordinate of the center
-  //                                                                                       * @param centerY   The y coordinate of the center
-  //                                                                                       * @param fontName  The name of the font to use
-  //                                                                                       * @param fontColor The color of the font
-  //                                                                                       * @param fontSize  The size of the font
-  //                                                                                       * @param prefix    Prefix text to put before the generated text
-  //                                                                                       * @param suffix    Suffix text to put after the generated text
-  //                                                                                       * @param tp        A TextProducer that will generate the text to display
-  //                                                                                       * @param zIndex    The z index of the text
-  //                                                                                       * @return A Renderable of the text, so it can be enabled/disabled by program code
-  //                                                                                       */
-  //                                                                                       public Renderable addTextCentered(float centerX, float centerY, String fontName,
-  //                                                                                         String fontColor, int fontSize, String prefix, String suffix,
-  //                                                                                         TextProducer tp, int zIndex) {
-  //                                                                                           return mGame.mManager.mWorld.addTextCentered(centerX, centerY, fontName, fontColor,
-  //                                                                                             fontSize, prefix, suffix, tp, zIndex);
-  //                                                                                           }
-  //
+
+  // /**
+  // * Draw a picture on the current level
+  // * <p>
+  // * Note: the order in which this is called relative to other actors will determine whether they
+  // * go under or over this picture.
+  // *
+  // * @param x       X coordinate of bottom left corner
+  // * @param y       Y coordinate of bottom left corner
+  // * @param width   Width of the picture
+  // * @param height  Height of this picture
+  // * @param imgName Name of the picture to display
+  // * @param zIndex  The z index of the image. There are 5 planes: -2, -2, 0, 1, and 2. By default,
+  // *                everything goes to plane 0
+  // */
+  // public void drawPicture(final float x, final float y, final float width, final float height,
+  //   final String imgName, int zIndex) {
+  //     mGame.mManager.mWorld.makePicture(x, y, width, height, imgName, zIndex);
+  //   }
+
+  // /**
+  // * Draw some text in the scene, using a bottom-left coordinate
+  // *
+  // * @param x         The x coordinate of the bottom left corner
+  // * @param y         The y coordinate of the bottom left corner
+  // * @param fontName  The name of the font to use
+  // * @param fontColor The color of the font
+  // * @param fontSize  The size of the font
+  // * @param prefix    Prefix text to put before the generated text
+  // * @param suffix    Suffix text to put after the generated text
+  // * @param tp        A TextProducer that will generate the text to display
+  // * @param zIndex    The z index of the text
+  // * @return A Renderable of the text, so it can be enabled/disabled by program code
+  // */
+  // public Renderable addText(float x, float y, String fontName, String fontColor, int fontSize,
+  //   String prefix, String suffix, TextProducer tp, int zIndex) {
+  //     return mGame.mManager.mWorld.addText(x, y, fontName, fontColor, fontSize, prefix, suffix,
+  //       tp, zIndex);
+  //     }
+
+  /**
+  * Draw some text in the scene, using a bottom-left coordinate
+  *
+  * @param x         The x coordinate of the bottom left corner
+  * @param y         The y coordinate of the bottom left corner
+  * @param fontName  The name of the font to use
+  * @param fontColor The color of the font
+  * @param fontSize  The size of the font
+  * @param text      Text text to put before the generated text
+  * @param zIndex    The z index of the text
+  * @return A Renderable of the text, so it can be enabled/disabled by program code
+  */
+  public addStaticText(x: number, y: number, fontName: string, fontColor: number, fontSize: number, text: string, zIndex: number): Renderable {
+      return this.mGame.mManager.mWorld.addStaticText(x, y, fontName, fontColor, fontSize, text, zIndex);
+      }
+
+  // /**
+  // * Draw some text in the scene, centering it on a specific point
+  // *
+  // * @param centerX   The x coordinate of the center
+  // * @param centerY   The y coordinate of the center
+  // * @param fontName  The name of the font to use
+  // * @param fontColor The color of the font
+  // * @param fontSize  The size of the font
+  // * @param prefix    Prefix text to put before the generated text
+  // * @param suffix    Suffix text to put after the generated text
+  // * @param tp        A TextProducer that will generate the text to display
+  // * @param zIndex    The z index of the text
+  // * @return A Renderable of the text, so it can be enabled/disabled by program code
+  // */
+  // public Renderable addTextCentered(float centerX, float centerY, String fontName,
+  //   String fontColor, int fontSize, String prefix, String suffix,
+  //   TextProducer tp, int zIndex) {
+  //     return mGame.mManager.mWorld.addTextCentered(centerX, centerY, fontName, fontColor,
+  //       fontSize, prefix, suffix, tp, zIndex);
+  //     }
+
   //                                                                                           /**
   //                                                                                           * Generate a random number x in the range [0,max)
   //                                                                                           *
@@ -2199,42 +2224,42 @@ class Level {
   //                                                                                           public boolean getUnlockMode() {
   //                                                                                             return mConfig.mUnlockAllLevels;
   //                                                                                           }
-  //
-  //                                                                                           /**
-  //                                                                                           * load the splash screen
-  //                                                                                           */
-  //                                                                                           public void doSplash() {
-  //                                                                                             mGame.mManager.doSplash();
-  //                                                                                           }
-  //
-  //                                                                                           /**
-  //                                                                                           * load the level-chooser screen. Note that when the chooser is disabled, we jump straight to
-  //                                                                                           * level 1.
-  //                                                                                           *
-  //                                                                                           * @param whichChooser The chooser screen to create
-  //                                                                                           */
-  //                                                                                           public void doChooser(int whichChooser) {
-  //                                                                                             mGame.mManager.doChooser(whichChooser);
-  //                                                                                           }
-  //
-  //                                                                                           /**
-  //                                                                                           * load a playable level.
-  //                                                                                           *
-  //                                                                                           * @param which The index of the level to load
-  //                                                                                           */
-  //                                                                                           public void doLevel(int which) {
-  //                                                                                             mGame.mManager.doPlay(which);
-  //                                                                                           }
-  //
-  //                                                                                           /**
-  //                                                                                           * load a help level.
-  //                                                                                           *
-  //                                                                                           * @param which The index of the help level to load
-  //                                                                                           */
-  //                                                                                           public void doHelp(int which) {
-  //                                                                                             mGame.mManager.doHelp(which);
-  //                                                                                           }
-  //
+
+  /**
+  * load the splash screen
+  */
+  public doSplash(): void {
+    this.mGame.mManager.doSplash();
+  }
+
+  /**
+  * load the level-chooser screen. Note that when the chooser is disabled, we jump straight to
+  * level 1.
+  *
+  * @param whichChooser The chooser screen to create
+  */
+  public doChooser(whichChooser: number) {
+    this.mGame.mManager.doChooser(whichChooser);
+  }
+
+  /**
+  * load a playable level.
+  *
+  * @param which The index of the level to load
+  */
+  public doLevel(which: number) {
+    this.mGame.mManager.doPlay(which);
+  }
+
+  /**
+  * load a help level.
+  *
+  * @param which The index of the help level to load
+  */
+  public doHelp(which: number) {
+    this.mGame.mManager.doHelp(which);
+  }
+
   //                                                                                           /**
   //                                                                                           * load a screen of the store.
   //                                                                                           *

@@ -51,7 +51,12 @@ class BaseActor extends Renderable {
     this.mZIndex = 0;
     this.mInfoText = "";
 
-    this.mSprite = new PIXI.Sprite(PIXI.loader.resources[imgName].texture);
+    if (imgName === "") {
+      this.mSprite = new PIXI.Sprite();
+      this.mSprite.texture = PIXI.Texture.EMPTY;
+    } else {
+      this.mSprite = PIXI.Sprite.fromImage(imgName);
+    }
     this.mSprite.width = this.mSize.x;
     this.mSprite.height = this.mSize.y;
     this.mSprite.anchor.x = 0.5;
@@ -249,9 +254,11 @@ class BaseActor extends Renderable {
   setCollisionsEnabled(state: boolean): void {
     // The default is for all fixtures of a actor have the same sensor state
     let fixtures = this.mBody.GetFixtures();
-    do {
+
+    while(fixtures.MoveNext()) {
       fixtures.Current().SetSensor(!state);
-    } while(fixtures.MoveNext());
+    }
+    
     fixtures.Reset();
   }
 

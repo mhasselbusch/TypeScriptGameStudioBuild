@@ -4,8 +4,8 @@
 /// <reference path="./LolScene.ts"/>
 /// <reference path="./Lol.ts"/>
 /// <reference path="./Obstacle.ts"/>
-/// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-/// <reference types="pixi.js"/>
+//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
+//// <reference types="pixi.js"/>
 
 let heroImg = "./images/OrangeBox.png";
 let obstImg = "./images/BlueBox.png"

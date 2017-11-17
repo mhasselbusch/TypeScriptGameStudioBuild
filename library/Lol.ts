@@ -42,10 +42,14 @@ class Lol {
       //if (getGameFact(mConfig, "volume", 1) == 1)
       //    putGameFact(mConfig, "volume", 1);
 
+      // this.mConfig.mImageNames.forEach( (e) => {
+      //   PIXI.loader.add(e);
+      // } );
+      // PIXI.loader.load();
 
       // Create the level manager, and instruct it to transition to the Splash screen
       this.mManager = new LolManager(this.mConfig, this.mMedia, this);
-      //this.mManager.doSplash();
+      this.mManager.doSplash();
   }
 
   /**
@@ -55,6 +59,7 @@ class Lol {
    */
   render() {
     this.mManager.mWorld.mWorld.Step(1/45, 8, 3);
+    this.mManager.mWorld.adjustCamera();
     //this.mManager.mWorld.mCamera.updatePosition();
     this.mManager.mWorld.render();
     this.mManager.mHud.render();

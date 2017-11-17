@@ -70,7 +70,13 @@ class BaseActor extends Renderable {
         this.mSize = new PhysicsType2d.Vector2(width, height);
         this.mZIndex = 0;
         this.mInfoText = "";
-        this.mSprite = new PIXI.Sprite(PIXI.loader.resources[imgName].texture);
+        if (imgName === "") {
+            this.mSprite = new PIXI.Sprite();
+            this.mSprite.texture = PIXI.Texture.EMPTY;
+        }
+        else {
+            this.mSprite = PIXI.Sprite.fromImage(imgName);
+        }
         this.mSprite.width = this.mSize.x;
         this.mSprite.height = this.mSize.y;
         this.mSprite.anchor.x = 0.5;
@@ -245,9 +251,9 @@ class BaseActor extends Renderable {
     setCollisionsEnabled(state) {
         // The default is for all fixtures of a actor have the same sensor state
         let fixtures = this.mBody.GetFixtures();
-        do {
+        while (fixtures.MoveNext()) {
             fixtures.Current().SetSensor(!state);
-        } while (fixtures.MoveNext());
+        }
         fixtures.Reset();
     }
     /**
@@ -747,8 +753,12 @@ class Camera {
     //   this.mContainer.addChild(scene.mContainer);
     // }
     setPosition(x, y) {
-        this.mContainer.position.x = x - this.mWidth / 2;
-        this.mContainer.position.y = y - this.mHeight / 2;
+        this.mContainer.position.x = x; // - this.mWidth / 2;
+        this.mContainer.position.y = y; // - this.mHeight / 2;
+    }
+    centerOn(x, y) {
+        this.mContainer.pivot.x = x; // - this.mWidth / 2;
+        this.mContainer.pivot.y = y; // - this.mHeight / 2;
     }
     // updatePosition() {
     //   this.mContainer.pivot = this.mChaseActor.mSprite.position;
@@ -773,6 +783,7 @@ class Camera {
 //// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
 //// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
 // <reference types="pixi.js"/>
+//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
 /**
 * Level provides a broad, public, declarative interface to the core functionality of LibLOL.
 * <p>
@@ -1129,16 +1140,15 @@ class Level {
     //     public void loseLevel() {
     //       mGame.mManager.endLevel(false);
     //     }
-    //
-    //     /**
-    //     * Change the gravity in a running level
-    //     *
-    //     * @param newXGravity The new X gravity
-    //     * @param newYGravity The new Y gravity
-    //     */
-    //     public void resetGravity(float newXGravity, float newYGravity) {
-    //       mGame.mManager.mWorld.mWorld.setGravity(new Vector2(newXGravity, newYGravity));
-    //     }
+    /**
+    * Change the gravity in a running level
+    *
+    * @param newXGravity The new X gravity
+    * @param newYGravity The new Y gravity
+    */
+    resetGravity(newXGravity, newYGravity) {
+        this.mGame.mManager.mWorld.mWorld.SetGravity(new PhysicsType2d.Vector2(newXGravity, newYGravity));
+    }
     //
     //     /**
     //     * Turn on accelerometer support so that tilt can control actors in this level
@@ -1427,29 +1437,26 @@ class Level {
     //         public void setStopwatch(float newVal) {
     //           this.mGame.mManager.mStopWatchProgress = newVal;
     //         }
-    //
-    //         /**
-    //         * Add a button that pauses the game (via a single tap) by causing a PauseScene to be
-    //         * displayed. Note that you must configure a PauseScene, or pressing this button will cause your
-    //         * game to crash.
-    //         *
-    //         * @param x       The X coordinate of the bottom left corner (in pixels)
-    //         * @param y       The Y coordinate of the bottom left corner (in pixels)
-    //         * @param width   The width of the image
-    //         * @param height  The height of the image
-    //         * @param imgName The name of the image to display. Use "" for an invisible button
-    //         * @param action  The action to run in response to a tap
-    //         */
-    //         public SceneActor addTapControl(float x, float y, float width, float height, String imgName,
-    //           final TouchEventHandler action) {
-    //             SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-    //             c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-    //             c.mTapHandler = action;
-    //             action.mSource = c;
-    //             mGame.mManager.mHud.addActor(c, 0);
-    //             return c;
-    //           }
-    //
+    /**
+    * Add a button that performs an action when clicked.
+    *
+    * @param x       The X coordinate of the bottom left corner (in pixels)
+    * @param y       The Y coordinate of the bottom left corner (in pixels)
+    * @param width   The width of the image
+    * @param height  The height of the image
+    * @param imgName The name of the image to display. Use "" for an invisible button
+    * @param action  The action to run in response to a tap
+    */
+    addTapControl(x, y, width, height, imgName, action) {
+        let c = new SceneActor(this.mGame.mManager.mHud, imgName, width, height);
+        c.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y);
+        //c.mTapHandler = action;
+        //action.mSource = c;
+        c.mSprite.interactive = true;
+        c.mSprite.on('click', () => action.go());
+        this.mGame.mManager.mHud.addActor(c, 0);
+        return c;
+    }
     //           /**
     //           * An action to pause the game.  This action can be used as the action taken on a Control tap.
     //           */
@@ -1689,16 +1696,16 @@ class Level {
         };
         document.onkeyup = (e) => {
             if (e.key == "ArrowUp") {
-                actor.mBody.SetLinearDamping(5);
+                actor.updateVelocity(actor.mBody.GetLinearVelocity().x, 0);
             }
             else if (e.key == "ArrowDown") {
-                actor.mBody.SetLinearDamping(5);
+                actor.updateVelocity(actor.mBody.GetLinearVelocity().x, 0);
             }
             else if (e.key == "ArrowLeft") {
-                actor.mBody.SetLinearDamping(5);
+                actor.updateVelocity(0, actor.mBody.GetLinearVelocity().y);
             }
             else if (e.key == "ArrowRight") {
-                actor.mBody.SetLinearDamping(5);
+                actor.updateVelocity(0, actor.mBody.GetLinearVelocity().y);
             }
         };
     }
@@ -1962,24 +1969,22 @@ class Level {
     //                                 mGame.mManager.mHud.addActor(c, 0);
     //                                 return c;
     //                               }
-    //
-    //                               /**
-    //                               * Add an image to the heads-up display. Touching the image has no effect
-    //                               *
-    //                               * @param x       The X coordinate of the bottom left corner (in pixels)
-    //                               * @param y       The Y coordinate of the bottom left corner (in pixels)
-    //                               * @param width   The width of the image
-    //                               * @param height  The height of the image
-    //                               * @param imgName The name of the image to display. Use "" for an invisible button
-    //                               * @return The image that was created
-    //                               */
-    //                               public SceneActor addImage(int x, int y, int width, int height, String imgName) {
-    //                                 final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-    //                                 c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-    //                                 mGame.mManager.mHud.addActor(c, 0);
-    //                                 return c;
-    //                               }
-    //
+    /**
+    * Add an image to the heads-up display. Touching the image has no effect
+    *
+    * @param x       The X coordinate of the bottom left corner (in pixels)
+    * @param y       The Y coordinate of the bottom left corner (in pixels)
+    * @param width   The width of the image
+    * @param height  The height of the image
+    * @param imgName The name of the image to display. Use "" for an invisible button
+    * @return The image that was created
+    */
+    addImage(x, y, width, height, imgName) {
+        let c = new SceneActor(this.mGame.mManager.mHud, imgName, width, height);
+        c.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y);
+        this.mGame.mManager.mHud.addActor(c, 0);
+        return c;
+    }
     //                               /**
     //                               * Add a control with callbacks for down, up, and pan
     //                               *
@@ -2164,7 +2169,14 @@ class Level {
     //                                 public void setBackgroundColor(String color) {
     //                                   mGame.mManager.mBackground.mColor = Color.valueOf(color);
     //                                 }
-    //
+    /**
+    * Set the background color for the current level
+    *
+    * @param color The color, formatted as a hex number
+    */
+    setBackgroundColor(color) {
+        //this.mGame.mRenderer = PIXI.autoDetectRenderer(this.mConfig.mWidth, this.mConfig.mHeight, {backgroundColor: color});
+    }
     //                                 /**
     //                                 * Add a picture that may repeat in the X dimension
     //                                 *
@@ -2362,24 +2374,23 @@ class Level {
     //                                                         public QuickScene getWinScene() {
     //                                                           return mGame.mManager.mWinScene;
     //                                                         }
-    //
-    //                                                         /**
-    //                                                         * Make an enemy that has an underlying rectangular shape.
-    //                                                         *
-    //                                                         * @param x       The X coordinate of the bottom left corner
-    //                                                         * @param y       The Y coordinate of the bottom right corner
-    //                                                         * @param width   The width of the enemy
-    //                                                         * @param height  The height of the enemy
-    //                                                         * @param imgName The name of the image to display
-    //                                                         * @return The enemy, so that it can be modified further
-    //                                                         */
-    //                                                         public Enemy makeEnemyAsBox(float x, float y, float width, float height, String imgName) {
-    //                                                           Enemy e = new Enemy(mGame, mGame.mManager.mWorld, width, height, imgName);
-    //                                                           mGame.mManager.mEnemiesCreated++;
-    //                                                           e.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-    //                                                           mGame.mManager.mWorld.addActor(e, 0);
-    //                                                           return e;
-    //                                                         }
+    /**
+    * Make an enemy that has an underlying rectangular shape.
+    *
+    * @param x       The X coordinate of the bottom left corner
+    * @param y       The Y coordinate of the bottom right corner
+    * @param width   The width of the enemy
+    * @param height  The height of the enemy
+    * @param imgName The name of the image to display
+    * @return The enemy, so that it can be modified further
+    */
+    makeEnemyAsBox(x, y, width, height, imgName) {
+        let e = new Enemy(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+        this.mGame.mManager.mEnemiesCreated++;
+        e.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y);
+        this.mGame.mManager.mWorld.addActor(e, 0);
+        return e;
+    }
     //
     //                                                         /**
     //                                                         * Draw an enemy with an underlying polygon shape
@@ -2421,25 +2432,23 @@ class Level {
     //                                                             return e;
     //                                                           }
     //
-    //                                                           /**
-    //                                                           * Make a destination that has an underlying rectangular shape.
-    //                                                           *
-    //                                                           * @param x       The X coordinate of the bottom left corner
-    //                                                           * @param y       The Y coordinate of the bottom right corner
-    //                                                           * @param width   The width of the destination
-    //                                                           * @param height  The height of the destination
-    //                                                           * @param imgName The name of the image to display
-    //                                                           * @return The destination, so that it can be modified further
-    //                                                           */
-    //                                                           public Destination makeDestinationAsBox(float x, float y, float width, float height,
-    //                                                             String imgName) {
-    //                                                               Destination d = new Destination(mGame, mGame.mManager.mWorld, width, height, imgName);
-    //                                                               d.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-    //                                                               d.setCollisionsEnabled(false);
-    //                                                               mGame.mManager.mWorld.addActor(d, 0);
-    //                                                               return d;
-    //                                                             }
-    //
+    /**
+    * Make a destination that has an underlying rectangular shape.
+    *
+    * @param x       The X coordinate of the bottom left corner
+    * @param y       The Y coordinate of the bottom right corner
+    * @param width   The width of the destination
+    * @param height  The height of the destination
+    * @param imgName The name of the image to display
+    * @return The destination, so that it can be modified further
+    */
+    makeDestinationAsBox(x, y, width, height, imgName) {
+        let d = new Destination(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+        d.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y);
+        d.setCollisionsEnabled(false);
+        this.mGame.mManager.mWorld.addActor(d, 0);
+        return d;
+    }
     //                                                             /**
     //                                                             * Draw a destination with an underlying polygon shape
     //                                                             *
@@ -2612,15 +2621,378 @@ class Level {
         this.mGame.mManager.mWorld.addActor(h, 0);
         return h;
     }
+    // /**
+    // * Make a Hero with an underlying circular shape
+    // *
+    // * @param x       X coordinate of the hero
+    // * @param y       Y coordinate of the hero
+    // * @param width   width of the hero
+    // * @param height  height of the hero
+    // * @param imgName File name of the default image to display
+    // * @return The hero that was created
+    // */
+    // public Hero makeHeroAsCircle(float x, float y, float width, float height, String imgName) {
+    //   float radius = Math.max(width, height);
+    //   Hero h = new Hero(mGame, mGame.mManager.mWorld, width, height, imgName);
+    //   mGame.mManager.mHeroesCreated++;
+    //   h.setCirclePhysics(BodyDef.BodyType.DynamicBody, x, y, radius / 2);
+    //   mGame.mManager.mWorld.addActor(h, 0);
+    //   return h;
+    // }
+    // /**
+    // * Draw a hero with an underlying polygon shape
+    // *
+    // * @param x       X coordinate of the bottom left corner
+    // * @param y       Y coordinate of the bottom left corner
+    // * @param width   Width of the obstacle
+    // * @param height  Height of the obstacle
+    // * @param imgName Name of image file to use
+    // * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
+    // *                x0,y0,x1,y1,x2,y2,...
+    // * @return The hero, so that it can be further modified
+    // */
+    // public Hero makeHeroAsPolygon(float x, float y, float width, float height, String imgName,
+    //   float... verts) {
+    //     Hero h = new Hero(mGame, mGame.mManager.mWorld, width, height, imgName);
+    //     mGame.mManager.mHeroesCreated++;
+    //     h.setPolygonPhysics(BodyDef.BodyType.StaticBody, x, y, verts);
+    //     mGame.mManager.mWorld.addActor(h, 0);
+    //     return h;
+    //   }
+    //                                                                         /**
+    //                                                                         * Specify a limit on how far away from the Hero a projectile can go.  Without this, projectiles
+    //                                                                         * could keep on traveling forever.
+    //                                                                         *
+    //                                                                         * @param distance Maximum distance from the hero that a projectile can travel
+    //                                                                         */
+    //                                                                         public void setProjectileRange(float distance) {
+    //                                                                           for (Projectile p : mGame.mManager.mWorld.mProjectilePool.mPool)
+    //                                                                           p.mRange = distance;
+    //                                                                         }
+    //
+    //                                                                         /**
+    //                                                                         * Indicate that projectiles should feel the effects of gravity. Otherwise, they will be (more
+    //                                                                         * or less) immune to gravitational forces.
+    //                                                                         */
+    //                                                                         public void setProjectileGravityOn() {
+    //                                                                           for (Projectile p : mGame.mManager.mWorld.mProjectilePool.mPool)
+    //                                                                           p.mBody.setGravityScale(1);
+    //                                                                         }
+    //
+    //                                                                         /**
+    //                                                                         * Specify the image file from which to randomly choose projectile images
+    //                                                                         *
+    //                                                                         * @param imgName The file to use when picking images
+    //                                                                         */
+    //                                                                         // TODO: this is probably broken now that we removed Animatable images
+    //                                                                         public void setProjectileImageSource(String imgName) {
+    //                                                                           for (Projectile p : mGame.mManager.mWorld.mProjectilePool.mPool)
+    //                                                                           p.mAnimator.updateImage(mGame.mMedia, imgName);
+    //                                                                           mGame.mManager.mWorld.mProjectilePool.mRandomizeImages = true;
+    //                                                                         }
+    //
+    //                                                                         /**
+    //                                                                         * The "directional projectile" mechanism might lead to the projectiles moving too fast. This
+    //                                                                         * will cause the speed to be multiplied by a factor
+    //                                                                         *
+    //                                                                         * @param factor The value to multiply against the projectile speed.
+    //                                                                         */
+    //                                                                         public void setProjectileVectorDampeningFactor(float factor) {
+    //                                                                           mGame.mManager.mWorld.mProjectilePool.mDirectionalDamp = factor;
+    //                                                                         }
+    //
+    //                                                                         /**
+    //                                                                         * Indicate that all projectiles should participate in collisions, rather than disappearing when
+    //                                                                         * they collide with other actors
+    //                                                                         */
+    //                                                                         public void enableCollisionsForProjectiles() {
+    //                                                                           mGame.mManager.mWorld.mProjectilePool.mSensorProjectiles = false;
+    //                                                                         }
+    //
+    //                                                                         /**
+    //                                                                         * Indicate that projectiles thrown with the "directional" mechanism should have a fixed
+    //                                                                         * velocity
+    //                                                                         *
+    //                                                                         * @param velocity The magnitude of the velocity for projectiles
+    //                                                                         */
+    //                                                                         public void setFixedVectorThrowVelocityForProjectiles(float velocity) {
+    //                                                                           mGame.mManager.mWorld.mProjectilePool.mEnableFixedVectorVelocity = true;
+    //                                                                           mGame.mManager.mWorld.mProjectilePool.mFixedVectorVelocity = velocity;
+    //                                                                         }
+    //
+    //                                                                         /**
+    //                                                                         * Indicate that projectiles thrown via the "directional" mechanism should be rotated to face in
+    //                                                                         * their direction or movement
+    //                                                                         */
+    //                                                                         public void setRotateVectorThrowForProjectiles() {
+    //                                                                           mGame.mManager.mWorld.mProjectilePool.mRotateVectorThrow = true;
+    //                                                                         }
+    //
+    //                                                                         /**
+    //                                                                         * Indicate that when two projectiles collide, they should both remain on screen
+    //                                                                         */
+    //                                                                         public void setCollisionOkForProjectiles() {
+    //                                                                           for (Projectile p : mGame.mManager.mWorld.mProjectilePool.mPool)
+    //                                                                           p.mDisappearOnCollide = false;
+    //                                                                         }
+    //
+    //                                                                         /**
+    //                                                                         * Describe the behavior of projectiles in a scene. You must call this if you intend to use
+    //                                                                         * projectiles in your scene.
+    //                                                                         *
+    //                                                                         * @param size     number of projectiles that can be thrown at once
+    //                                                                         * @param width    width of a projectile
+    //                                                                         * @param height   height of a projectile
+    //                                                                         * @param imgName  image to use for projectiles
+    //                                                                         * @param strength specifies the amount of damage that a projectile does to an enemy
+    //                                                                         * @param zIndex   The z plane on which the projectiles should be drawn
+    //                                                                         * @param isCircle Should projectiles have an underlying circle or box shape?
+    //                                                                         */
+    //                                                                         public void configureProjectiles(int size, float width, float height, String imgName,
+    //                                                                           int strength, int zIndex, boolean isCircle) {
+    //                                                                             mGame.mManager.mWorld.mProjectilePool = new ProjectilePool(mGame, mGame.mManager.mWorld,
+    //                                                                               size, width, height, imgName, strength, zIndex, isCircle);
+    //                                                                             }
+    //
+    //                                                                             /**
+    //                                                                             * Set a limit on the total number of projectiles that can be thrown
+    //                                                                             *
+    //                                                                             * @param number How many projectiles are available
+    //                                                                             */
+    //                                                                             public void setNumberOfProjectiles(int number) {
+    //                                                                               mGame.mManager.mWorld.mProjectilePool.mProjectilesRemaining = number;
+    //                                                                             }
+    //
+    //                                                                             /**
+    //                                                                             * Specify a sound to play when the projectile is thrown
+    //                                                                             *
+    //                                                                             * @param soundName Name of the sound file to play
+    //                                                                             */
+    //                                                                             public void setThrowSound(String soundName) {
+    //                                                                               mGame.mManager.mWorld.mProjectilePool.mThrowSound = mMedia.getSound(soundName);
+    //                                                                             }
+    //
+    //                                                                             /**
+    //                                                                             * Specify the sound to play when a projectile disappears
+    //                                                                             *
+    //                                                                             * @param soundName the name of the sound file to play
+    //                                                                             */
+    //                                                                             public void setProjectileDisappearSound(String soundName) {
+    //                                                                               mGame.mManager.mWorld.mProjectilePool.mProjectileDisappearSound =
+    //                                                                               mMedia.getSound(soundName);
+    //                                                                             }
+    //
+    //                                                                             /**
+    //                                                                             * Specify how projectiles should be animated
+    //                                                                             *
+    //                                                                             * @param animation The animation object to use for each projectile that is thrown
+    //                                                                             */
+    //                                                                             public void setProjectileAnimation(Animation animation) {
+    //                                                                               for (Projectile p : mGame.mManager.mWorld.mProjectilePool.mPool)
+    //                                                                               p.setDefaultAnimation(animation);
+    //                                                                             }
+    //
+    //                                                                             /**
+    //                                                                             * Draw a box on the scene
+    //                                                                             * <p>
+    //                                                                             * Note: the box is actually four narrow rectangles
+    //                                                                             *
+    //                                                                             * @param x0         X coordinate of top left corner
+    //                                                                             * @param y0         Y coordinate of top left corner
+    //                                                                             * @param x1         X coordinate of bottom right corner
+    //                                                                             * @param y1         Y coordinate of bottom right corner
+    //                                                                             * @param imgName    name of the image file to use when drawing the rectangles
+    //                                                                             * @param density    Density of the rectangle. When in doubt, use 1
+    //                                                                             * @param elasticity Elasticity of the rectangle. When in doubt, use 0
+    //                                                                             * @param friction   Friction of the rectangle. When in doubt, use 1
+    //                                                                             */
+    //                                                                             public void drawBoundingBox(float x0, float y0, float x1, float y1, String imgName,
+    //                                                                               float density, float elasticity, float friction) {
+    //                                                                                 Obstacle bottom = makeObstacleAsBox(x0 - 1, y0 - 1, Math.abs(x0 - x1) + 2, 1, imgName);
+    //                                                                                 bottom.setPhysics(density, elasticity, friction);
+    //
+    //                                                                                 Obstacle top = makeObstacleAsBox(x0 - 1, y1, Math.abs(x0 - x1) + 2, 1, imgName);
+    //                                                                                 top.setPhysics(density, elasticity, friction);
+    //
+    //                                                                                 Obstacle left = makeObstacleAsBox(x0 - 1, y0 - 1, 1, Math.abs(y0 - y1) + 2, imgName);
+    //                                                                                 left.setPhysics(density, elasticity, friction);
+    //
+    //                                                                                 Obstacle right = makeObstacleAsBox(x1, y0 - 1, 1, Math.abs(y0 - y1) + 2, imgName);
+    //                                                                                 right.setPhysics(density, elasticity, friction);
+    //                                                                               }
+    //
+    //                                                                               /**
+    //                                                                               * Load an SVG line drawing generated from Inkscape. The SVG will be loaded as a bunch of
+    //                                                                               * Obstacles. Note that not all Inkscape drawings will work as expected... if you need more
+    //                                                                               * power than this provides, you'll have to modify Svg.java
+    //                                                                               *
+    //                                                                               * @param svgName    Name of the svg file to load. It should be in the assets folder
+    //                                                                               * @param stretchX   Stretch the drawing in the X dimension by this percentage
+    //                                                                               * @param stretchY   Stretch the drawing in the Y dimension by this percentage
+    //                                                                               * @param transposeX Shift the drawing in the X dimension. NB: shifting occurs after stretching
+    //                                                                               * @param transposeY Shift the drawing in the Y dimension. NB: shifting occurs after stretching
+    //                                                                               * @param callback   A callback for customizing each (obstacle) line segment of the SVG
+    //                                                                               */
+    //                                                                               public void importLineDrawing(String svgName, float stretchX, float stretchY,
+    //                                                                                 float transposeX, float transposeY, LolActorEvent callback) {
+    //                                                                                   // Create an SVG object to hold all the parameters, then use it to parse the file
+    //                                                                                   Svg s = new Svg(this, stretchX, stretchY, transposeX, transposeY, callback);
+    //                                                                                   s.parse(svgName);
+    //                                                                                 }
+    //
+    //                                                                                 /**
+    //                                                                                 * Use this to manage the state of Mute
+    //                                                                                 */
+    //                                                                                 public void toggleMute() {
+    //                                                                                   // volume is either 1 or 0
+    //                                                                                   if (getGameFact("volume", 1) == 1) {
+    //                                                                                     // set volume to 0, set image to 'unmute'
+    //                                                                                     putGameFact("volume", 0);
+    //                                                                                   } else {
+    //                                                                                     // set volume to 1, set image to 'mute'
+    //                                                                                     putGameFact("volume", 1);
+    //                                                                                   }
+    //                                                                                   // update all music
+    //                                                                                   mMedia.resetMusicVolume();
+    //                                                                                 }
+    //
+    //                                                                                 /**
+    //                                                                                 * Use this to determine if the game is muted or not. True corresponds to not muted, false
+    //                                                                                 * corresponds to muted.
+    //                                                                                 */
+    //                                                                                 public boolean getVolume() {
+    //                                                                                   return getGameFact("volume", 1) == 1;
+    //                                                                                 }
+    // /**
+    // * Draw a picture on the current level
+    // * <p>
+    // * Note: the order in which this is called relative to other actors will determine whether they
+    // * go under or over this picture.
+    // *
+    // * @param x       X coordinate of bottom left corner
+    // * @param y       Y coordinate of bottom left corner
+    // * @param width   Width of the picture
+    // * @param height  Height of this picture
+    // * @param imgName Name of the picture to display
+    // * @param zIndex  The z index of the image. There are 5 planes: -2, -2, 0, 1, and 2. By default,
+    // *                everything goes to plane 0
+    // */
+    // public void drawPicture(final float x, final float y, final float width, final float height,
+    //   final String imgName, int zIndex) {
+    //     mGame.mManager.mWorld.makePicture(x, y, width, height, imgName, zIndex);
+    //   }
+    // /**
+    // * Draw some text in the scene, using a bottom-left coordinate
+    // *
+    // * @param x         The x coordinate of the bottom left corner
+    // * @param y         The y coordinate of the bottom left corner
+    // * @param fontName  The name of the font to use
+    // * @param fontColor The color of the font
+    // * @param fontSize  The size of the font
+    // * @param prefix    Prefix text to put before the generated text
+    // * @param suffix    Suffix text to put after the generated text
+    // * @param tp        A TextProducer that will generate the text to display
+    // * @param zIndex    The z index of the text
+    // * @return A Renderable of the text, so it can be enabled/disabled by program code
+    // */
+    // public Renderable addText(float x, float y, String fontName, String fontColor, int fontSize,
+    //   String prefix, String suffix, TextProducer tp, int zIndex) {
+    //     return mGame.mManager.mWorld.addText(x, y, fontName, fontColor, fontSize, prefix, suffix,
+    //       tp, zIndex);
+    //     }
+    /**
+    * Draw some text in the scene, using a bottom-left coordinate
+    *
+    * @param x         The x coordinate of the bottom left corner
+    * @param y         The y coordinate of the bottom left corner
+    * @param fontName  The name of the font to use
+    * @param fontColor The color of the font
+    * @param fontSize  The size of the font
+    * @param text      Text text to put before the generated text
+    * @param zIndex    The z index of the text
+    * @return A Renderable of the text, so it can be enabled/disabled by program code
+    */
+    addStaticText(x, y, fontName, fontColor, fontSize, text, zIndex) {
+        return this.mGame.mManager.mWorld.addStaticText(x, y, fontName, fontColor, fontSize, text, zIndex);
+    }
+    // /**
+    // * Draw some text in the scene, centering it on a specific point
+    // *
+    // * @param centerX   The x coordinate of the center
+    // * @param centerY   The y coordinate of the center
+    // * @param fontName  The name of the font to use
+    // * @param fontColor The color of the font
+    // * @param fontSize  The size of the font
+    // * @param prefix    Prefix text to put before the generated text
+    // * @param suffix    Suffix text to put after the generated text
+    // * @param tp        A TextProducer that will generate the text to display
+    // * @param zIndex    The z index of the text
+    // * @return A Renderable of the text, so it can be enabled/disabled by program code
+    // */
+    // public Renderable addTextCentered(float centerX, float centerY, String fontName,
+    //   String fontColor, int fontSize, String prefix, String suffix,
+    //   TextProducer tp, int zIndex) {
+    //     return mGame.mManager.mWorld.addTextCentered(centerX, centerY, fontName, fontColor,
+    //       fontSize, prefix, suffix, tp, zIndex);
+    //     }
+    //                                                                                           /**
+    //                                                                                           * Generate a random number x in the range [0,max)
+    //                                                                                           *
+    //                                                                                           * @param max The largest number returned will be one less than max
+    //                                                                                           * @return a random integer
+    //                                                                                           */
+    //                                                                                           public int getRandom(int max) {
+    //                                                                                             return mGame.mManager.mWorld.mGenerator.nextInt(max);
+    //                                                                                           }
+    //
+    //                                                                                           /**
+    //                                                                                           * Report whether all levels should be treated as unlocked. This is useful in Chooser, where we
+    //                                                                                           * might need to prevent some levels from being played.
+    //                                                                                           */
+    //                                                                                           public boolean getUnlockMode() {
+    //                                                                                             return mConfig.mUnlockAllLevels;
+    //                                                                                           }
+    /**
+    * load the splash screen
+    */
+    doSplash() {
+        this.mGame.mManager.doSplash();
+    }
+    /**
+    * load the level-chooser screen. Note that when the chooser is disabled, we jump straight to
+    * level 1.
+    *
+    * @param whichChooser The chooser screen to create
+    */
+    doChooser(whichChooser) {
+        this.mGame.mManager.doChooser(whichChooser);
+    }
+    /**
+    * load a playable level.
+    *
+    * @param which The index of the level to load
+    */
+    doLevel(which) {
+        this.mGame.mManager.doPlay(which);
+    }
+    /**
+    * load a help level.
+    *
+    * @param which The index of the help level to load
+    */
+    doHelp(which) {
+        this.mGame.mManager.doHelp(which);
+    }
 }
 /// <reference path="./Level.ts"/>
 /// <reference path="./ScreenManager.ts"/>
 /**
- * Config stores game-specific configuration values.
- * <p>
- * A programmer should extend Config, and change these values in their class constructor.
- */
+* Config stores game-specific configuration values.
+* <p>
+* A programmer should extend Config, and change these values in their class constructor.
+*/
 class Config {
+    constructor() { }
 }
 /**
  * TouchEventHandler is a wrapper for code that ought to run in response to a touch event.
@@ -2741,6 +3113,9 @@ class Destination extends WorldActor {
         this.mCapacity = 1;
         this.mHolding = 0;
         this.mActivation = new Array(4);
+        for (let i = 0; i < 4; i++) {
+            this.mActivation[i] = 0;
+        }
     }
     /**
      * Code to run when a Destination collides with a WorldActor.
@@ -3003,7 +3378,10 @@ class LolScene {
         zIndex = (zIndex < -2) ? -2 : zIndex;
         zIndex = (zIndex > 2) ? 2 : zIndex;
         this.mRenderables[zIndex + 2].push(actor);
-        this.mContainer.addChild(actor.mSprite);
+        if (actor.mSprite)
+            this.mContainer.addChild(actor.mSprite);
+        if (actor.mText)
+            this.mContainer.addChild(actor.mText);
         this.mCamera.mContainer.addChild(this.mContainer);
     }
     /**
@@ -3029,6 +3407,72 @@ class LolScene {
         for (let a of this.mRenderables) {
             a.length = 0;
         }
+    }
+    // /**
+    //  * Draw some text in the scene, using a bottom-left coordinate
+    //  *
+    //  * @param x         The x coordinate of the bottom left corner
+    //  * @param y         The y coordinate of the bottom left corner
+    //  * @param fontName  The name of the font to use
+    //  * @param fontColor The color of the font
+    //  * @param fontSize  The size of the font
+    //  * @param prefix    Prefix text to put before the generated text
+    //  * @param suffix    Suffix text to put after the generated text
+    //  * @param tp        A TextProducer that will generate the text to display
+    //  * @param zIndex    The z index of the text
+    //  * @return A Renderable of the text, so it can be enabled/disabled by program code
+    //  */
+    // public addText(x: number, y: number, fontName: string, fontColor: string,
+    //                           fontSize: number, prefix: string, suffix: string,
+    //                           tp: Object, zIndex: number): Renderable {
+    //     // Choose a font color and get the BitmapFont
+    //     //final Color mColor = Color.valueOf(fontColor);
+    //     //final BitmapFont mFont = mMedia.getFont(fontName, fontSize);
+    //     // Create a renderable that updates its text on every render, and add it to the scene
+    //     var superThis = this;
+    //     let d: Renderable = new (class _ extends Renderable {
+    //         //@Override
+    //         onRender(): void {
+    //             //mFont.setColor(mColor);
+    //             //String txt = prefix + tp.makeText() + suffix;
+    //             //renderText(x, y, txt, mFont, sb);
+    //             let txt = prefix + tp.toString() + suffix;
+    //             let newText = new PIXI.Text(txt, {fontFamily: fontName, fontSize: fontSize, fill: 0xffffff, align: 'center'});
+    //             superThis.mContainer.addChild(newText);
+    //         }
+    //     })();
+    //     this.addActor(d, zIndex);
+    //     return d;
+    // }
+    /**
+     * Draw some text in the scene, using a bottom-left coordinate
+     *
+     * @param x         The x coordinate of the bottom left corner
+     * @param y         The y coordinate of the bottom left corner
+     * @param fontName  The name of the font to use
+     * @param fontColor The color of the font
+     * @param fontSize  The size of the font
+     * @param text      Text to put on screen
+     * @param zIndex    The z index of the text
+     * @return A Renderable of the text, so it can be enabled/disabled by program code
+     */
+    addStaticText(x, y, fontName, fontColor, fontSize, text, zIndex) {
+        // Create a renderable that updates its text on every render, and add it to the scene
+        let d = new (class _ extends Renderable {
+            //@Override
+            onRender() {
+                // let newText = new PIXI.Text("Hello Darkness My Old Friend", {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
+                // newText.position.x = x;
+                // newText.position.y = y;
+                // this.mText = newText;
+            }
+        })();
+        let newText = new PIXI.Text(text, { fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center' });
+        d.mText = newText;
+        d.mText.position.x = x;
+        d.mText.position.y = y;
+        this.addActor(d, zIndex);
+        return d;
     }
 }
 /// <reference path="./Config.ts"/>
@@ -3454,25 +3898,26 @@ class MainScene extends LolScene {
         // figure out the actor's position
         let x = this.mChaseActor.mBody.GetWorldCenter().x + this.mChaseActor.mCameraOffset.x;
         let y = this.mChaseActor.mBody.GetWorldCenter().y + this.mChaseActor.mCameraOffset.y;
-        // if x or y is too close to MAX,MAX, stick with max acceptable values
-        if (x > this.mCamBound.x - this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-            x = this.mCamBound.x - this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-        }
-        if (y > this.mCamBound.y - this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-            y = this.mCamBound.y - this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-        }
-        // if x or y is too close to 0,0, stick with minimum acceptable values
-        //
-        // NB: we do MAX before MIN, so that if we're zoomed out, we show extra
-        // space at the top instead of the bottom
-        if (x < this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-            x = this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-        }
-        if (y < this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-            y = this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-        }
+        // // if x or y is too close to MAX,MAX, stick with max acceptable values
+        // if (x > this.mCamBound.x - this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
+        //   x = this.mCamBound.x - this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
+        // }
+        // if (y > this.mCamBound.y - this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
+        //   y = this.mCamBound.y - this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
+        // }
+        // // if x or y is too close to 0,0, stick with minimum acceptable values
+        // //
+        // // NB: we do MAX before MIN, so that if we're zoomed out, we show extra
+        // // space at the top instead of the bottom
+        // if (x < this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
+        //   x = this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
+        // }
+        // if (y < this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
+        //   y = this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
+        // }
         // update the camera position
-        this.mCamera.setPosition(x, y);
+        this.mCamera.centerOn(x, y);
+        this.mCamera.setPosition(this.mConfig.mWidth / 2, this.mConfig.mHeight / 2);
     }
     // /**
     // * Respond to a fling gesture
@@ -3883,11 +4328,6 @@ class LolManager {
         for (let i = 0; i < 5; ++i)
             this.mModeStates[i] = 1;
         this.resetScores();
-        // this.mWorld = world;
-        // if (hud) this.mHud = hud;
-        this.mContainer = new PIXI.Container();
-        this.mContainer.addChild(this.mWorld.mCamera.mContainer);
-        this.mContainer.addChild(this.mHud.mCamera.mContainer);
         //
         // this.mGoodiesCollected = new Array<number>();
     }
@@ -3926,21 +4366,25 @@ class LolManager {
         //this.mBackground = new ParallaxScene(this.mConfig);
         //this.mForeground = new ParallaxScene(this.mConfig);
         // the win/lose/pre/pause scenes are a little bit complicated
-        this.mWinScene = new QuickScene(this.mConfig, this.mMedia, this.mConfig.mDefaultWinText);
-        let out_this = this;
-        this.mWinScene.setDismissAction(new (class _ extends LolAction {
-            //@Override
-            go() {
-                out_this.advanceLevel();
-            }
-        })());
-        this.mLoseScene = new QuickScene(this.mConfig, this.mMedia, this.mConfig.mDefaultLoseText);
-        this.mLoseScene.setDismissAction(new (class _ extends LolAction {
-            //@Override
-            go() {
-                out_this.repeatLevel();
-            }
-        })());
+        // this.mWinScene = new QuickScene(this.mConfig, this.mMedia, this.mConfig.mDefaultWinText);
+        // let out_this = this;
+        // this.mWinScene.setDismissAction(new (class _ extends LolAction {
+        //   //@Override
+        //   public go(): void {
+        //     out_this.doChooser(1);
+        //   }
+        // })());
+        // this.mLoseScene = new QuickScene(this.mConfig, this.mMedia, this.mConfig.mDefaultLoseText);
+        // this.mLoseScene.setDismissAction(new (class _ extends LolAction {
+        //   //@Override
+        //   public go(): void {
+        //     out_this.repeatLevel();
+        //   }
+        // })());
+        this.mContainer = new PIXI.Container();
+        this.mContainer.addChild(this.mWorld.mCamera.mContainer);
+        this.mContainer.addChild(this.mHud.mCamera.mContainer);
+        //this.mWorld.mContainer.addChild(new PIXI.Text("Hello", {fontFamily: "Arial", fontSize: 24, fill: 0x0000FF, align: 'center'}));
         // this.mPreScene = new QuickScene(this.mConfig, this.mMedia, "");
         // this.mPreScene.setShowAction(null);
         // this.mPauseScene = new QuickScene(this.mConfig, this.mMedia, "");
@@ -4045,6 +4489,24 @@ class LolManager {
         this.mConfig.mHelp.display(index, this.mLevel);
     }
     /**
+    * Load a lose scene
+    *
+    * @param index The index of the help level to load
+    */
+    doLose(index) {
+        this.onScreenChange();
+        this.mConfig.mLose.display(index, this.mLevel);
+    }
+    /**
+    * Load a win scene
+    *
+    * @param index The index of the help level to load
+    */
+    doWin(index) {
+        this.onScreenChange();
+        this.mConfig.mWin.display(index, this.mLevel);
+    }
+    /**
     * Load a screen of the store.
     *
     * @param index The index of the help level to load
@@ -4109,6 +4571,7 @@ class LolManager {
         // check if the level is complete
         this.mDestinationArrivals++;
         if ((this.mVictoryType == VictoryType.DESTINATION) && (this.mDestinationArrivals >= this.mVictoryHeroCount)) {
+            console.log("Win");
             this.endLevel(true);
         }
     }
@@ -4140,42 +4603,49 @@ class LolManager {
     * @param win true if the level was won, false otherwise
     */
     endLevel(win) {
-        if (this.mEndGameEvent == null) {
-            let out_this = this;
-            this.mEndGameEvent = new (class _ extends LolAction {
-                //@Override
-                go() {
-                    // Safeguard: only call this method once per level
-                    if (out_this.mGameOver) {
-                        return;
-                    }
-                    out_this.mGameOver = true;
-                    // Run the level-complete callback
-                    if (win && out_this.mWinCallback != null) {
-                        out_this.mWinCallback.go();
-                    }
-                    else if (!win && out_this.mLoseCallback != null) {
-                        out_this.mLoseCallback.go();
-                    }
-                    // if we won, unlock the next level
-                    // if (win){
-                    //   out_this.mGame.mManager.unlockNext();
-                    // }
-                    // drop everything from the hud
-                    out_this.mGame.mManager.mHud.reset();
-                    //TODO: clear setInterval calls or create a timer class
-                    // clear any pending timers
-                    //PhysicsType2d.Timer.clear();
-                    // display the PostScene before we retry/start the next level
-                    if (win) {
-                        out_this.mGame.mManager.mWinScene.show();
-                    }
-                    else {
-                        out_this.mGame.mManager.mLoseScene.show();
-                    }
-                }
-            })();
+        if (win) {
+            this.doWin(this.mModeStates[this.PLAY]);
         }
+        else {
+            this.doLose(this.mModeStates[this.PLAY]);
+        }
+        // if (this.mEndGameEvent == null) {
+        //   let out_this = this;
+        //   this.mEndGameEvent = new (class _ extends LolAction {
+        //     //@Override
+        //     public go(): void {
+        //       // Safeguard: only call this method once per level
+        //       if (out_this.mGameOver){
+        //         return;
+        //       }
+        //       out_this.mGameOver = true;
+        //
+        //       // Run the level-complete callback
+        //       if (win && out_this.mWinCallback != null){
+        //         out_this.mWinCallback.go();
+        //       } else if (!win && out_this.mLoseCallback != null){
+        //         out_this.mLoseCallback.go();
+        //       }
+        //       // if we won, unlock the next level
+        //       // if (win){
+        //       //   out_this.mGame.mManager.unlockNext();
+        //       // }
+        //       // drop everything from the hud
+        //       out_this.mGame.mManager.mHud.reset();
+        //
+        //       //TODO: clear setInterval calls or create a timer class
+        //       // clear any pending timers
+        //       //PhysicsType2d.Timer.clear();
+        //
+        //       // display the PostScene before we retry/start the next level
+        //       if (win) {
+        //         out_this.mGame.mManager.mWinScene.show();
+        //       } else {
+        //         out_this.mGame.mManager.mLoseScene.show();
+        //       }
+        //     }
+        //   })();
+        //}
     }
     /**
     * Update all timer counters associated with the current level
@@ -4238,9 +4708,13 @@ class Lol {
         // configure the volume
         //if (getGameFact(mConfig, "volume", 1) == 1)
         //    putGameFact(mConfig, "volume", 1);
+        // this.mConfig.mImageNames.forEach( (e) => {
+        //   PIXI.loader.add(e);
+        // } );
+        // PIXI.loader.load();
         // Create the level manager, and instruct it to transition to the Splash screen
         this.mManager = new LolManager(this.mConfig, this.mMedia, this);
-        //this.mManager.doSplash();
+        this.mManager.doSplash();
     }
     /**
      * This code is called every 1/45th of a second to update the game state and re-draw the screen
@@ -4249,6 +4723,7 @@ class Lol {
      */
     render() {
         this.mManager.mWorld.mWorld.Step(1 / 45, 8, 3);
+        this.mManager.mWorld.adjustCamera();
         //this.mManager.mWorld.mCamera.updatePosition();
         this.mManager.mWorld.render();
         this.mManager.mHud.render();
@@ -4313,7 +4788,7 @@ class Obstacle extends WorldActor {
 /// <reference path="./Obstacle.ts"/>
 /// <reference path="./Destination.ts"/>
 /// <reference path="./LolActorEvent.ts"/>
-/// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
+//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
 //// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
 //// <reference types="pixi.js"/>
 /**
@@ -4708,75 +5183,6 @@ class Hero extends WorldActor {
         this.mStrengthChangeCallback = callback;
     }
 }
-/**
- * Any configuration that the programmer needs to provide to Lol should go here.
- * <p/>
- * Config stores things like screen dimensions, default text and font configuration,
- * and the names of all the assets (images and sounds) used by the game.
- * <p/>
- * Be sure to look at the Levels.java file for how each level of the game is
- * drawn, as well as Splash.java, Chooser.java, Help.java, and Store.java.
- */
-class MyConfig extends Config {
-    /**
-     * The MyConfig object is used to pass configuration information to the LOL
-     * system.
-     * <p/>
-     * To see documentation for any of these variables, hover your mouse
-     * over the word on the left side of the equals sign.
-     */
-    MyConfig() {
-        // The size of the screen, and some game behavior configuration
-        this.mWidth = 960;
-        this.mHeight = 640;
-        this.mPixelMeterRatio = 20;
-        this.mEnableVibration = true;
-        this.mGameTitle = "My Lol Game";
-        this.mDefaultWinText = "Good Job";
-        this.mDefaultLoseText = "Try Again";
-        // Chooser configuration
-        this.mNumLevels = 94;
-        this.mEnableChooser = true;
-        this.mUnlockAllLevels = true;
-        // Font configuration
-        this.mDefaultFontFace = "arial";
-        this.mDefaultFontSize = 32;
-        this.mDefaultFontColor = "#FFFFFF";
-        // list the images that the game will use
-        this.mImageNames = new Array(
-        // The non-animated actors in the game
-        "greenball.png", "mustardball.png", "redball.png", "blueball.png", "purpleball.png", "greyball.png", 
-        // Images that we use for buttons in the Splash and Chooser
-        "leftarrow.png", "rightarrow.png", "backarrow.png", "leveltile.png", "audio_on.png", "audio_off.png", 
-        // Background images we use on QuickScenes
-        "red.png", "msg1.png", "msg2.png", "fade.png", 
-        // The backgrounds for the Splash and Chooser
-        "splash.png", "chooser.png", 
-        // Layers for Parallax backgrounds and foregrounds
-        "mid.png", "front.png", "back.png", 
-        // The animation for a star with legs
-        "legstar1.png", "legstar2.png", "legstar3.png", "legstar4.png", "legstar5.png", "legstar6.png", "legstar7.png", "legstar8.png", 
-        // The animation for the star with legs, with each image flipped
-        "fliplegstar1.png", "fliplegstar2.png", "fliplegstar3.png", "fliplegstar4.png", "fliplegstar5.png", "fliplegstar6.png", "fliplegstar7.png", "fliplegstar8.png", 
-        // The flying star animation
-        "flystar1.png", "flystar2.png", 
-        // Animation for a star that expands and then disappears
-        "starburst1.png", "starburst2.png", "starburst3.png", "starburst4.png", 
-        // eight colored stars
-        "colorstar1.png", "colorstar2.png", "colorstar3.png", "colorstar4.png", "colorstar5.png", "colorstar6.png", "colorstar7.png", "colorstar8.png");
-        // list the sound effects that the game will use
-        this.mSoundNames = new Array("hipitch.ogg", "lowpitch.ogg", "losesound.ogg", "winsound.ogg", "slowdown.ogg", "woowoowoo.ogg", "fwapfwap.ogg");
-        // list the background music files that the game will use
-        this.mMusicNames = new Array("tune.ogg");
-        // don't change these lines unless you know what you are doing
-        // THESES WILL BE THE USER CREATED CLASSES
-        //this.mLevels = new Levels();
-        //this.mChooser = new Chooser();
-        //this.mHelp = new Help();
-        //this.mSplash = new Splash();
-        //this.mStore = new Store();
-    }
-}
 /// <reference path="./WorldActor.ts"/>
 /// <reference path="./MainScene.ts"/>
 //// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
@@ -4902,101 +5308,291 @@ class SceneActor extends BaseActor {
         this.mIsTouchable = true;
     }
 }
-// Testing file
-/// <reference path="./MainScene.ts"/>
-/// <reference path="./Hero.ts"/>
-/// <reference path="./LolScene.ts"/>
-/// <reference path="./Lol.ts"/>
-/// <reference path="./Obstacle.ts"/>
-/// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-/// <reference types="pixi.js"/>
-let heroImg = "./images/OrangeBox.png";
-let obstImg = "./images/BlueBox.png";
-let zoomInImg = "./images/ZoomIn.png";
-let zoomOutImg = "./images/ZoomOut.png";
-let upImg = "./images/up_arrow.png";
-let downImg = "./images/down_arrow.png";
-let leftImg = "./images/left_arrow.png";
-let rightImg = "./images/right_arrow.png";
-PIXI.loader
-    .add(heroImg)
-    .add(obstImg)
-    .add(zoomInImg)
-    .add(zoomOutImg)
-    .add(upImg)
-    .add(downImg)
-    .add(leftImg)
-    .add(rightImg)
-    .load(() => main(20));
-function main(speed) {
-    let myConfig = new (class _ extends Config {
-        constructor() {
-            super();
-            this.mWidth = 512;
-            this.mHeight = 512;
-            this.mPixelMeterRatio = 1;
+/// <reference path="../library/ScreenManager.ts"/>
+/**
+* Chooser draws the level chooser screens. Our chooser code is pretty
+* straightforward. However, the different screens are drawn in different ways,
+* to show how we can write more effective code once we are comfortable with
+* loops and basic geometry.
+*/
+class Chooser {
+    /**
+    * Describe how to draw each level of the chooser. Our chooser will have 15
+    * levels per screen, so we need 7 screens.
+    */
+    display(index, level) {
+        // screen 1: show 1-->15
+        //
+        // NB: in this screen, we assume you haven't done much programming, so
+        // we draw each button with its own line of code, and we don't use any
+        // variables.
+        if (index == 1) {
+            // Back to splash
+            level.addStaticText(300, 200, "Arial", 0xFFFF00, 24, "Back to Menu", 0);
+            level.addTapControl(300, 200, 100, 50, "", new (class _ extends LolAction {
+                go() {
+                    level.doSplash();
+                    return true;
+                }
+            })());
+            // Play level 1
+            level.addStaticText(500, 200, "Arial", 0xFFFF00, 24, "Play Level 1", 0);
+            level.addTapControl(500, 200, 100, 50, "", new (class _ extends LolAction {
+                go() {
+                    level.doLevel(1);
+                    return true;
+                }
+            })());
         }
-    });
-    //let myMedia = new Media();
-    //let mainScene = new MainScene(myConfig, myMedia);
-    //let hud = new HudScene(myConfig, myMedia);
+    }
+}
+/// <reference path="../library/ScreenManager.ts"/>
+/// <reference path="../library/LolAction.ts"/>
+/**
+ * Technically, Help can be anything... even playable levels. In this
+ * demonstration, it's just a bit of information. It's a good place to put
+ * instructions, credits, etc.
+ */
+class Help {
+    /**
+     * Describe how to draw each level of help. Our help will have 2 screens
+     */
+    display(index, level) {
+        // Our first scene describes the color coding that we use for the
+        // different entities in the game
+        if (index == 1) {
+            // set up a basic screen
+            //level.setBackgroundColor(0x00FFFF);
+            //set up a control to go to the splash screen on screen press
+            level.addTapControl(0, 0, 960, 640, "", new (class _ extends LolAction {
+                go() {
+                    level.doSplash();
+                    return true;
+                }
+            })());
+            //PIXI.loader.add("./images/fun.jpg").load();
+            //let Obstacle1 = level.makeObstacleAsBox(0, 0, 25, 25, "./images/fun.jpg");
+            level.addStaticText(280, 220, "Arial", 0xFFFFFF, 24, "This is an example Help screen", 0);
+            level.addStaticText(280, 320, "Arial", 0xFFFFFF, 24, "You are the heroic orange box", 0);
+            level.addStaticText(280, 420, "Arial", 0xFFFFFF, 24, "Your enemies are the evil blue boxes", 0);
+            //level.addImage(400, 490, 150, 150, "./images/fun.jpg");
+        }
+    }
+}
+/// <reference path="../library/ScreenManager.ts"/>
+/**
+* Levels is where all of the code goes for describing the different levels of
+* the game. If you know how to create methods and classes, you're free to make
+* the big "if" statement in this code simply call to your classes and methods.
+* Otherwise, put your code directly into the parts of the "if" statement.
+*/
+class Levels {
+    /**
+    * We currently have 94 levels, each of which is described in part of the
+    * following function.
+    */
+    display(index, level) {
+        /*
+        * In this level, all we have is a hero (the green ball) who needs to
+        * make it to the destination (a mustard colored ball). The game is
+        * configured to use tilt to control the level.
+        */
+        if (index == 1) {
+            // set the screen to 48 meters wide by 32 meters high... this is
+            // important, because Config.java says the screen is 480x320, and
+            // LOL likes a 20:1 pixel to meter ratio. If we went smaller than
+            // 48x32, things would getLoseScene really weird. And, of course, if you make
+            // your screen resolution higher in Config.java, these numbers would
+            // need to getLoseScene bigger.
+            //
+            //level.configureGravity
+            //level.resetGravity(0, 90);
+            // now let's create a hero, and indicate that the hero can move by
+            // tilting the phone. "greenball.png" must be registered in
+            // the registerMedia() method, which is also in this file. It must
+            // also be in your android game's assets folder.
+            let h = level.makeHeroAsBox(960 / 2, 640 / 2, 30, 30, "./images/OrangeBox.png");
+            level.setCameraChase(h);
+            level.setArrowKeyControls(h, 50);
+            let e = level.makeEnemyAsBox(960 / 2 - 80, 640 / 2 + 100, 30, 30, "./images/BlueBox.png");
+            //let o: Obstacle = level.makeObstacleAsBox(0, 500, 960, 1, "./images/BlueBox.png");
+            // draw a destination, and indicate that the level is won
+            // when the hero reaches the level.
+            level.makeDestinationAsBox(960 / 2 + 55, 640 / 2 + 155, 100, 100, "./images/fun.jpg");
+            level.setVictoryDestination(1);
+        }
+    }
+}
+/// <reference path="../library/ScreenManager.ts"/>
+/**
+* Splash encapsulates the code that will be run to configure the opening screen of the game.
+* Typically this has buttons for playing, getting help, and quitting.
+*/
+class LoseScene {
+    /**
+    * There is usually only one splash screen. However, the ScreenManager interface requires
+    * display() to take a parameter for which screen to display.  We ignore it.
+    *
+    * @param index Which splash screen should be displayed (typically you can ignore this)
+    * @param level The physics-based world that comprises the splash screen
+    */
+    display(index, level) {
+        // Configure our win screen
+        // This is the Play button... it switches to the first screen of the
+        // level chooser. You could jump straight to the first level by using
+        // "doLevel(1)", but check the configuration in MyConfig... there's a
+        // field you should change if you don't want the 'back' button to go
+        // from that level to the chooser.
+        level.addStaticText(960 / 2 - 100, 640 / 2 - 10, "Arial", 0x00FFFF, 32, "Try Again", 0);
+        level.addTapControl(0, 0, 960, 640, "", new (class _ extends LolAction {
+            go() {
+                level.doLevel(index);
+                return true;
+            }
+        })());
+    }
+}
+/// <reference path="../library/Config.ts"/>
+/**
+* Any configuration that the programmer needs to provide to Lol should go here.
+* <p/>
+* Config stores things like screen dimensions, default text and font configuration,
+* and the names of all the assets (images and sounds) used by the game.
+* <p/>
+* Be sure to look at the Levels.java file for how each level of the game is
+* drawn, as well as Splash.ts, Chooser.ts, Help.ts.
+*/
+class MyConfig extends Config {
+    /**
+    * The MyConfig object is used to pass configuration information to the LOL
+    * system.
+    * <p/>
+    * To see documentation for any of these variables, hover your mouse
+    * over the word on the left side of the equals sign.
+    */
+    constructor() {
+        super();
+        // The size of the screen, and some game behavior configuration
+        this.mWidth = 960;
+        this.mHeight = 640;
+        this.mPixelMeterRatio = 20;
+        this.mEnableVibration = true;
+        this.mGameTitle = "Micah's Basic Game";
+        this.mDefaultWinText = "Good Job";
+        this.mDefaultLoseText = "Try Again";
+        //this.mShowDebugBoxes = true;
+        // Chooser configuration
+        this.mNumLevels = 1;
+        this.mEnableChooser = true;
+        this.mUnlockAllLevels = true;
+        // Font configuration
+        this.mDefaultFontFace = "Arial";
+        this.mDefaultFontSize = 32;
+        this.mDefaultFontColor = "#FFFFFF";
+        // list the images that the game will use
+        this.mImageNames = new Array("./images/fun.jpg", "./images/BlueBox.png", "./images/OrangeBox.png");
+        // list the sound effects that the game will use
+        //this.mSoundNames = new string[]();
+        // list the background music files that the game will use
+        //this.mMusicNames = new string[]();
+        // don't change these lines unless you know what you are doing
+        this.mLevels = new Levels();
+        this.mChooser = new Chooser();
+        this.mHelp = new Help();
+        this.mSplash = new Splash();
+        this.mWin = new WinScene();
+        this.mLose = new LoseScene();
+    }
+}
+/// <reference path="../library/ScreenManager.ts"/>
+/**
+* Splash encapsulates the code that will be run to configure the opening screen of the game.
+* Typically this has buttons for playing, getting help, and quitting.
+*/
+class Splash {
+    /**
+    * There is usually only one splash screen. However, the ScreenManager interface requires
+    * display() to take a parameter for which screen to display.  We ignore it.
+    *
+    * @param index Which splash screen should be displayed (typically you can ignore this)
+    * @param level The physics-based world that comprises the splash screen
+    */
+    display(index, level) {
+        // set up a simple level. We could make interesting things happen, since
+        // we've got a physics world, but we won't.
+        // draw the background. Note that "Play", "Help", and "Quit" are part of
+        // this background image.
+        //level.drawPicture(0, 0, 48, 32, "splash.png", 0);
+        // start the music
+        //level.setMusic("tune.ogg");
+        // This is the Play button... it switches to the first screen of the
+        // level chooser. You could jump straight to the first level by using
+        // "doLevel(1)", but check the configuration in MyConfig... there's a
+        // field you should change if you don't want the 'back' button to go
+        // from that level to the chooser.
+        level.addStaticText(300, 200, "Arial", 0xFFFF00, 24, "Play", 0);
+        level.addTapControl(300, 200, 100, 50, "", new (class _ extends LolAction {
+            go() {
+                level.doChooser(1);
+                return true;
+            }
+        })());
+        // This is the Help button... it switches to the first screen of the
+        // help system
+        level.addStaticText(500, 200, "Arial", 0xFFFF00, 24, "Help", 0);
+        level.addTapControl(500, 200, 100, 50, "", new (class _ extends LolAction {
+            go() {
+                level.doHelp(1);
+                return true;
+            }
+        })());
+    }
+}
+/// <reference path="../library/Config.ts"/>
+/// <reference path="../library/Lol.ts"/>
+/// <reference path="../library/Level.ts"/>
+/// <reference path="./MyConfig.ts"/>
+/// <reference path="../library/typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
+//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
+/// <reference types="pixi.js"/>
+document.addEventListener("DOMContentLoaded", () => {
+    PIXI.utils.sayHello("Hello");
+    let myConfig = new MyConfig();
     let game = new Lol(myConfig);
     game.create();
     document.body.appendChild(game.mRenderer.view);
-    //mgr.mHud.addText(400, 0, "Arial", "Blue", 24, "Score: ", "", mgr.mGoodiesCollected[1], 2);
-    //let myHero = new Hero(game, mainScene, 25, 25, heroImg);
-    //myHero.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.DYNAMIC, 100, 100);
-    //myHero.updateVelocity(speed, 0);
-    let myHero = game.mManager.mLevel.makeHeroAsBox(100, 100, 25, 25, heroImg);
-    game.mManager.mLevel.setCameraChase(myHero);
-    game.mManager.mLevel.setArrowKeyControls(myHero, 25);
-    //game.mManager.mWorld.mChaseActor = myHero;
-    // let Obstacle1 = new Obstacle(game, mainScene, 25, 25, obstImg);
-    // Obstacle1.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.KINEMATIC, 0, 0);
-    let Obstacle1 = game.mManager.mLevel.makeObstacleAsBox(0, 0, 25, 25, obstImg);
-    // let Obstacle2 = new Obstacle(game, mainScene, 50, 50, obstImg);
-    // Obstacle2.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.KINEMATIC, 200, 200);
-    let Obstacle2 = game.mManager.mLevel.makeObstacleAsBox(200, 200, 50, 50, obstImg);
-    // let Obstacle3 = new Obstacle(game, mainScene, 50, 50, obstImg);
-    // Obstacle3.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.KINEMATIC, 75, 25);
-    let Obstacle3 = game.mManager.mLevel.makeObstacleAsBox(75, 75, 50, 50, obstImg);
-    // mainScene.addActor(Obstacle1, 0);
-    // mainScene.addActor(Obstacle2, 0);
-    // mainScene.addActor(Obstacle3, 0);
-    let zoominBtn = new SceneActor(game.mManager.mHud, zoomInImg, 25, 25);
-    let zoomoutBtn = new SceneActor(game.mManager.mHud, zoomOutImg, 25, 25);
-    zoominBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 50, 10);
-    zoomoutBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 10, 10);
-    game.mManager.mHud.addActor(zoominBtn, 2);
-    game.mManager.mHud.addActor(zoomoutBtn, 2);
-    let upBtn = new SceneActor(game.mManager.mHud, upImg, 25, 25);
-    let downBtn = new SceneActor(game.mManager.mHud, downImg, 25, 25);
-    upBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 400, 380);
-    downBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 400, 420);
-    game.mManager.mHud.addActor(upBtn, 2);
-    game.mManager.mHud.addActor(downBtn, 2);
-    let leftBtn = new SceneActor(game.mManager.mHud, leftImg, 25, 25);
-    let rightBtn = new SceneActor(game.mManager.mHud, rightImg, 25, 25);
-    leftBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 380, 400);
-    rightBtn.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, 420, 400);
-    game.mManager.mHud.addActor(leftBtn, 2);
-    game.mManager.mHud.addActor(rightBtn, 2);
-    game.mManager.mContainer.interactive = true;
-    zoominBtn.mSprite.interactive = true;
-    zoomoutBtn.mSprite.interactive = true;
-    upBtn.mSprite.interactive = true;
-    downBtn.mSprite.interactive = true;
-    leftBtn.mSprite.interactive = true;
-    rightBtn.mSprite.interactive = true;
-    zoominBtn.mSprite.on('click', () => game.mManager.mWorld.mCamera.zoomInOut(1.25));
-    zoomoutBtn.mSprite.on('click', () => game.mManager.mWorld.mCamera.zoomInOut(0.75));
-    upBtn.mSprite.on('click', () => myHero.updateVelocity(0, -speed));
-    downBtn.mSprite.on('click', () => myHero.updateVelocity(0, speed));
-    leftBtn.mSprite.on('click', () => myHero.updateVelocity(-speed, 0));
-    rightBtn.mSprite.on('click', () => myHero.updateVelocity(speed, 0));
-    requestAnimationFrame(() => gameLoop2(game));
-}
-function gameLoop2(game) {
+    requestAnimationFrame(() => gameLoop(game));
+});
+function gameLoop(game) {
     game.render();
-    requestAnimationFrame(() => gameLoop2(game));
+    requestAnimationFrame(() => gameLoop(game));
+}
+/// <reference path="../library/ScreenManager.ts"/>
+/**
+* Splash encapsulates the code that will be run to configure the opening screen of the game.
+* Typically this has buttons for playing, getting help, and quitting.
+*/
+class WinScene {
+    /**
+    * There is usually only one splash screen. However, the ScreenManager interface requires
+    * display() to take a parameter for which screen to display.  We ignore it.
+    *
+    * @param index Which splash screen should be displayed (typically you can ignore this)
+    * @param level The physics-based world that comprises the splash screen
+    */
+    display(index, level) {
+        // Configure our win screen
+        // This is the Play button... it switches to the first screen of the
+        // level chooser. You could jump straight to the first level by using
+        // "doLevel(1)", but check the configuration in MyConfig... there's a
+        // field you should change if you don't want the 'back' button to go
+        // from that level to the chooser.
+        level.addStaticText(960 / 2 - 100, 640 / 2 - 10, "Arial", 0x00FFFF, 32, "You Win!!", 0);
+        level.addTapControl(0, 0, 960, 640, "", new (class _ extends LolAction {
+            go() {
+                level.doChooser(1);
+                return true;
+            }
+        })());
+    }
 }

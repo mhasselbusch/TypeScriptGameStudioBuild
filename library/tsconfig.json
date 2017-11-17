@@ -13,26 +13,15 @@
     "strictNullChecks": false
   },
 
-  /*"files": [
-    "./dependencyfiles/pixi.min.js",
-    "./dependencyfiles/PhysicsType2d.v0_9.min.js",
-    "./*.ts"
-    "BaseActor.ts",
-    "Camera.ts",
-    "Lol.ts",
-    "LolManager.ts",
-    "LolScene.ts",
-    "MainScene.ts",
-    "testclass.ts"
-  ]*/
-
   "include": [
     "./dependencyfiles/*",
-    "./*.ts"
+    "./*.ts",
+    "../mygame/*.ts"
   ],
 
   "exclude": [
     "./images/*",
+    "./testclass.ts",
     "./typedefinitions/*"
   ]
 
