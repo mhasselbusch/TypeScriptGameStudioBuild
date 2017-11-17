@@ -70,7 +70,7 @@ app.post("/compile", function(req, res){
 
 			//The user exists and we can proceed with the compilation
 			if(!err){ 			
-				compilation.execute(fs, req.body.contents, res);
+				compilation.execute(fs, req.body.contents, req.body.game_name, res);
 			}
 			else{
 				res.write("invalid");
