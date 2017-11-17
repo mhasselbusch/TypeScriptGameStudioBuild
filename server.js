@@ -70,9 +70,7 @@ app.post("/compile", function(req, res){
 
 			//The user exists and we can proceed with the compilation
 			if(!err){ 			
-				compilation.execute(fs);
-				res.status(200);
-				res.end();
+				compilation.execute(fs, req.body.contents, res);
 			}
 			else{
 				res.write("invalid");
@@ -86,5 +84,4 @@ app.post("/compile", function(req, res){
 		res.write("parameter error");
 		res.end();
 	}
-	
 });
