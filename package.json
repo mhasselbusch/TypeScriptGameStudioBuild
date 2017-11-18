@@ -1,16 +1,23 @@
 {
-  "name": "node-js-sample",
+  "name": "type-script-game-studio-build",
   "version": "0.2.0",
   "description": "Build server for the TypeScript Game Studio",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.13.3"
+    "async": "^2.6.0",
+    "body-parser": "^1.18.2",
+    "express": "^4.13.3",
+    "https": "^1.0.0",
+    "mongodb": "^2.2.33",
+    "node-typescript-compiler": "^1.1.1",
+    "shorthash": "0.0.2",
+    "typescript": "^2.5.3"
   },
   "engines": {
-    "node": "4.0.0"
+    "node": "6.11.1"
   },
   "repository": {
     "type": "git",
