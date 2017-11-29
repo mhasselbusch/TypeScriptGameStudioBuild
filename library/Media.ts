@@ -4,11 +4,11 @@ class Media {
     /// Store the fonts used by this game
     //private readonly mFonts: Map<String, BitmapFont> = new Map<>();
     /// Store the sounds used by this game
-    // private readonly mSounds: Map<String, Audio>;
+    private readonly mSounds: Map<String, Sound>;
     /// Store the music used by this game
-    // private readonly mTunes: Map<String, Music>;
+    private readonly mTunes: Map<String, Sound>;
     /// Store the images used by this game
-    // private readonly mImages: Map<String, TextureRegion>;
+    //private readonly mImages: Map<String, TextureRegion>;
     /// A copy of the game-wide configuration object
     private mConfig: Config;
 
@@ -18,36 +18,22 @@ class Media {
      * @param config The game-wide configuration object, which contains lists of images and sounds
      */
     constructor(config: Config) {
-        // mConfig = config;
+        this.mConfig = config;
         // for (String imgName : config.mImageNames) {
         //     TextureRegion tr = new TextureRegion(new Texture(Gdx.files.internal(imgName)));
         //     mImages.put(imgName, tr);
         // }
-        // for (String soundName : config.mSoundNames) {
-        //     Sound s = Gdx.audio.newSound(Gdx.files.internal(soundName));
-        //     mSounds.put(soundName, s);
-        // }
-        // int volume = Lol.getGameFact(mConfig, "volume", 1);
-        // for (String musicName : config.mMusicNames) {
-        //     Music m = Gdx.audio.newMusic(Gdx.files.internal(musicName));
-        //     m.setLooping(true);
-        //     m.setVolume(volume);
-        //     mTunes.put(musicName, m);
-        // }
+        for (let soundName of config.mSoundNames) {
+            let s: Sound = new Sound(soundName);
+            this.mSounds.set(soundName, s);
+        }
+        for (let musicName of config.mMusicNames) {
+            let m: Sound = new Sound(musicName);
+            m.setLooping(true);
+            this.mTunes.set(musicName, m);
+        }
     }
 
-    // /**
-    //  * Clear out all assets when a game is disposed.
-    //  * <p>
-    //  * Dispose doesn't always mean "the game is closed forever", and the app might resurrect.  When
-    //  * it does, LibGDX restores any sound/music/image assets.  However, it does not restore fonts.
-    //  * Since we use FreeType to create BitmapFonts on the fly, we can just drop the font collection
-    //  * when the app disposes, and then we'll recreate fonts on the fly when the app restarts.
-    //  */
-    // void onDispose() {
-    //     mFonts.clear();
-    // }
-    //
     // /**
     //  * Get the font described by the file name and font size
     //  *
@@ -84,35 +70,35 @@ class Media {
     //     mFonts.put(key, f);
     //     return f;
     // }
-    //
-    // /**
-    //  * Get a previously loaded Sound object
-    //  *
-    //  * @param soundName Name of the sound file to retrieve
-    //  * @return a Sound object that can be used for sound effects
-    //  */
-    // Sound getSound(String soundName) {
-    //     Sound ret = mSounds.get(soundName);
-    //     if (ret == null) {
-    //         Lol.message(mConfig, "ERROR", "Error retrieving sound '" + soundName + "'");
-    //     }
-    //     return ret;
-    // }
-    //
-    // /**
-    //  * Get a previously loaded Music object
-    //  *
-    //  * @param musicName Name of the music file to retrieve
-    //  * @return a Music object that can be used to play background music
-    //  */
-    // Music getMusic(String musicName) {
-    //     Music ret = mTunes.get(musicName);
-    //     if (ret == null) {
-    //         Lol.message(mConfig, "ERROR", "Error retrieving music '" + musicName + "'");
-    //     }
-    //     return ret;
-    // }
-    //
+
+    /**
+     * Get a previously loaded Sound object
+     *
+     * @param soundName Name of the sound file to retrieve
+     * @return a Sound object that can be used for sound effects
+     */
+    getSound(soundName: string): Sound {
+        let ret: Sound = this.mSounds.get(soundName);
+        if (ret == null) {
+          Lol.message(this.mConfig, "ERROR", "Error retrieving sound '" + soundName + "'");
+        }
+        return ret;
+    }
+
+    /**
+     * Get a previously loaded Music object
+     *
+     * @param musicName Name of the music file to retrieve
+     * @return a Music object that can be used to play background music
+     */
+    getMusic(musicName: string): Sound {
+        let ret: Sound = this.mTunes.get(musicName);
+        if (ret == null) {
+            Lol.message(this.mConfig, "ERROR", "Error retrieving music '" + musicName + "'");
+        }
+        return ret;
+    }
+
     // /**
     //  * Get a previously loaded image
     //  *
@@ -129,14 +115,5 @@ class Media {
     //         Lol.message(mConfig, "ERROR", "Error retrieving image '" + imgName + "'");
     //     }
     //     return ret;
-    // }
-    //
-    // /**
-    //  * On a volume change event, make sure all Music objects are updated
-    //  */
-    // void resetMusicVolume() {
-    //     for (Music m : mTunes.values()) {
-    //         m.setVolume(Lol.getGameFact(mConfig, "volume", 1));
-    //     }
     // }
 }

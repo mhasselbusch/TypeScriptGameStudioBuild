@@ -30,6 +30,13 @@ class BaseActor extends Renderable {
   /// The z index of this actor. Valid range is [-2, 2]
   private mZIndex: number;
 
+  /// Does this WorldActor follow a route? If so, the Driver will be used to advance the
+  /// actor along its route.
+  mRoute: Route.Driver;
+
+  /// Sound to play when the actor disappears
+  mDisappearSound: Sound;
+
   /// Text that game designer can modify to hold additional information about the actor
   private mInfoText: string;
   /// Integer that the game designer can modify to hold additional information about the actor
@@ -258,7 +265,7 @@ class BaseActor extends Renderable {
     while(fixtures.MoveNext()) {
       fixtures.Current().SetSensor(!state);
     }
-    
+
     fixtures.Reset();
   }
 
@@ -609,21 +616,22 @@ class BaseActor extends Renderable {
   //      mScene.mRepeatEvents.add(whileDownAction);
   //  }
 
-  //  /**
-  //   * Request that this actor moves according to a fixed route
-  //   *
-  //   * @param route    The route to follow
-  //   * @param velocity speed at which to travel along the route
-  //   * @param loop     When the route completes, should we start it over again?
-  //   */
-  //  public void setRoute(Route route, float velocity, boolean loop) {
-  //      // This must be a KinematicBody or a Dynamic Body!
-  //      if (mBody.getType() == BodyDef.BodyType.StaticBody)
-  //          mBody.setType(BodyDef.BodyType.KinematicBody);
-  //
-  //      // Create a Driver to advance the actor's position according to the route
-  //      mRoute = new Route.Driver(route, velocity, loop, this);
-  //  }
+  /**
+  * Request that this actor moves according to a fixed route
+  *
+  * @param route    The route to follow
+  * @param velocity speed at which to travel along the route
+  * @param loop     When the route completes, should we start it over again?
+  */
+  public setRoute(route: Route, velocity: number, loop: boolean): void {
+    // This must be a KinematicBody or a Dynamic Body!
+    if (this.mBody.GetType() == PhysicsType2d.Dynamics.BodyType.STATIC) {
+      this.mBody.SetType(PhysicsType2d.Dynamics.BodyType.KINEMATIC);
+    }
+
+    // Create a Driver to advance the actor's position according to the route
+    this.mRoute = new Route.Driver(route, velocity, loop, this);
+  }
 
   //  /**
   //   * Request that a sound plays whenever the player touches this actor

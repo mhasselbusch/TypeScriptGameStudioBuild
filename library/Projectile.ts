@@ -36,18 +36,18 @@ class Projectile extends WorldActor {
         super(game, level, imgName, width, height);
         if (isCircle) {
             let radius = Math.max(width, height);
-            //this.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.DYNAMIC, x, y, radius / 2);
+            this.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.DYNAMIC, x, y, radius / 2);
         } else {
             this.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.DYNAMIC, x, y);
         }
         this.setFastMoving(true);
         this.mBody.SetGravityScale(0);
-        //this.setCollisionsEnabled(false);
-        //this.disableRotation();
+        this.setCollisionsEnabled(false);
+        this.disableRotation();
         this.mScene.addActor(this, zIndex);
         this.mDisappearOnCollide = true;
         //NB: in physicstype2d, Vector2 constructor must take two arguments
-        this.mRangeFrom = new PhysicsType2d.Vector2(-1, -1);
+        this.mRangeFrom = new PhysicsType2d.Vector2(0, 0);
         this.mRange = 1000;
     }
 
@@ -78,7 +78,7 @@ class Projectile extends WorldActor {
         // only disappear if other is not a sensor
         if (other.mBody.GetFixtures().Current().IsSensor()) //previously .getFixtureList.get(0) which may be different
             return;
-        //this.remove(false);
+        this.remove(false);
     }
 
     /**
@@ -91,13 +91,13 @@ class Projectile extends WorldActor {
     //@Override
     public onRender(): void {
         // eliminate the projectile quietly if it has traveled too far
-        //let dx = Math.abs(this.mBody.getPosition().x - this.mRangeFrom.x);
-        //let dy = Math.abs(this.mBody.getPosition().y - this.mRangeFrom.y);
-        //if (dx * dx + dy * dy > this.mRange * this.mRange) {
-        //    this.remove(true);
-        //    this.mBody.setActive(false);
-        //    return;
-        //}
-        //super.onRender();
+        let dx = Math.abs(this.mBody.GetPosition().x - this.mRangeFrom.x);
+        let dy = Math.abs(this.mBody.GetPosition().y - this.mRangeFrom.y);
+        if (dx * dx + dy * dy > this.mRange * this.mRange) {
+           this.remove(true);
+           this.mBody.SetActive(false);
+           return;
+        }
+        super.onRender();
     }
 }

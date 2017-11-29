@@ -1,4 +1,4 @@
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
+/// <reference path="./SceneActor.ts"/>
 
 /**
 * Level provides a broad, public, declarative interface to the core functionality of LibLOL.
@@ -42,23 +42,23 @@ class Level {
   }
 
 
-  // /**
-  // * Configure the camera bounds for a level
-  // * <p>
-  // * TODO: set upper and lower bounds, instead of assuming a lower bound of (0, 0)
-  // *
-  // * @param width  width of the camera
-  // * @param height height of the camera
-  // */
-  // public void setCameraBounds(float width, float height) {
-  //   mGame.mManager.mWorld.mCamBound.set(width, height);
-  //
-  //   // warn on strange dimensions
-  //   if (width < mConfig.mWidth / mConfig.mPixelMeterRatio)
-  //   Lol.message(mConfig, "Warning", "Your game width is less than 1/10 of the screen width");
-  //   if (height < mConfig.mHeight / mConfig.mPixelMeterRatio)
-  //   Lol.message(mConfig, "Warning", "Your game height is less than 1/10 of the screen height");
-  // }
+  /**
+  * Configure the camera bounds for a level
+  * <p>
+  * TODO: set upper and lower bounds, instead of assuming a lower bound of (0, 0)
+  *
+  * @param width  width of the camera
+  * @param height height of the camera
+  */
+  public setCameraBounds(width: number, height: number): void {
+    this.mGame.mManager.mWorld.mCamBound.Set(width, height);
+
+    // warn on strange dimensions
+    if (width < this.mConfig.mWidth / this.mConfig.mPixelMeterRatio)
+      Lol.message(this.mConfig, "Warning", "Your game width is less than 1/10 of the screen width");
+    if (height < this.mConfig.mHeight / this.mConfig.mPixelMeterRatio)
+      Lol.message(this.mConfig, "Warning", "Your game height is less than 1/10 of the screen height");
+  }
 
   /**
   * Identify the actor that the camera should try to keep on screen at all times
@@ -69,15 +69,15 @@ class Level {
     this.mGame.mManager.mWorld.mChaseActor = actor;
   }
 
-  // /**
-  // * Set the background music for this level
-  // *
-  // * @param musicName Name of the Music file to play
-  // */
-  // public void setMusic(String musicName) {
-  //   mGame.mManager.mWorld.mMusic = mMedia.getMusic(musicName);
-  // }
-  //
+  /**
+  * Set the background music for this level
+  *
+  * @param musicName Name of the Music file to play
+  */
+  public setMusic(musicName: string): void {
+    this.mGame.mManager.mWorld.mMusic = this.mMedia.getMusic(musicName);
+  }
+
   // /**
   // * Specify that you want some code to run after a fixed amount of time passes.
   // *
@@ -155,18 +155,18 @@ class Level {
   //         }
   //       });
   //     }
-  //
-  //     /**
-  //     * Manually set the zoom level of the game
-  //     *
-  //     * @param zoom The amount of zoom (1 is no zoom, &gt;1 zooms out)
-  //     */
-  //     public void setZoom(float zoom) {
-  //       mGame.mManager.mWorld.mCamera.zoom = zoom;
-  //       mGame.mManager.mBackground.mBgCam.zoom = zoom;
-  //       mGame.mManager.mForeground.mBgCam.zoom = zoom;
-  //     }
-  //
+
+      /**
+      * Manually set the zoom level of the game
+      *
+      * @param zoom The amount of zoom (1 is no zoom, >1 zooms out)
+      */
+      public setZoom(zoom: number): void {
+        this.mGame.mManager.mWorld.mCamera.setZoom(zoom);
+        //this.mGame.mManager.mBackground.mBgCam.zoom = zoom;
+        //this.mGame.mManager.mForeground.mBgCam.zoom = zoom;
+      }
+
   //     /**
   //     * Register a callback so that custom code will run when the level is won
   //     *
@@ -357,33 +357,33 @@ class Level {
   //       return 0;
   //       return (int) mGame.mManager.mStopWatchProgress;
   //     }
-  //
-  //     /**
-  //     * Report the number of enemies that have been defeated
-  //     *
-  //     * @return the number of defeated enemies
-  //     */
-  //     public int getEnemiesDefeated() {
-  //       return mGame.mManager.mEnemiesDefeated;
-  //     }
-  //
-  //     /**
-  //     * Force the level to end in victory
-  //     * <p>
-  //     * This is useful in callbacks, where we might want to immediately end the game
-  //     */
-  //     public void winLevel() {
-  //       mGame.mManager.endLevel(true);
-  //     }
-  //
-  //     /**
-  //     * Force the level to end in defeat
-  //     * <p>
-  //     * This is useful in callbacks, where we might want to immediately end the game
-  //     */
-  //     public void loseLevel() {
-  //       mGame.mManager.endLevel(false);
-  //     }
+
+      /**
+      * Report the number of enemies that have been defeated
+      *
+      * @return the number of defeated enemies
+      */
+      public getEnemiesDefeated(): number {
+        return this.mGame.mManager.mEnemiesDefeated;
+      }
+
+      /**
+      * Force the level to end in victory
+      * <p>
+      * This is useful in callbacks, where we might want to immediately end the game
+      */
+      public winLevel(): void {
+        this.mGame.mManager.endLevel(true);
+      }
+
+      /**
+      * Force the level to end in defeat
+      * <p>
+      * This is useful in callbacks, where we might want to immediately end the game
+      */
+      public loseLevel(): void {
+        this.mGame.mManager.endLevel(false);
+      }
 
   /**
   * Change the gravity in a running level
@@ -394,7 +394,8 @@ class Level {
   public resetGravity(newXGravity: number, newYGravity: number): void {
     this.mGame.mManager.mWorld.mWorld.SetGravity(new PhysicsType2d.Vector2(newXGravity, newYGravity));
   }
-  //
+
+
   //     /**
   //     * Turn on accelerometer support so that tilt can control actors in this level
   //     *
@@ -1770,7 +1771,7 @@ class Level {
     this.mGame.mManager.mWorld.addActor(o, 0);
     return o;
   }
-  //
+
   //                                                                 /**
   //                                                                 * Draw an obstacle with an underlying polygon shape
   //                                                                 *
@@ -1867,7 +1868,7 @@ class Level {
   //                                                                         mGame.mManager.mWorld.addActor(g, 0);
   //                                                                         return g;
   //                                                                       }
-  //
+  
   /**
   * Make a Hero with an underlying rectangular shape
   *

@@ -44,9 +44,9 @@ class MainScene extends LolScene {
   //ProjectilePool mProjectilePool;
 
   /// The music, if any
-  //Music mMusic;
+  mMusic: Sound;
   /// Whether the music is playing or not
-  //private boolean mMusicPlaying;
+  private mMusicPlaying: boolean;
 
   /// A random number generator... We provide this so that new game developers don't create lots
   /// of Random()s throughout their code
@@ -57,11 +57,6 @@ class MainScene extends LolScene {
     super(config, media);
     this.configureCollisionHandlers();
   }
-
-  // chaseActor(hero: WorldActor) {
-  //   this.mChaseActor = hero;
-  //   this.mCamera.setChase(hero);
-  // }
 
 //   /**
 //  * The main render loop calls this to determine what to do when there is a phone tilt
@@ -284,12 +279,12 @@ class MainScene extends LolScene {
       //@Override
       public PreSolve(contact: PhysicsType2d.Dynamics.Contacts.Contact, oldManifold: PhysicsType2d.Collision.Manifold): void {
         // get the bodies, make sure both are actors
-        //  let a = contact.GetFixtureA().GetBody().GetUserData();
-        //  let b = contact.GetFixtureB().GetBody().GetUserData();
-        //  if (!(a instanceof WorldActor) || !(b instanceof WorldActor))
-        //      return;
-        //  let gfoA = a as WorldActor;
-        //  let gfoB = b as WorldActor;
+         let a = contact.GetFixtureA().GetBody().GetUserData();
+         let b = contact.GetFixtureB().GetBody().GetUserData();
+         if (!(a instanceof WorldActor) || !(b instanceof WorldActor))
+             return;
+         let gfoA = a as WorldActor;
+         let gfoB = b as WorldActor;
 
         //TODO: This stuff here
         //  // go sticky obstacles... only do something if at least one actor is a sticky actor
@@ -300,42 +295,42 @@ class MainScene extends LolScene {
         //      handleSticky(gfoB, gfoA, contact);
         //      return;
         //  }
-        //
-        //  // if the actors have the same passthrough ID, and it's  not zero, then disable the
-        //  // contact
-        //  if (gfoA.mPassThroughId != 0 && gfoA.mPassThroughId == gfoB.mPassThroughId) {
-        //      contact.SetEnabled(false);
-        //      return;
-        //  }
-        //
-        //  // is either one-sided? If not, we're done
-        //  let oneSided: WorldActor;
-        // let other: WorldActor;
-        //  if (gfoA.mIsOneSided > -1) {
-        //      oneSided = gfoA;
-        //      other = gfoB;
-        //  } else if (gfoB.mIsOneSided > -1) {
-        //      oneSided = gfoB;
-        // other = gfoA;
-        //  } else {
-        //      return;
-        //  }
 
-        // if we're here, see if we should be disabling a one-sided obstacle collision
-        //let worldManiFold = contact.GetWorldManifold();
-        //  let numPoints = worldManiFold.points.length;
-        //  for (let i = 0; i < numPoints; i++) {
-        //      let vector2 = other.mBody.GetLinearVelocityFromWorldPoint(worldManiFold.points[i]);
-        //      // disable based on the value of isOneSided and the vector between the actors
-        //      if (oneSided.mIsOneSided == 0 && vector2.y < 0)
-        //          contact.SetEnabled(false);
-        //      else if (oneSided.mIsOneSided == 2 && vector2.y > 0)
-        //          contact.SetEnabled(false);
-        //      else if (oneSided.mIsOneSided == 1 && vector2.x > 0)
-        //          contact.SetEnabled(false);
-        //      else if (oneSided.mIsOneSided == 3 && vector2.x < 0)
-        //          contact.SetEnabled(false);
-        //  }
+         // if the actors have the same passthrough ID, and it's  not zero, then disable the
+         // contact
+         if (gfoA.mPassThroughId != 0 && gfoA.mPassThroughId == gfoB.mPassThroughId) {
+             contact.SetEnabled(false);
+             return;
+         }
+
+         // is either one-sided? If not, we're done
+         let oneSided: WorldActor;
+         let other: WorldActor;
+         if (gfoA.mIsOneSided > -1) {
+           oneSided = gfoA;
+           other = gfoB;
+         } else if (gfoB.mIsOneSided > -1) {
+           oneSided = gfoB;
+           other = gfoA;
+         } else {
+           return;
+         }
+
+         //if we're here, see if we should be disabling a one-sided obstacle collision
+         let worldManiFold = contact.GetWorldManifold();
+         let numPoints = worldManiFold.points.length;
+         for (let i = 0; i < numPoints; i++) {
+           let vector2 = other.mBody.GetLinearVelocityFromWorldPoint(worldManiFold.points[i]);
+           // disable based on the value of isOneSided and the vector between the actors
+           if (oneSided.mIsOneSided == 0 && vector2.y < 0)
+           contact.SetEnabled(false);
+           else if (oneSided.mIsOneSided == 2 && vector2.y > 0)
+           contact.SetEnabled(false);
+           else if (oneSided.mIsOneSided == 1 && vector2.x > 0)
+           contact.SetEnabled(false);
+           else if (oneSided.mIsOneSided == 3 && vector2.x < 0)
+           contact.SetEnabled(false);
+         }
       }
 
       /**
@@ -350,35 +345,35 @@ class MainScene extends LolScene {
     })(this));
   }
 
-  // /**
-  //  * If the level has music attached to it, this starts playing it
-  //  */
-  // void playMusic() {
-  //     if (!mMusicPlaying && mMusic != null) {
-  //         mMusicPlaying = true;
-  //         mMusic.play();
-  //     }
-  // }
-  //
-  // /**
-  //  * If the level has music attached to it, this pauses it
-  //  */
-  // void pauseMusic() {
-  //     if (mMusicPlaying) {
-  //         mMusicPlaying = false;
-  //         mMusic.pause();
-  //     }
-  // }
-  //
-  // /**
-  //  * If the level has music attached to it, this stops it
-  //  */
-  // void stopMusic() {
-  //     if (mMusicPlaying) {
-  //         mMusicPlaying = false;
-  //         mMusic.stop();
-  //     }
-  // }
+  /**
+   * If the level has music attached to it, this starts playing it
+   */
+  playMusic(): void {
+      if (!this.mMusicPlaying && this.mMusic != null) {
+          this.mMusicPlaying = true;
+          this.mMusic.play();
+      }
+  }
+
+  /**
+   * If the level has music attached to it, this pauses it
+   */
+  pauseMusic(): void {
+      if (this.mMusicPlaying) {
+          this.mMusicPlaying = false;
+          this.mMusic.stop();
+      }
+  }
+
+  /**
+   * If the level has music attached to it, this stops it
+   */
+  stopMusic(): void {
+      if (this.mMusicPlaying) {
+          this.mMusicPlaying = false;
+          this.mMusic.stop();
+      }
+  }
 
   /**
   * If the camera is supposed to follow an actor, this code will handle updating the camera

@@ -5,14 +5,31 @@
 //// <reference types="pixi.js"/>
 
 class Lol {
+  /// The Manager object handles scores, screen management, and transitions among screens
   mManager: LolManager;
+  /// mRenderer renders the game
   mRenderer: PIXI.WebGLRenderer | PIXI.CanvasRenderer;
-  mConfig: Config;
+  /// mConfig stores the configuration state of the game.
+  readonly mConfig: Config;
+  /// mMedia stores all the images, sounds, and fonts for the game
   mMedia: Media;
 
   constructor(config: Config) {
     this.mConfig = config;
     this.mRenderer = PIXI.autoDetectRenderer(config.mWidth, config.mHeight);
+  }
+
+  /**
+   * Instead of using Gdx.app.log directly, and potentially writing a lot of debug info in a
+   * production setting, we use this to only dump to the log when debug mode is on
+   *
+   * @param config The game-wide configuration
+   * @param tag    The message tag
+   * @param text   The message text
+   */
+  static message(config: Config, tag: string, text: string): void {
+      if (config.mShowDebugBoxes)
+          console.log(tag + " " text);
   }
 
   /**

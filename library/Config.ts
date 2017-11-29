@@ -25,7 +25,7 @@ class Config {
   /* protected */ mDefaultLoseText: string;
 
   /// When this is true, the game will show an outline corresponding to the physics body behind
-  /// each WorldActor
+  /// each WorldActor (NOT YET IMPLEMENTED)
   /* protected */ mShowDebugBoxes: boolean;
 
   /// Total number of levels. This helps the transition when a level is won
