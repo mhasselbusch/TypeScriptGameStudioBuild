@@ -1,9 +1,5 @@
 /// <reference path="./BaseActor.ts"/>
-/// <reference path="./TouchEventHandler.ts"/>
-//// <reference path="./Lol.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
+
 
 abstract class WorldActor extends BaseActor {
   /// A reference to the top-level Lol object
