@@ -131,42 +131,63 @@ abstract class LolScene {
     }
   }
 
-  // /**
-  //  * Draw some text in the scene, using a bottom-left coordinate
-  //  *
-  //  * @param x         The x coordinate of the bottom left corner
-  //  * @param y         The y coordinate of the bottom left corner
-  //  * @param fontName  The name of the font to use
-  //  * @param fontColor The color of the font
-  //  * @param fontSize  The size of the font
-  //  * @param prefix    Prefix text to put before the generated text
-  //  * @param suffix    Suffix text to put after the generated text
-  //  * @param tp        A TextProducer that will generate the text to display
-  //  * @param zIndex    The z index of the text
-  //  * @return A Renderable of the text, so it can be enabled/disabled by program code
-  //  */
-  // public addText(x: number, y: number, fontName: string, fontColor: string,
-  //                           fontSize: number, prefix: string, suffix: string,
-  //                           tp: Object, zIndex: number): Renderable {
-  //     // Choose a font color and get the BitmapFont
-  //     //final Color mColor = Color.valueOf(fontColor);
-  //     //final BitmapFont mFont = mMedia.getFont(fontName, fontSize);
-  //     // Create a renderable that updates its text on every render, and add it to the scene
-  //     var superThis = this;
-  //     let d: Renderable = new (class _ extends Renderable {
-  //         //@Override
-  //         onRender(): void {
-  //             //mFont.setColor(mColor);
-  //             //String txt = prefix + tp.makeText() + suffix;
-  //             //renderText(x, y, txt, mFont, sb);
-  //             let txt = prefix + tp.toString() + suffix;
-  //             let newText = new PIXI.Text(txt, {fontFamily: fontName, fontSize: fontSize, fill: 0xffffff, align: 'center'});
-  //             superThis.mContainer.addChild(newText);
-  //         }
-  //     })();
-  //     this.addActor(d, zIndex);
-  //     return d;
-  // }
+  /**
+  * Add an image to the scene.  The image will not have any physics attached to it.
+  *
+  * @param x       The X coordinate of the top left corner, in meters
+  * @param y       The Y coordinate of the top left corner, in meters
+  * @param width   The image width, in meters
+  * @param height  The image height, in meters
+  * @param imgName The file name for the image, or ""
+  * @param zIndex  The z index of the text
+  * @return A Renderable of the image, so it can be enabled/disabled by program code
+  */
+  public makePicture(x: number, y: number, width: number,
+    height: number, imgName: string, zIndex: number): Renderable {
+      // set up the image to display
+      // NB: this will fail gracefully (no crash) for invalid file names
+      //final TextureRegion tr = mMedia.getImage(imgName);
+      let r: Renderable = new (class _ extends Renderable {
+        //@Override
+        public onRender(): void {
+        }
+      })();
+      r.mSprite = PIXI.Sprite.fromImage(imgName);
+      this.addActor(r, zIndex);
+      return r;
+    }
+
+  /**
+   * Draw some text in the scene, using a top-left coordinate
+   *
+   * @param x         The x coordinate of the top left corner
+   * @param y         The y coordinate of the top left corner
+   * @param fontName  The name of the font to use
+   * @param fontColor The color of the font
+   * @param fontSize  The size of the font
+   * @param prefix    Prefix text to put before the generated text
+   * @param suffix    Suffix text to put after the generated text
+   * @param tp        A TextProducer that will generate the text to display
+   * @param zIndex    The z index of the text
+   * @return A Renderable of the text, so it can be enabled/disabled by program code
+   */
+   public addText(x: number, y: number, fontName: string,
+                   fontColor: string, fontSize: number, prefix: string,
+                   suffix: string, tp: TextProducer, zIndex: number): Renderable {
+
+      // Create a renderable that updates its text on every render, and add it to the scene
+      let d: Renderable = new (class _ extends Renderable {
+          //@Override
+          onRender(): void {}
+      })();
+      let txt: string = prefix + tp.makeText() + suffix;
+      let newText = new PIXI.Text(txt, {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
+      d.mText = newText;
+      d.mText.position.x = x;
+      d.mText.position.y = y;
+      this.addActor(d, zIndex);
+      return d;
+  }
 
   /**
    * Draw some text in the scene, using a bottom-left coordinate
@@ -186,17 +207,44 @@ abstract class LolScene {
       // Create a renderable that updates its text on every render, and add it to the scene
       let d: Renderable = new (class _ extends Renderable {
           //@Override
-          onRender(): void {
-              // let newText = new PIXI.Text("Hello Darkness My Old Friend", {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
-              // newText.position.x = x;
-              // newText.position.y = y;
-              // this.mText = newText;
-          }
+          onRender(): void {}
       })();
       let newText = new PIXI.Text(text, {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
       d.mText = newText;
       d.mText.position.x = x;
       d.mText.position.y = y;
+      this.addActor(d, zIndex);
+      return d;
+  }
+
+  /**
+   * Draw some text in the scene, centering it on a specific point
+   *
+   * @param centerX   The x coordinate of the center
+   * @param centerY   The y coordinate of the center
+   * @param fontName  The name of the font to use
+   * @param fontColor The color of the font
+   * @param fontSize  The size of the font
+   * @param prefix    Prefix text to put before the generated text
+   * @param suffix    Suffix text to put after the generated text
+   * @param tp        A TextProducer that will generate the text to display
+   * @param zIndex    The z index of the text
+   * @return A Renderable of the text, so it can be enabled/disabled by program code
+   */
+  public addTextCentered(centerX: number, centerY: number, fontName: string,
+                          fontColor: string, fontSize: number, prefix: string,
+                          suffix: string, tp: TextProducer, zIndex: number): Renderable {
+
+      // Create a renderable that updates its text on every render, and add it to the scene
+      let d: Renderable = new (class _ extends Renderable {
+          //@Override
+          onRender(): void {}
+      })();
+      let txt: string = prefix + tp.makeText() + suffix;
+      let newText = new PIXI.Text(txt, {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
+      d.mText = newText;
+      d.mText.position.x = centerX;
+      d.mText.position.y = centerY;
       this.addActor(d, zIndex);
       return d;
   }

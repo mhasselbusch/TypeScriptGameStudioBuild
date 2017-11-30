@@ -41,7 +41,7 @@ class MainScene extends LolScene {
   //readonly mPanHandlers: Array<PanEventHandler>;
 
   /// A pool of projectiles for use by the hero
-  //ProjectilePool mProjectilePool;
+  mProjectilePool: ProjectilePool;
 
   /// The music, if any
   mMusic: Sound;
@@ -51,6 +51,7 @@ class MainScene extends LolScene {
   /// A random number generator... We provide this so that new game developers don't create lots
   /// of Random()s throughout their code
   //final Random mGenerator;
+
 
 
   constructor(config: Config, media: Media) {
@@ -236,12 +237,12 @@ class MainScene extends LolScene {
         } else if (b instanceof Enemy) {
           c0 = b as WorldActor;
           c1 = a as WorldActor;
-        // } else if (a instanceof Projectile) {
-        //   c0 = a as WorldActor;
-        //   c1 = b as WorldActor;
-        // } else if (b instanceof Projectile) {
-        //   c0 = b as WorldActor;
-        //   c1 = a as WorldActor;
+        } else if (a instanceof Projectile) {
+          c0 = a as WorldActor;
+          c1 = b as WorldActor;
+        } else if (b instanceof Projectile) {
+          c0 = b as WorldActor;
+          c1 = a as WorldActor;
         } else {
           return;
         }
