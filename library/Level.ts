@@ -820,44 +820,7 @@ class Level {
   //                   };
   //                 }
   //
-  //                 /**
-  //                 * Add a button that has one behavior while it is being pressed, and another when it is released
-  //                 *
-  //                 * @param x               The X coordinate of the bottom left corner
-  //                 * @param y               The Y coordinate of the bottom left corner
-  //                 * @param width           The width of the image
-  //                 * @param height          The height of the image
-  //                 * @param imgName         The name of the image to display.  Use "" for an invisible button
-  //                 * @param whileDownAction The action to execute, repeatedly, whenever the button is pressed
-  //                 * @param onUpAction      The action to execute once any time the button is released
-  //                 * @return The control, so we can do more with it as needed.
-  //                 */
-  //                 public SceneActor addToggleButton(int x, int y, int width, int height, String imgName,
-  //                   final LolAction whileDownAction, final LolAction onUpAction) {
-  //                     SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-  //                     c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-  //                     // initially the down action is not active
-  //                     whileDownAction.mIsActive = false;
-  //                     // set up the toggle behavior
-  //                     c.mToggleHandler = new ToggleEventHandler() {
-  //                       public boolean go(boolean isUp, float x, float y) {
-  //                         if (isUp) {
-  //                           whileDownAction.mIsActive = false;
-  //                           if (onUpAction != null)
-  //                           onUpAction.go();
-  //                         } else {
-  //                           whileDownAction.mIsActive = true;
-  //                         }
-  //                         return true;
-  //                       }
-  //                     };
-  //                     // Put the control and events in the appropriate lists
-  //                     c.mToggleHandler.mSource = c;
-  //                     mGame.mManager.mHud.addActor(c, 0);
-  //                     mGame.mManager.mHud.mToggleControls.add(c);
-  //                     mGame.mManager.mWorld.mRepeatEvents.add(whileDownAction);
-  //                     return c;
-  //                   }
+
 
   /**
   * Create an action for moving an actor in the X direction.  This action can be used by a
@@ -989,244 +952,151 @@ class Level {
       })();
       return action;
     }
-  //
-  //                       /**
-  //                       * Create an action for making a hero either start or stop crawling
-  //                       *
-  //                       * @param hero       The hero to control
-  //                       * @param crawlState True to start crawling, false to stop
-  //                       * @return The action
-  //                       */
-  //                       public LolAction makeCrawlToggle(final Hero hero, final boolean crawlState) {
-  //                         return new LolAction() {
-  //                           @Override
-  //                           public void go() {
-  //                             if (crawlState)
-  //                             hero.crawlOn();
-  //                             else
-  //                             hero.crawlOff();
-  //                           }
-  //                         };
-  //                       }
-  //
-  //                       /**
-  //                       * Create an action for making a hero rotate
-  //                       *
-  //                       * @param hero The hero to rotate
-  //                       * @param rate Amount of rotation to apply to the hero on each press
-  //                       * @return The action
-  //                       */
-  //                       public LolAction makeRotator(final Hero hero, final float rate) {
-  //                         return new LolAction() {
-  //                           @Override
-  //                           public void go() {
-  //                             hero.increaseRotation(rate);
-  //                           }
-  //                         };
-  //                       }
-  //
-  //                       /**
-  //                       * Create an action for making a hero throw a projectile
-  //                       *
-  //                       * @param hero       The hero who should throw the projectile
-  //                       * @param milliDelay A delay between throws, so that holding doesn't lead to too many throws at
-  //                       *                   once
-  //                       * @param offsetX    specifies the x distance between the bottom left of the projectile and the
-  //                       *                   bottom left of the hero throwing the projectile
-  //                       * @param offsetY    specifies the y distance between the bottom left of the projectile and the
-  //                       *                   bottom left of the hero throwing the projectile
-  //                       * @param velocityX  The X velocity of the projectile when it is thrown
-  //                       * @param velocityY  The Y velocity of the projectile when it is thrown
-  //                       * @return The action object
-  //                       */
-  //                       public LolAction makeRepeatThrow(final Hero hero, final int milliDelay, final float offsetX,
-  //                         final float offsetY, final float velocityX,
-  //                         final float velocityY) {
-  //                           return new LolAction() {
-  //                             long mLastThrow;
-  //
-  //                             @Override
-  //                             public void go() {
-  //                               long now = System.currentTimeMillis();
-  //                               if (mLastThrow + milliDelay < now) {
-  //                                 mLastThrow = now;
-  //                                 mGame.mManager.mWorld.mProjectilePool.throwFixed(hero, offsetX, offsetY,
-  //                                   velocityX, velocityY);
-  //                                 }
-  //                               }
-  //                             };
-  //                           }
-  //
-  //                           /**
-  //                           * The default behavior for throwing is to throw in a straight line. If we instead desire that
-  //                           * the projectiles have some sort of aiming to them, we need to use this method, which throws
-  //                           * toward where the screen was pressed
-  //                           * <p>
-  //                           * Note: you probably want to use an invisible button that covers the screen...
-  //                           *
-  //                           * @param x          The X coordinate of the bottom left corner (in pixels)
-  //                           * @param y          The Y coordinate of the bottom left corner (in pixels)
-  //                           * @param width      The width of the image
-  //                           * @param height     The height of the image
-  //                           * @param imgName    The name of the image to display. Use "" for an invisible button
-  //                           * @param h          The hero who should throw the projectile
-  //                           * @param milliDelay A delay between throws, so that holding doesn't lead to too many throws at
-  //                           *                   once
-  //                           * @param offsetX    specifies the x distance between the bottom left of the projectile and the
-  //                           *                   bottom left of the hero throwing the projectile
-  //                           * @param offsetY    specifies the y distance between the bottom left of the projectile and the
-  //                           *                   bottom left of the hero throwing the projectile
-  //                           * @return The button that was created
-  //                           */
-  //                           public SceneActor addDirectionalThrowButton(int x, int y, int width, int height, String imgName,
-  //                             final Hero h, final long milliDelay,
-  //                             final float offsetX, final float offsetY) {
-  //                               final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-  //                               c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-  //                               final Vector2 v = new Vector2();
-  //                               c.mToggleHandler = new ToggleEventHandler() {
-  //                                 public boolean go(boolean isUp, float worldX, float worldY) {
-  //                                   if (isUp) {
-  //                                     isHolding = false;
-  //                                   } else {
-  //                                     isHolding = true;
-  //                                     v.x = worldX;
-  //                                     v.y = worldY;
-  //                                   }
-  //                                   return true;
-  //                                 }
-  //                               };
-  //                               c.mPanHandler = new PanEventHandler() {
-  //                                 public boolean go(float worldX, float worldY, float deltaX, float deltaY) {
-  //                                   if (c.mToggleHandler.isHolding) {
-  //                                     v.x = worldX;
-  //                                     v.y = worldY;
-  //                                   }
-  //                                   return c.mToggleHandler.isHolding;
-  //                                 }
-  //                               };
-  //                               mGame.mManager.mHud.addActor(c, 0);
-  //                               // on toggle, we start or stop throwing; on pan, we change throw direction
-  //                               mGame.mManager.mHud.mToggleControls.add(c);
-  //
-  //                               c.mToggleHandler.mSource = c;
-  //                               c.mPanHandler.mSource = c;
-  //
-  //                               mGame.mManager.mWorld.mRepeatEvents.add(new LolAction() {
-  //                                 long mLastThrow;
-  //
-  //                                 @Override
-  //                                 public void go() {
-  //                                   if (c.mToggleHandler.isHolding) {
-  //                                     long now = System.currentTimeMillis();
-  //                                     if (mLastThrow + milliDelay < now) {
-  //                                       mLastThrow = now;
-  //                                       mGame.mManager.mWorld.mProjectilePool.throwAt(h.mBody.getPosition().x,
-  //                                       h.mBody.getPosition().y, v.x, v.y, h, offsetX, offsetY);
-  //                                     }
-  //                                   }
-  //                                 }
-  //                               });
-  //                               return c;
-  //                             }
-  //
-  //
-  //                             /**
-  //                             * Allow panning to view more of the screen than is currently visible
-  //                             *
-  //                             * @param x       The X coordinate of the bottom left corner (in pixels)
-  //                             * @param y       The Y coordinate of the bottom left corner (in pixels)
-  //                             * @param width   The width of the image
-  //                             * @param height  The height of the image
-  //                             * @param imgName The name of the image to display. Use "" for an invisible button
-  //                             * @return The button that was created
-  //                             */
-  //                             public SceneActor addPanControl(int x, int y, int width, int height, String imgName) {
-  //                               final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-  //                               c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-  //                               c.mPanStopHandler = new TouchEventHandler() {
-  //                                 /**
-  //                                 * Handle a pan stop event by restoring the chase actor, if there was one
-  //                                 */
-  //                                 public boolean go(float worldX, float worldY) {
-  //                                   setCameraChase((WorldActor) mSource);
-  //                                   mSource = null;
-  //                                   return true;
-  //                                 }
-  //                               };
-  //                               c.mPanHandler = new PanEventHandler() {
-  //                                 public boolean go(float worldX, float worldY, float deltaX, float deltaY) {
-  //                                   if (mGame.mManager.mWorld.mChaseActor != null) {
-  //                                     c.mPanStopHandler.mSource = mGame.mManager.mWorld.mChaseActor;
-  //                                     mGame.mManager.mWorld.mChaseActor = null;
-  //                                   }
-  //                                   OrthographicCamera cam = mGame.mManager.mWorld.mCamera;
-  //                                   Vector2 camBound = mGame.mManager.mWorld.mCamBound;
-  //                                   float x = cam.position.x - deltaX * .1f * cam.zoom;
-  //                                   float y = cam.position.y + deltaY * .1f * cam.zoom;
-  //                                   // if x or y is too close to MAX,MAX, stick with max acceptable values
-  //                                   if (x > camBound.x - mConfig.mWidth * cam.zoom / mConfig.mPixelMeterRatio / 2)
-  //                                   x = camBound.x - mConfig.mWidth * cam.zoom / mConfig.mPixelMeterRatio / 2;
-  //                                   if (y > camBound.y - mConfig.mHeight * cam.zoom / mConfig.mPixelMeterRatio / 2)
-  //                                   y = camBound.y - mConfig.mHeight * cam.zoom / mConfig.mPixelMeterRatio / 2;
-  //
-  //                                   // if x or y is too close to 0,0, stick with minimum acceptable values
-  //                                   //
-  //                                   // NB: we do MAX before MIN, so that if we're zoomed out, we show extra space at the
-  //                                   // top instead of the bottom
-  //                                   if (x < mConfig.mWidth * cam.zoom / mConfig.mPixelMeterRatio / 2)
-  //                                   x = mConfig.mWidth * cam.zoom / mConfig.mPixelMeterRatio / 2;
-  //                                   if (y < mConfig.mHeight * cam.zoom / mConfig.mPixelMeterRatio / 2)
-  //                                   y = mConfig.mHeight * cam.zoom / mConfig.mPixelMeterRatio / 2;
-  //
-  //                                   // update the camera position
-  //                                   cam.position.set(x, y, 0);
-  //                                   return true;
-  //                                 }
-  //                               };
-  //                               c.mPanHandler.mSource = c;
-  //                               c.mPanStopHandler.mSource = c;
-  //                               mGame.mManager.mHud.addActor(c, 0);
-  //                               return c;
-  //                             }
-  //
-  //                             /**
-  //                             * Allow pinch-to-zoom
-  //                             *
-  //                             * @param x       The X coordinate of the bottom left corner (in pixels)
-  //                             * @param y       The Y coordinate of the bottom left corner (in pixels)
-  //                             * @param width   The width of the image
-  //                             * @param height  The height of the image
-  //                             * @param imgName The name of the image to display. Use "" for an invisible button
-  //                             * @param maxZoom The maximum zoom (out) factor. 8 is usually a good choice.
-  //                             * @param minZoom The minimum zoom (int) factor. .25f is usually a good choice.
-  //                             * @return The button that was created
-  //                             */
-  //                             public SceneActor addPinchZoomControl(float x, float y, float width, float height,
-  //                               String imgName, final float maxZoom,
-  //                               final float minZoom) {
-  //                                 final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-  //                                 c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-  //                                 c.mDownHandler = new TouchEventHandler() {
-  //                                   public boolean go(float worldX, float worldY) {
-  //                                     // this handler is being used for up/down, so we can safely use the deltaX as a way
-  //                                     // of storing the last zoom value
-  //                                     c.setInfoInt((int) (mGame.mManager.mWorld.mCamera.zoom * 1000));
-  //                                     return false;
-  //                                   }
-  //                                 };
-  //                                 c.mZoomHandler = new TouchEventHandler() {
-  //                                   public boolean go(float initialDistance, float distance) {
-  //                                     float ratio = initialDistance / distance;
-  //                                     float newZoom = ((float) c.getInfoInt()) / 1000 * ratio;
-  //                                     if (newZoom > minZoom && newZoom < maxZoom)
-  //                                     mGame.mManager.mWorld.mCamera.zoom = newZoom;
-  //                                     return true;
-  //                                   }
-  //                                 };
-  //                                 mGame.mManager.mHud.addActor(c, 0);
-  //                                 return c;
-  //                               }
+
+    /**
+    * Create an action for making a hero either start or stop crawling
+    *
+    * @param hero       The hero to control
+    * @param crawlState True to start crawling, false to stop
+    * @return The action
+    */
+    public makeCrawlToggle(hero: Hero, crawlState: boolean): LolAction {
+      return new (class _ extends LolAction {
+        //@Override
+        public go(): void {
+          if (crawlState)
+            hero.crawlOn();
+          else
+            hero.crawlOff();
+        }
+      })();
+    }
+//
+// /**
+// * Create an action for making a hero rotate
+// *
+// * @param hero The hero to rotate
+// * @param rate Amount of rotation to apply to the hero on each press
+// * @return The action
+// */
+// public LolAction makeRotator(final Hero hero, final float rate) {
+// return new LolAction() {
+//   @Override
+//   public void go() {
+//     hero.increaseRotation(rate);
+//   }
+// };
+// }
+//
+// /**
+// * Create an action for making a hero throw a projectile
+// *
+// * @param hero       The hero who should throw the projectile
+// * @param milliDelay A delay between throws, so that holding doesn't lead to too many throws at
+// *                   once
+// * @param offsetX    specifies the x distance between the bottom left of the projectile and the
+// *                   bottom left of the hero throwing the projectile
+// * @param offsetY    specifies the y distance between the bottom left of the projectile and the
+// *                   bottom left of the hero throwing the projectile
+// * @param velocityX  The X velocity of the projectile when it is thrown
+// * @param velocityY  The Y velocity of the projectile when it is thrown
+// * @return The action object
+// */
+// public LolAction makeRepeatThrow(final Hero hero, final int milliDelay, final float offsetX,
+// final float offsetY, final float velocityX,
+// final float velocityY) {
+//   return new LolAction() {
+//     long mLastThrow;
+//
+//     @Override
+//     public void go() {
+//       long now = System.currentTimeMillis();
+//       if (mLastThrow + milliDelay < now) {
+//         mLastThrow = now;
+//         mGame.mManager.mWorld.mProjectilePool.throwFixed(hero, offsetX, offsetY,
+//           velocityX, velocityY);
+//         }
+//       }
+//     };
+//   }
+//
+//   /**
+//   * The default behavior for throwing is to throw in a straight line. If we instead desire that
+//   * the projectiles have some sort of aiming to them, we need to use this method, which throws
+//   * toward where the screen was pressed
+//   * <p>
+//   * Note: you probably want to use an invisible button that covers the screen...
+//   *
+//   * @param x          The X coordinate of the bottom left corner (in pixels)
+//   * @param y          The Y coordinate of the bottom left corner (in pixels)
+//   * @param width      The width of the image
+//   * @param height     The height of the image
+//   * @param imgName    The name of the image to display. Use "" for an invisible button
+//   * @param h          The hero who should throw the projectile
+//   * @param milliDelay A delay between throws, so that holding doesn't lead to too many throws at
+//   *                   once
+//   * @param offsetX    specifies the x distance between the bottom left of the projectile and the
+//   *                   bottom left of the hero throwing the projectile
+//   * @param offsetY    specifies the y distance between the bottom left of the projectile and the
+//   *                   bottom left of the hero throwing the projectile
+//   * @return The button that was created
+//   */
+//   public SceneActor addDirectionalThrowButton(int x, int y, int width, int height, String imgName,
+//     final Hero h, final long milliDelay,
+//     final float offsetX, final float offsetY) {
+//       final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
+//       c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
+//       final Vector2 v = new Vector2();
+//       c.mToggleHandler = new ToggleEventHandler() {
+//         public boolean go(boolean isUp, float worldX, float worldY) {
+//           if (isUp) {
+//             isHolding = false;
+//           } else {
+//             isHolding = true;
+//             v.x = worldX;
+//             v.y = worldY;
+//           }
+//           return true;
+//         }
+//       };
+//       c.mPanHandler = new PanEventHandler() {
+//         public boolean go(float worldX, float worldY, float deltaX, float deltaY) {
+//           if (c.mToggleHandler.isHolding) {
+//             v.x = worldX;
+//             v.y = worldY;
+//           }
+//           return c.mToggleHandler.isHolding;
+//         }
+//       };
+//       mGame.mManager.mHud.addActor(c, 0);
+//       // on toggle, we start or stop throwing; on pan, we change throw direction
+//       mGame.mManager.mHud.mToggleControls.add(c);
+//
+//       c.mToggleHandler.mSource = c;
+//       c.mPanHandler.mSource = c;
+//
+//       mGame.mManager.mWorld.mRepeatEvents.add(new LolAction() {
+//         long mLastThrow;
+//
+//         @Override
+//         public void go() {
+//           if (c.mToggleHandler.isHolding) {
+//             long now = System.currentTimeMillis();
+//             if (mLastThrow + milliDelay < now) {
+//               mLastThrow = now;
+//               mGame.mManager.mWorld.mProjectilePool.throwAt(h.mBody.getPosition().x,
+//               h.mBody.getPosition().y, v.x, v.y, h, offsetX, offsetY);
+//             }
+//           }
+//         }
+//       });
+//       return c;
+//     }
+//
+//
+
+//
+
 
   /**
   * Add an image to the heads-up display. Touching the image has no effect
@@ -1245,190 +1115,6 @@ class Level {
     return c;
   }
 
-  //                               /**
-  //                               * Add a control with callbacks for down, up, and pan
-  //                               *
-  //                               * @param x       The X coordinate of the bottom left corner (in pixels)
-  //                               * @param y       The Y coordinate of the bottom left corner (in pixels)
-  //                               * @param width   The width of the image
-  //                               * @param height  The height of the image
-  //                               * @param imgName The name of the image to display. Use "" for an invisible button
-  //                               * @param upCB    The callback to run when the Control is released
-  //                               * @param dnCB    The callback to run when the Control is pressed
-  //                               * @param mvCB    The callback to run when there is a finger move (pan) on the Control
-  //                               * @return The button that was created
-  //                               */
-  //                               // TODO: we never test this code!
-  //                               public SceneActor addPanCallbackControl(float x, float y, float width, float height,
-  //                                 String imgName, final TouchEventHandler upCB,
-  //                                 final TouchEventHandler dnCB,
-  //                                 final TouchEventHandler mvCB) {
-  //                                   final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-  //                                   c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-  //                                   // Pan only consists of pan-stop and pan events. That means we can't capture a down-press or
-  //                                   // up-press that isn't also involved in a move.  To overcome this limitation, we'll make
-  //                                   // this BOTH a pan control and a toggle control
-  //                                   c.mToggleHandler = new ToggleEventHandler() {
-  //                                     public boolean go(boolean isUp, float worldX, float worldY) {
-  //                                       // up event
-  //                                       if (isUp) {
-  //                                         upCB.go(worldX, worldY);
-  //                                         isHolding = false;
-  //                                       }
-  //                                       // down event
-  //                                       else {
-  //                                         isHolding = true;
-  //                                         dnCB.go(worldX, worldY);
-  //                                       }
-  //                                       // toggle state
-  //                                       isHolding = !isUp;
-  //                                       return true;
-  //                                     }
-  //                                   };
-  //                                   c.mPanHandler = new PanEventHandler() {
-  //                                     public boolean go(float worldX, float worldY, float deltaX, float deltaY) {
-  //                                       // force a down event, if we didn't get one
-  //                                       if (!c.mToggleHandler.isHolding) {
-  //                                         c.mToggleHandler.go(false, worldX, worldY);
-  //                                         return true;
-  //                                       }
-  //                                       // pan event
-  //                                       mvCB.go(worldX, worldY);
-  //                                       return true;
-  //                                     }
-  //                                   };
-  //                                   c.mPanStopHandler = new TouchEventHandler() {
-  //                                     public boolean go(float worldX, float worldY) {
-  //                                       // force an up event?
-  //                                       if (c.mToggleHandler.isHolding) {
-  //                                         c.mToggleHandler.go(true, worldX, worldY);
-  //                                         return true;
-  //                                       }
-  //                                       return false;
-  //                                     }
-  //                                   };
-  //                                   c.mPanHandler.mSource = c;
-  //                                   c.mPanStopHandler.mSource = c;
-  //                                   c.mToggleHandler.mSource = c;
-  //                                   mGame.mManager.mHud.addActor(c, 0);
-  //                                   mGame.mManager.mHud.mToggleControls.add(c);
-  //                                   return c;
-  //                                 }
-  //
-  //                                 /**
-  //                                 * Look up a fact that was stored for the current level. If no such fact exists, defaultVal will
-  //                                 * be returned.
-  //                                 *
-  //                                 * @param factName   The name used to store the fact
-  //                                 * @param defaultVal The default value to use if the fact cannot be found
-  //                                 * @return The integer value corresponding to the last value stored
-  //                                 */
-  //                                 public int getLevelFact(String factName, int defaultVal) {
-  //                                   Integer i = mGame.mManager.mWorld.mLevelFacts.get(factName);
-  //                                   if (i == null) {
-  //                                     Lol.message(mConfig, "ERROR", "Error retreiving level fact '" + factName + "'");
-  //                                     return defaultVal;
-  //                                   }
-  //                                   return i;
-  //                                 }
-  //
-  //                                 /**
-  //                                 * Save a fact about the current level. If the factName has already been used for this level,
-  //                                 * the new value will overwrite the old.
-  //                                 *
-  //                                 * @param factName  The name for the fact being saved
-  //                                 * @param factValue The integer value that is the fact being saved
-  //                                 */
-  //                                 public void putLevelFact(String factName, int factValue) {
-  //                                   mGame.mManager.mWorld.mLevelFacts.put(factName, factValue);
-  //                                 }
-  //
-  //                                 /**
-  //                                 * Look up a fact that was stored for the current game session. If no such fact exists, -1 will
-  //                                 * be returned.
-  //                                 *
-  //                                 * @param factName   The name used to store the fact
-  //                                 * @param defaultVal The default value to use if the fact cannot be found
-  //                                 * @return The integer value corresponding to the last value stored
-  //                                 */
-  //                                 public int getSessionFact(String factName, int defaultVal) {
-  //                                   Integer i = mGame.mManager.mSessionFacts.get(factName);
-  //                                   if (i == null) {
-  //                                     Lol.message(mConfig, "ERROR", "Error retreiving level fact '" + factName + "'");
-  //                                     return defaultVal;
-  //                                   }
-  //                                   return i;
-  //                                 }
-  //
-  //                                 /**
-  //                                 * Save a fact about the current game session. If the factName has already been used for this
-  //                                 * game session, the new value will overwrite the old.
-  //                                 *
-  //                                 * @param factName  The name for the fact being saved
-  //                                 * @param factValue The integer value that is the fact being saved
-  //                                 */
-  //                                 public void putSessionFact(String factName, int factValue) {
-  //                                   mGame.mManager.mSessionFacts.put(factName, factValue);
-  //                                 }
-  //
-  //                                 /**
-  //                                 * Look up a fact that was stored for the current game session. If no such fact exists,
-  //                                 * defaultVal will be returned.
-  //                                 *
-  //                                 * @param factName   The name used to store the fact
-  //                                 * @param defaultVal The value to return if the fact does not exist
-  //                                 * @return The integer value corresponding to the last value stored
-  //                                 */
-  //                                 public int getGameFact(String factName, int defaultVal) {
-  //                                   return Lol.getGameFact(mConfig, factName, defaultVal);
-  //                                 }
-  //
-  //                                 /**
-  //                                 * Save a fact about the current game session. If the factName has already been used for this
-  //                                 * game session, the new value will overwrite the old.
-  //                                 *
-  //                                 * @param factName  The name for the fact being saved
-  //                                 * @param factValue The integer value that is the fact being saved
-  //                                 */
-  //                                 public void putGameFact(String factName, int factValue) {
-  //                                   Lol.putGameFact(mConfig, factName, factValue);
-  //                                 }
-  //
-  //                                 /**
-  //                                 * Look up an WorldActor that was stored for the current level. If no such WorldActor exists,
-  //                                 * null will be returned.
-  //                                 *
-  //                                 * @param actorName The name used to store the WorldActor
-  //                                 * @return The last WorldActor stored with this name
-  //                                 */
-  //                                 public WorldActor getLevelActor(String actorName) {
-  //                                   WorldActor actor = mGame.mManager.mWorld.mLevelActors.get(actorName);
-  //                                   if (actor == null) {
-  //                                     Lol.message(mConfig, "ERROR", "Error retreiving level fact '" + actorName + "'");
-  //                                     return null;
-  //                                   }
-  //                                   return actor;
-  //                                 }
-  //
-  //                                 /**
-  //                                 * Save a WorldActor from the current level. If the actorName has already been used for this
-  //                                 * level, the new value will overwrite the old.
-  //                                 *
-  //                                 * @param actorName The name for the WorldActor being saved
-  //                                 * @param actor     The WorldActor that is the fact being saved
-  //                                 */
-  //                                 public void putLevelActor(String actorName, WorldActor actor) {
-  //                                   mGame.mManager.mWorld.mLevelActors.put(actorName, actor);
-  //                                 }
-  //
-  //                                 /**
-  //                                 * Set the background color for the current level
-  //                                 *
-  //                                 * @param color The color, formated as #RRGGBB
-  //                                 */
-  //                                 public void setBackgroundColor(String color) {
-  //                                   mGame.mManager.mBackground.mColor = Color.valueOf(color);
-  //                                 }
 
   /**
   * Set the background color for the current level
@@ -1437,6 +1123,8 @@ class Level {
   */
   public setBackgroundColor(color: number) {
     //this.mGame.mRenderer = PIXI.autoDetectRenderer(this.mConfig.mWidth, this.mConfig.mHeight, {backgroundColor: color});
+    //mGame.mManager.mBackground.mColor = Color.valueOf(color);
+
   }
 
   //                                 /**
@@ -1503,33 +1191,7 @@ class Level {
   //                                               mGame.mManager.mBackground.mLayers.add(pl);
   //                                             }
   //
-  //                                             /**
-  //                                             * Create a particle effect system
-  //                                             *
-  //                                             * @param filename The file holding the particle definition
-  //                                             * @param zIndex   The z index of the particle system.
-  //                                             * @param x        The x coordinate of the starting point of the particle system
-  //                                             * @param y        The y coordinate of the starting point of the particle system
-  //                                             * @return the Effect, so that it can be modified further
-  //                                             */
-  //                                             public Effect makeParticleSystem(String filename, int zIndex, float x, float y) {
-  //                                               Effect e = new Effect();
-  //
-  //                                               // create the particle effect system.
-  //                                               ParticleEffect pe = new ParticleEffect();
-  //                                               pe.load(Gdx.files.internal(filename), Gdx.files.internal(""));
-  //                                               e.mParticleEffect = pe;
-  //
-  //                                               // update the effect's coordinates to reflect world coordinates
-  //                                               pe.getEmitters().first().setPosition(x, y);
-  //
-  //                                               // NB: we pretend effects are Actors, so that we can have them in front of or behind Actors
-  //                                               mGame.mManager.mWorld.addActor(e, zIndex);
-  //
-  //                                               // start emitting particles
-  //                                               pe.start();
-  //                                               return e;
-  //                                             }
+
   //
   //                                             /**
   //                                             * Add a picture that may repeat in the X dimension
@@ -1594,48 +1256,7 @@ class Level {
   //                                                           pl.mYRepeat = ySpeed != 0;
   //                                                           mGame.mManager.mForeground.mLayers.add(pl);
   //                                                         }
-  //
-  //                                                         /**
-  //                                                         * Get the LoseScene that is configured for the current level, or create a blank one if none
-  //                                                         * exists.
-  //                                                         *
-  //                                                         * @return The current LoseScene
-  //                                                         */
-  //                                                         public QuickScene getLoseScene() {
-  //                                                           return mGame.mManager.mLoseScene;
-  //                                                         }
-  //
-  //                                                         /**
-  //                                                         * Get the PreScene that is configured for the current level, or create a blank one if none
-  //                                                         * exists.
-  //                                                         *
-  //                                                         * @return The current PreScene
-  //                                                         */
-  //                                                         public QuickScene getPreScene() {
-  //                                                           mGame.mManager.mPreScene.mVisible = true;
-  //                                                           mGame.mManager.mPreScene.suspendClock();
-  //                                                           return mGame.mManager.mPreScene;
-  //                                                         }
-  //
-  //                                                         /**
-  //                                                         * Get the PauseScene that is configured for the current level, or create a blank one if none
-  //                                                         * exists.
-  //                                                         *
-  //                                                         * @return The current PauseScene
-  //                                                         */
-  //                                                         public QuickScene getPauseScene() {
-  //                                                           return mGame.mManager.mPauseScene;
-  //                                                         }
-  //
-  //                                                         /**
-  //                                                         * Get the WinScene that is configured for the current level, or create a blank one if none
-  //                                                         * exists.
-  //                                                         *
-  //                                                         * @return The current WinScene
-  //                                                         */
-  //                                                         public QuickScene getWinScene() {
-  //                                                           return mGame.mManager.mWinScene;
-  //                                                         }
+
 
   /**
   * Make an enemy that has an underlying rectangular shape.
@@ -1654,47 +1275,48 @@ class Level {
     this.mGame.mManager.mWorld.addActor(e, 0);
     return e;
   }
-  //
-  //                                                         /**
-  //                                                         * Draw an enemy with an underlying polygon shape
-  //                                                         *
-  //                                                         * @param x       X coordinate of the bottom left corner
-  //                                                         * @param y       Y coordinate of the bottom left corner
-  //                                                         * @param width   Width of the obstacle
-  //                                                         * @param height  Height of the obstacle
-  //                                                         * @param imgName Name of image file to use
-  //                                                         * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
-  //                                                         *                x0,y0,x1,y1,x2,y2,...
-  //                                                         * @return The enemy, so that it can be further modified
-  //                                                         */
-  //                                                         public Enemy makeEnemyAsPolygon(float x, float y, float width, float height, String imgName,
-  //                                                           float... verts) {
-  //                                                             Enemy e = new Enemy(mGame, mGame.mManager.mWorld, width, height, imgName);
-  //                                                             mGame.mManager.mEnemiesCreated++;
-  //                                                             e.setPolygonPhysics(BodyDef.BodyType.StaticBody, x, y, verts);
-  //                                                             mGame.mManager.mWorld.addActor(e, 0);
-  //                                                             return e;
-  //                                                           }
-  //
-  //                                                           /**
-  //                                                           * Make an enemy that has an underlying circular shape.
-  //                                                           *
-  //                                                           * @param x       The X coordinate of the bottom left corner
-  //                                                           * @param y       The Y coordinate of the bottom right corner
-  //                                                           * @param width   The width of the enemy
-  //                                                           * @param height  The height of the enemy
-  //                                                           * @param imgName The name of the image to display
-  //                                                           * @return The enemy, so that it can be modified further
-  //                                                           */
-  //                                                           public Enemy makeEnemyAsCircle(float x, float y, float width, float height, String imgName) {
-  //                                                             float radius = Math.max(width, height);
-  //                                                             Enemy e = new Enemy(mGame, mGame.mManager.mWorld, radius, radius, imgName);
-  //                                                             mGame.mManager.mEnemiesCreated++;
-  //                                                             e.setCirclePhysics(BodyDef.BodyType.StaticBody, x, y, radius / 2);
-  //                                                             mGame.mManager.mWorld.addActor(e, 0);
-  //                                                             return e;
-  //                                                           }
-  //
+
+  /**
+  * Draw an enemy with an underlying polygon shape
+  *
+  * @param x       X coordinate of the bottom left corner
+  * @param y       Y coordinate of the bottom left corner
+  * @param width   Width of the obstacle
+  * @param height  Height of the obstacle
+  * @param imgName Name of image file to use
+  * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
+  *                x0,y0,x1,y1,x2,y2,...
+  * @return The enemy, so that it can be further modified
+  */
+  public makeEnemyAsPolygon(x: number, y: number, width: number, height: number,
+    imgName: string, verts: number[]): Enemy {
+      let e: Enemy = new Enemy(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+      this.mGame.mManager.mEnemiesCreated++;
+      e.setPolygonPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, verts);
+      this.mGame.mManager.mWorld.addActor(e, 0);
+      return e;
+  }
+
+  /**
+  * Make an enemy that has an underlying circular shape.
+  *
+  * @param x       The X coordinate of the bottom left corner
+  * @param y       The Y coordinate of the bottom right corner
+  * @param width   The width of the enemy
+  * @param height  The height of the enemy
+  * @param imgName The name of the image to display
+  * @return The enemy, so that it can be modified further
+  */
+  public makeEnemyAsCircle(x: number, y: number, width: number, height: number, imgName: string): Enemy {
+    let radius = Math.max(width, height);
+    let e: Enemy = new Enemy(this.mGame, this.mGame.mManager.mWorld, radius, radius, imgName);
+    this.mGame.mManager.mEnemiesCreated++;
+    e.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, radius / 2);
+    this.mGame.mManager.mWorld.addActor(e, 0);
+    return e;
+  }
+
+
   /**
   * Make a destination that has an underlying rectangular shape.
   *
@@ -1712,49 +1334,50 @@ class Level {
       d.setCollisionsEnabled(false);
       this.mGame.mManager.mWorld.addActor(d, 0);
       return d;
-    }
+  }
 
-  //                                                             /**
-  //                                                             * Draw a destination with an underlying polygon shape
-  //                                                             *
-  //                                                             * @param x       X coordinate of the bottom left corner
-  //                                                             * @param y       Y coordinate of the bottom left corner
-  //                                                             * @param width   Width of the obstacle
-  //                                                             * @param height  Height of the obstacle
-  //                                                             * @param imgName Name of image file to use
-  //                                                             * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
-  //                                                             *                x0,y0,x1,y1,x2,y2,...
-  //                                                             * @return The destination, so that it can be further modified
-  //                                                             */
-  //                                                             public Destination makeDestinationAsPolygon(float x, float y, float width, float height,
-  //                                                               String imgName, float... verts) {
-  //                                                                 Destination d = new Destination(mGame, mGame.mManager.mWorld, width, height, imgName);
-  //                                                                 d.setPolygonPhysics(BodyDef.BodyType.StaticBody, x, y, verts);
-  //                                                                 d.setCollisionsEnabled(false);
-  //                                                                 mGame.mManager.mWorld.addActor(d, 0);
-  //                                                                 return d;
-  //                                                               }
-  //
-  //                                                               /**
-  //                                                               * Make a destination that has an underlying circular shape.
-  //                                                               *
-  //                                                               * @param x       The X coordinate of the bottom left corner
-  //                                                               * @param y       The Y coordinate of the bottom right corner
-  //                                                               * @param width   The width of the destination
-  //                                                               * @param height  The height of the destination
-  //                                                               * @param imgName The name of the image to display
-  //                                                               * @return The destination, so that it can be modified further
-  //                                                               */
-  //                                                               public Destination makeDestinationAsCircle(float x, float y, float width, float height,
-  //                                                                 String imgName) {
-  //                                                                   float radius = Math.max(width, height);
-  //                                                                   Destination d = new Destination(mGame, mGame.mManager.mWorld, radius, radius, imgName);
-  //                                                                   d.setCirclePhysics(BodyDef.BodyType.StaticBody, x, y, radius / 2);
-  //                                                                   d.setCollisionsEnabled(false);
-  //                                                                   mGame.mManager.mWorld.addActor(d, 0);
-  //                                                                   return d;
-  //                                                                 }
-  //
+  /**
+  * Draw a destination with an underlying polygon shape
+  *
+  * @param x       X coordinate of the bottom left corner
+  * @param y       Y coordinate of the bottom left corner
+  * @param width   Width of the obstacle
+  * @param height  Height of the obstacle
+  * @param imgName Name of image file to use
+  * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
+  *                x0,y0,x1,y1,x2,y2,...
+  * @return The destination, so that it can be further modified
+  */
+  public makeDestinationAsPolygon(x: number, y: number, width: number, height: number,
+    imgName: string, verts: number[]): Destination {
+      let d: Destination = new Destination(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+      d.setPolygonPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, verts);
+      d.setCollisionsEnabled(false);
+      this.mGame.mManager.mWorld.addActor(d, 0);
+      return d;
+  }
+
+  /**
+  * Make a destination that has an underlying circular shape.
+  *
+  * @param x       The X coordinate of the bottom left corner
+  * @param y       The Y coordinate of the bottom right corner
+  * @param width   The width of the destination
+  * @param height  The height of the destination
+  * @param imgName The name of the image to display
+  * @return The destination, so that it can be modified further
+  */
+  public makeDestinationAsCircle(x: number, y: number, width: number, height: number,
+    imgName: string): Destination {
+      let radius = Math.max(width, height);
+      let d: Destination = new Destination(this.mGame, this.mGame.mManager.mWorld, radius, radius, imgName);
+      d.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, radius / 2);
+      d.setCollisionsEnabled(false);
+      this.mGame.mManager.mWorld.addActor(d, 0);
+      return d;
+  }
+
+
   /**
   * Draw an obstacle with an underlying box shape
   *
@@ -1772,103 +1395,103 @@ class Level {
     return o;
   }
 
-  //                                                                 /**
-  //                                                                 * Draw an obstacle with an underlying polygon shape
-  //                                                                 *
-  //                                                                 * @param x       X coordinate of the bottom left corner
-  //                                                                 * @param y       Y coordinate of the bottom left corner
-  //                                                                 * @param width   Width of the obstacle
-  //                                                                 * @param height  Height of the obstacle
-  //                                                                 * @param imgName Name of image file to use
-  //                                                                 * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
-  //                                                                 *                x0,y0,x1,y1,x2,y2,...
-  //                                                                 * @return The obstacle, so that it can be further modified
-  //                                                                 */
-  //                                                                 public Obstacle makeObstacleAsPolygon(float x, float y, float width, float height,
-  //                                                                   String imgName, float... verts) {
-  //                                                                     Obstacle o = new Obstacle(mGame, mGame.mManager.mWorld, width, height, imgName);
-  //                                                                     o.setPolygonPhysics(BodyDef.BodyType.StaticBody, x, y, verts);
-  //                                                                     mGame.mManager.mWorld.addActor(o, 0);
-  //                                                                     return o;
-  //                                                                   }
-  //
-  //                                                                   /**
-  //                                                                   * Draw an obstacle with an underlying circle shape
-  //                                                                   *
-  //                                                                   * @param x       X coordinate of the bottom left corner
-  //                                                                   * @param y       Y coordinate of the bottom left corner
-  //                                                                   * @param width   Width of the obstacle
-  //                                                                   * @param height  Height of the obstacle
-  //                                                                   * @param imgName Name of image file to use
-  //                                                                   * @return The obstacle, so that it can be further modified
-  //                                                                   */
-  //                                                                   public Obstacle makeObstacleAsCircle(float x, float y, float width, float height,
-  //                                                                     String imgName) {
-  //                                                                       float radius = Math.max(width, height);
-  //                                                                       Obstacle o = new Obstacle(mGame, mGame.mManager.mWorld, width, height, imgName);
-  //                                                                       o.setCirclePhysics(BodyDef.BodyType.StaticBody, x, y, radius / 2);
-  //                                                                       mGame.mManager.mWorld.addActor(o, 0);
-  //                                                                       return o;
-  //                                                                     }
-  //
-  //                                                                     /**
-  //                                                                     * Draw a goodie with an underlying box shape, and a default score of [1,0,0,0]
-  //                                                                     *
-  //                                                                     * @param x       X coordinate of bottom left corner
-  //                                                                     * @param y       Y coordinate of bottom left corner
-  //                                                                     * @param width   Width of the image
-  //                                                                     * @param height  Height of the image
-  //                                                                     * @param imgName Name of image file to use
-  //                                                                     * @return The goodie, so that it can be further modified
-  //                                                                     */
-  //                                                                     public Goodie makeGoodieAsBox(float x, float y, float width, float height, String imgName) {
-  //                                                                       Goodie g = new Goodie(mGame, mGame.mManager.mWorld, width, height, imgName);
-  //                                                                       g.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-  //                                                                       g.setCollisionsEnabled(false);
-  //                                                                       mGame.mManager.mWorld.addActor(g, 0);
-  //                                                                       return g;
-  //                                                                     }
-  //
-  //                                                                     /**
-  //                                                                     * Draw a goodie with an underlying circle shape, and a default score of [1,0,0,0]
-  //                                                                     *
-  //                                                                     * @param x       X coordinate of bottom left corner
-  //                                                                     * @param y       Y coordinate of bottom left corner
-  //                                                                     * @param width   Width of the image
-  //                                                                     * @param height  Height of the image
-  //                                                                     * @param imgName Name of image file to use
-  //                                                                     * @return The goodie, so that it can be further modified
-  //                                                                     */
-  //                                                                     public Goodie makeGoodieAsCircle(float x, float y, float width, float height, String imgName) {
-  //                                                                       float radius = Math.max(width, height);
-  //                                                                       Goodie g = new Goodie(mGame, mGame.mManager.mWorld, width, height, imgName);
-  //                                                                       g.setCirclePhysics(BodyDef.BodyType.StaticBody, x, y, radius / 2);
-  //                                                                       g.setCollisionsEnabled(false);
-  //                                                                       mGame.mManager.mWorld.addActor(g, 0);
-  //                                                                       return g;
-  //                                                                     }
-  //
-  //                                                                     /**
-  //                                                                     * Draw a goodie with an underlying polygon shape
-  //                                                                     *
-  //                                                                     * @param x       X coordinate of the bottom left corner
-  //                                                                     * @param y       Y coordinate of the bottom left corner
-  //                                                                     * @param width   Width of the obstacle
-  //                                                                     * @param height  Height of the obstacle
-  //                                                                     * @param imgName Name of image file to use
-  //                                                                     * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
-  //                                                                     *                x0,y0,x1,y1,x2,y2,...
-  //                                                                     * @return The goodie, so that it can be further modified
-  //                                                                     */
-  //                                                                     public Goodie makeGoodieAsPolygon(float x, float y, float width, float height, String imgName,
-  //                                                                       float... verts) {
-  //                                                                         Goodie g = new Goodie(mGame, mGame.mManager.mWorld, width, height, imgName);
-  //                                                                         g.setPolygonPhysics(BodyDef.BodyType.StaticBody, x, y, verts);
-  //                                                                         g.setCollisionsEnabled(false);
-  //                                                                         mGame.mManager.mWorld.addActor(g, 0);
-  //                                                                         return g;
-  //                                                                       }
-  
+  /**
+  * Draw an obstacle with an underlying polygon shape
+  *
+  * @param x       X coordinate of the bottom left corner
+  * @param y       Y coordinate of the bottom left corner
+  * @param width   Width of the obstacle
+  * @param height  Height of the obstacle
+  * @param imgName Name of image file to use
+  * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
+  *                x0,y0,x1,y1,x2,y2,...
+  * @return The obstacle, so that it can be further modified
+  */
+  public makeObstacleAsPolygon(x: number, y: number, width: number, height: number,
+    imgName: string, verts: number[]): Obstacle {
+      let o: Obstacle = new Obstacle(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+      o.setPolygonPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, verts);
+      this.mGame.mManager.mWorld.addActor(o, 0);
+      return o;
+  }
+
+  /**
+  * Draw an obstacle with an underlying circle shape
+  *
+  * @param x       X coordinate of the bottom left corner
+  * @param y       Y coordinate of the bottom left corner
+  * @param width   Width of the obstacle
+  * @param height  Height of the obstacle
+  * @param imgName Name of image file to use
+  * @return The obstacle, so that it can be further modified
+  */
+  public makeObstacleAsCircle(x: number, y: number, width: number, height: number,
+    imgName: string): Obstacle {
+      let radius: number = Math.max(width, height);
+      let o: Obstacle = new Obstacle(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+      o.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, radius / 2);
+      this.mGame.mManager.mWorld.addActor(o, 0);
+      return o;
+  }
+
+  /**
+  * Draw a goodie with an underlying box shape, and a default score of [1,0,0,0]
+  *
+  * @param x       X coordinate of bottom left corner
+  * @param y       Y coordinate of bottom left corner
+  * @param width   Width of the image
+  * @param height  Height of the image
+  * @param imgName Name of image file to use
+  * @return The goodie, so that it can be further modified
+  */
+  public makeGoodieAsBox(x: number, y: number, width: number, height: number, imgName: string): Goodie {
+    let g: Goodie = new Goodie(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+    g.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y);
+    g.setCollisionsEnabled(false);
+    this.mGame.mManager.mWorld.addActor(g, 0);
+    return g;
+  }
+
+  /**
+  * Draw a goodie with an underlying circle shape, and a default score of [1,0,0,0]
+  *
+  * @param x       X coordinate of bottom left corner
+  * @param y       Y coordinate of bottom left corner
+  * @param width   Width of the image
+  * @param height  Height of the image
+  * @param imgName Name of image file to use
+  * @return The goodie, so that it can be further modified
+  */
+  public makeGoodieAsCircle(x: number, y: number, width: number, height: number, imgName: string): Goodie {
+    let radius: number = Math.max(width, height);
+    let g: Goodie = new Goodie(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+    g.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, radius / 2);
+    g.setCollisionsEnabled(false);
+    this.mGame.mManager.mWorld.addActor(g, 0);
+    return g;
+  }
+
+  /**
+  * Draw a goodie with an underlying polygon shape
+  *
+  * @param x       X coordinate of the bottom left corner
+  * @param y       Y coordinate of the bottom left corner
+  * @param width   Width of the obstacle
+  * @param height  Height of the obstacle
+  * @param imgName Name of image file to use
+  * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
+  *                x0,y0,x1,y1,x2,y2,...
+  * @return The goodie, so that it can be further modified
+  */
+  public makeGoodieAsPolygon(x: number, y: number, width: number, height: number,
+    imgName: string, verts: number[]): Goodie {
+      let g: Goodie = new Goodie(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+      g.setPolygonPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, verts);
+      g.setCollisionsEnabled(false);
+      this.mGame.mManager.mWorld.addActor(g, 0);
+      return g;
+  }
+
   /**
   * Make a Hero with an underlying rectangular shape
   *
@@ -1887,45 +1510,44 @@ class Level {
     return h;
   }
 
-  // /**
-  // * Make a Hero with an underlying circular shape
-  // *
-  // * @param x       X coordinate of the hero
-  // * @param y       Y coordinate of the hero
-  // * @param width   width of the hero
-  // * @param height  height of the hero
-  // * @param imgName File name of the default image to display
-  // * @return The hero that was created
-  // */
-  // public Hero makeHeroAsCircle(float x, float y, float width, float height, String imgName) {
-  //   float radius = Math.max(width, height);
-  //   Hero h = new Hero(mGame, mGame.mManager.mWorld, width, height, imgName);
-  //   mGame.mManager.mHeroesCreated++;
-  //   h.setCirclePhysics(BodyDef.BodyType.DynamicBody, x, y, radius / 2);
-  //   mGame.mManager.mWorld.addActor(h, 0);
-  //   return h;
-  // }
+  /**
+  * Make a Hero with an underlying circular shape
+  *
+  * @param x       X coordinate of the hero
+  * @param y       Y coordinate of the hero
+  * @param width   width of the hero
+  * @param height  height of the hero
+  * @param imgName File name of the default image to display
+  * @return The hero that was created
+  */
+  public makeHeroAsCircle(x: number, y: number, width: number, height: number, imgName: string): Hero {
+    let radius: number = Math.max(width, height);
+    let h: Hero = new Hero(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+    this.mGame.mManager.mHeroesCreated++;
+    h.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.DYNAMIC, x, y, radius / 2);
+    this.mGame.mManager.mWorld.addActor(h, 0);
+    return h;
+  }
 
-  // /**
-  // * Draw a hero with an underlying polygon shape
-  // *
-  // * @param x       X coordinate of the bottom left corner
-  // * @param y       Y coordinate of the bottom left corner
-  // * @param width   Width of the obstacle
-  // * @param height  Height of the obstacle
-  // * @param imgName Name of image file to use
-  // * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
-  // *                x0,y0,x1,y1,x2,y2,...
-  // * @return The hero, so that it can be further modified
-  // */
-  // public Hero makeHeroAsPolygon(float x, float y, float width, float height, String imgName,
-  //   float... verts) {
-  //     Hero h = new Hero(mGame, mGame.mManager.mWorld, width, height, imgName);
-  //     mGame.mManager.mHeroesCreated++;
-  //     h.setPolygonPhysics(BodyDef.BodyType.StaticBody, x, y, verts);
-  //     mGame.mManager.mWorld.addActor(h, 0);
-  //     return h;
-  //   }
+  /**
+  * Draw a hero with an underlying polygon shape
+  *
+  * @param x       X coordinate of the bottom left corner
+  * @param y       Y coordinate of the bottom left corner
+  * @param width   Width of the obstacle
+  * @param height  Height of the obstacle
+  * @param imgName Name of image file to use
+  * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
+  *                x0,y0,x1,y1,x2,y2,...
+  * @return The hero, so that it can be further modified
+  */
+  public makeHeroAsPolygon(x: number, y: number, width: number, height: number, imgName: string, verts: number[]): Hero {
+      let h: Hero = new Hero(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+      this.mGame.mManager.mHeroesCreated++;
+      h.setPolygonPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, verts);
+      this.mGame.mManager.mWorld.addActor(h, 0);
+      return h;
+  }
 
   //                                                                         /**
   //                                                                         * Specify a limit on how far away from the Hero a projectile can go.  Without this, projectiles
@@ -1947,17 +1569,7 @@ class Level {
   //                                                                           p.mBody.setGravityScale(1);
   //                                                                         }
   //
-  //                                                                         /**
-  //                                                                         * Specify the image file from which to randomly choose projectile images
-  //                                                                         *
-  //                                                                         * @param imgName The file to use when picking images
-  //                                                                         */
-  //                                                                         // TODO: this is probably broken now that we removed Animatable images
-  //                                                                         public void setProjectileImageSource(String imgName) {
-  //                                                                           for (Projectile p : mGame.mManager.mWorld.mProjectilePool.mPool)
-  //                                                                           p.mAnimator.updateImage(mGame.mMedia, imgName);
-  //                                                                           mGame.mManager.mWorld.mProjectilePool.mRandomizeImages = true;
-  //                                                                         }
+
   //
   //                                                                         /**
   //                                                                         * The "directional projectile" mechanism might lead to the projectiles moving too fast. This

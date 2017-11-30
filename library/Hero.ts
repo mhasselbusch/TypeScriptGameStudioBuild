@@ -18,23 +18,23 @@ class Hero extends WorldActor {
   /// before it is defeated. The default is 1, and the default enemy damage amount is 2, so that
   /// the default behavior is for the hero to be defeated on any collision with an enemy, with the
   /// enemy *not* disappearing
-  private mStrength: number; //int
+  private mStrength: number;
   /// For tracking if the game should end immediately when this hero is defeated
   private mMustSurvive: boolean;
   /// Code to run when the hero's strength changes
   private mStrengthChangeCallback: LolActorEvent;
 
   /// Time until the hero's invincibility runs out
-  private mInvincibleRemaining: number; //float
+  private mInvincibleRemaining: number;
   /// cells involved in animation for invincibility
   //private mInvincibleAnimation: Animation;
 
   /// cells involved in animation for throwing
   //private mThrowAnimation: Animation;
   /// seconds that constitute a throw action
-  private mThrowAnimateTotalLength: number; //float
+  private mThrowAnimateTotalLength: number;
   /// how long until we stop showing the throw animation
-  private mThrowAnimationTimeRemaining: number; //float
+  private mThrowAnimationTimeRemaining: number;
 
   /// Track if the hero is in the air, so that it can't jump when it isn't touching anything. This
   /// does not quite work as desired, but is good enough for LOL
@@ -44,7 +44,7 @@ class Hero extends WorldActor {
   /// Indicate that the hero can jump while in the air
   private mAllowMultiJump: boolean;
   /// Sound to play when a jump occurs
-  //private mJumpSound: Sound;
+  private mJumpSound: Sound;
   /// cells involved in animation for jumping
   //private mJumpAnimation: Animation;
 
@@ -54,7 +54,7 @@ class Hero extends WorldActor {
   //private mCrawlAnimation: Animation;
 
   /// For tracking the current amount of rotation of the hero
-  private mCurrentRotation: number; //float
+  private mCurrentRotation: number;
 
   /**
   * Construct a Hero, but don't give it any physics yet
@@ -107,17 +107,20 @@ class Hero extends WorldActor {
   */
   jump(): void {
     // NB: multi-jump prevents us from ever setting mInAir, so this is safe:
-    if (this.mInAir)
-    return;
+    if (this.mInAir) {
+      return;
+    }
     let v = this.mBody.GetLinearVelocity();
     v.Add(this.mJumpImpulses);
     this.updateVelocity(v.x, v.y);
-    if (!this.mAllowMultiJump)
-    this.mInAir = true;
+    if (!this.mAllowMultiJump) {
+      this.mInAir = true;
+    }
     // if (this.mJumpAnimation != null)
     //     this.mAnimator.setCurrentAnimation(this.mJumpAnimation);
-    // if (this.mJumpSound != null)
-    //     this.mJumpSound.play(Lol.getGameFact(this.mScene.mConfig, "volume", 1));
+    if (this.mJumpSound != null) {
+        this.mJumpSound.play();
+    }
     // suspend creation of sticky joints, so the hero can actually move
     // this.mStickyDelay = System.currentTimeMillis() + 10;
   }
@@ -222,9 +225,9 @@ class Hero extends WorldActor {
       // hide the hero quietly, since the destination might make a sound
       this.remove(true);
       destination.mHolding++;
-      // if (destination.mArrivalSound != null) {
-      //   destination.mArrivalSound.play(Lol.getGameFact(this.mScene.mConfig, "volume", 1));
-      // }
+      if (destination.mArrivalSound != null) {
+        destination.mArrivalSound.play();
+      }
       this.mGame.mManager.onDestinationArrive();
     }
   }
@@ -294,7 +297,7 @@ class Hero extends WorldActor {
   */
   private onCollideWithObstacle(o: Obstacle, contact: PhysicsType2d.Dynamics.Contacts.Contact): void {
     // do we need to play a sound?
-    //o.playCollideSound();
+    o.playCollideSound();
 
     let fixtures = o.mBody.GetFixtures();
     fixtures.MoveNext();
@@ -417,14 +420,14 @@ class Hero extends WorldActor {
   //     mJumpAnimation = animation;
   // }
 
-  // /**
-  //  * Set the sound to play when a jump occurs
-  //  *
-  //  * @param soundName The name of the sound file to use
-  //  */
-  // public void setJumpSound(String soundName) {
-  //     mJumpSound = mScene.mMedia.getSound(soundName);
-  // }
+  /**
+   * Set the sound to play when a jump occurs
+   *
+   * @param soundName The name of the sound file to use
+   */
+  public setJumpSound(soundName: string): void {
+      this.mJumpSound = this.mScene.mMedia.getSound(soundName);
+  }
 
   // /**
   //  * Register an animation sequence for when the hero is throwing a projectile

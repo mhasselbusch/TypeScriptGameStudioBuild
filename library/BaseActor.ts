@@ -1,8 +1,4 @@
 /// <reference path="./Renderable.ts"/>
-/// <reference path="./ToggleEventHandler.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 
 /**
 * BaseActor is the parent of all Actor types.
@@ -43,9 +39,9 @@ class BaseActor extends Renderable {
   private mInfoInt: number;
 
   /// Code to run when this actor is tapped
-  mTapHandler: TouchEventHandler | null;
+  //mTapHandler: TouchEventHandler | null;
   /// Code to run when this actor is held or released
-  mToggleHandler: ToggleEventHandler | null;
+  //mToggleHandler: ToggleEventHandler | null;
 
   /// A temporary vertex that we use when resizing
   private mTempVector: PhysicsType2d.Vector2;
@@ -257,7 +253,6 @@ class BaseActor extends Renderable {
   * @param state True or false, depending on whether the actor will participate in physics
   *              collisions or not
   */
-  //TODO: This needs to be tested
   setCollisionsEnabled(state: boolean): void {
     // The default is for all fixtures of a actor have the same sensor state
     let fixtures = this.mBody.GetFixtures();
@@ -495,8 +490,8 @@ class BaseActor extends Renderable {
     this.mBody.SetActive(false);
 
     // play a sound when we remove this actor?
-    //  if (mDisappearSound != null && !quiet)
-    //      mDisappearSound.play(Lol.getGameFact(mScene.mConfig, "volume", 1));
+     if (this.mDisappearSound != null && !quiet)
+         this.mDisappearSound.play();
 
     // To do a disappear animation after we've removed the actor, we draw an actor, so that
     // we have a clean hook into the animation system, but we disable its physics
@@ -642,14 +637,14 @@ class BaseActor extends Renderable {
   //      mTouchSound = mScene.mMedia.getSound(sound);
   //  }
 
-  //  /**
-  //   * Request that a sound plays whenever this actor disappears
-  //   *
-  //   * @param soundName The name of the sound file to play
-  //   */
-  //  public void setDisappearSound(String soundName) {
-  //      mDisappearSound = mScene.mMedia.getSound(soundName);
-  //  }
+   /**
+    * Request that a sound plays whenever this actor disappears
+    *
+    * @param soundName The name of the sound file to play
+    */
+   public setDisappearSound(soundName: string): void {
+       this.mDisappearSound = this.mScene.mMedia.getSound(soundName);
+   }
 
   /**
   * Change the image being used to display the actor
@@ -714,7 +709,7 @@ class BaseActor extends Renderable {
   *
   * @param delay How long to wait before displaying the actor, in milliseconds
   */
-  //TODO: Timer vs setTimeout
+  //TODO: Timer vs setTimeout?
   public setAppearDelay(delay: number): void {
     this.mEnabled = false;
     this.mBody.SetActive(false);
