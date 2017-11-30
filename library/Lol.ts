@@ -29,7 +29,7 @@ class Lol {
    */
   static message(config: Config, tag: string, text: string): void {
       if (config.mShowDebugBoxes)
-          console.log(tag + " " text);
+          console.log(tag + " " +  text);
   }
 
   /**

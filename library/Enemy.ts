@@ -52,10 +52,10 @@ class Enemy extends WorldActor {
     onCollide(other: WorldActor, contact: PhysicsType2d.Dynamics.Contacts.Contact): void {
         // collision with obstacles
         if (other instanceof Obstacle)
-            onCollideWithObstacle((Obstacle) other, contact);
+            this.onCollideWithObstacle(other as Obstacle, contact);
         // collision with projectiles
         if (other instanceof Projectile)
-            onCollideWithProjectile((Projectile) other);
+            this.onCollideWithProjectile(other as Projectile);
     }
 
     /**

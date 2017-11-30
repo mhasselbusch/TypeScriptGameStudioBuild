@@ -32,9 +32,9 @@ class Hero extends WorldActor {
   /// cells involved in animation for throwing
   //private mThrowAnimation: Animation;
   /// seconds that constitute a throw action
-  private mThrowAnimateTotalLength: number;
+  //private mThrowAnimateTotalLength: number;
   /// how long until we stop showing the throw animation
-  private mThrowAnimationTimeRemaining: number;
+  //private mThrowAnimationTimeRemaining: number;
 
   /// Track if the hero is in the air, so that it can't jump when it isn't touching anything. This
   /// does not quite work as desired, but is good enough for LOL

@@ -13,7 +13,7 @@ class Destination extends WorldActor {
     /// accepts any heroes
     mActivation: Array<number>;
     /// Sound to play when a hero arrives at this destination
-    //Sound mArrivalSound;
+    mArrivalSound: Sound;
 
     /**
      * Create a basic Destination.  The destination won't yet have any physics attached to it.

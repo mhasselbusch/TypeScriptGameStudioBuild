@@ -39,7 +39,7 @@ class BaseActor extends Renderable {
   private mInfoInt: number;
 
   /// Code to run when this actor is tapped
-  //mTapHandler: TouchEventHandler | null;
+  mTapHandler: TouchEventHandler | null;
   /// Code to run when this actor is held or released
   //mToggleHandler: ToggleEventHandler | null;
 

@@ -174,7 +174,7 @@ class Obstacle extends WorldActor {
                     }
                 }
             }
-        };
+        })();
     }
 
     /**
