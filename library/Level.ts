@@ -1516,7 +1516,7 @@ class Level {
   * @param zIndex    The z index of the text
   * @return A Renderable of the text, so it can be enabled/disabled by program code
   */
-  public addText(x: number, y: number, fontName: string, fontColor: string, fontSize: string,
+  public addText(x: number, y: number, fontName: string, fontColor: string, fontSize: number,
     prefix: string, suffix: string, tp: TextProducer, zIndex: number): Renderable {
       return this.mGame.mManager.mWorld.addText(x, y, fontName, fontColor, fontSize, prefix, suffix, tp, zIndex);
   }
