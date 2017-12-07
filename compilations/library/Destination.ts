@@ -13,7 +13,7 @@ class Destination extends WorldActor {
     /// accepts any heroes
     mActivation: Array<number>;
     /// Sound to play when a hero arrives at this destination
-    //Sound mArrivalSound;
+    mArrivalSound: Sound;
 
     /**
      * Create a basic Destination.  The destination won't yet have any physics attached to it.
@@ -72,12 +72,12 @@ class Destination extends WorldActor {
         this.mCapacity = heroes;
     }
 
-    // /**
-    //  * Specify the sound to play when a hero arrives at this destination
-    //  *
-    //  * @param soundName The name of the sound file that should play
-    //  */
-    // public setArrivalSound(String soundName): void {
-    //     this.mArrivalSound = this.mScene.mMedia.getSound(soundName);
-    // }
+    /**
+    * Specify the sound to play when a hero arrives at this destination
+    *
+    * @param soundName The name of the sound file that should play
+    */
+    public setArrivalSound(soundName: string): void {
+      this.mArrivalSound = this.mScene.mMedia.getSound(soundName);
+    }
 }
