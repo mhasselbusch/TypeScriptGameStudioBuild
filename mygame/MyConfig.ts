@@ -46,34 +46,34 @@ class MyConfig extends Config {
 
     // list the images that the game will use
     this.mImageNames = new Array<string>(
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/button.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/TitleBack.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/Angel.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/Bat.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/Bullet.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/CloudBall.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/SkyBack.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/ArrowSign.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/ChristmasBack.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/Crate.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/GoldCoin.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/LeftEndPlat.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/MiddlePlat.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/Miser.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/OneTree.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/RightEndPlat.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/Santa.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/SnowMan.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/Stone.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/ThreeTrees.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/Igloo.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/Plane.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/PlaneBack.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/Ceiling.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/Floor.png",
-     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/RockUp.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/RockDown.png"
+     "https://s3.amazonaws.com/typescript-game-studio/standard/button.png", "https://s3.amazonaws.com/typescript-game-studio/standard/TitleBack.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/Angel.png", "https://s3.amazonaws.com/typescript-game-studio/standard/Bat.png", "https://s3.amazonaws.com/typescript-game-studio/standard/Bullet.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/CloudBall.png", "https://s3.amazonaws.com/typescript-game-studio/standard/SkyBack.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/ArrowSign.png", "https://s3.amazonaws.com/typescript-game-studio/standard/ChristmasBack.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/Crate.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GoldCoin.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/LeftEndPlat.png", "https://s3.amazonaws.com/typescript-game-studio/standard/MiddlePlat.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/Miser.png", "https://s3.amazonaws.com/typescript-game-studio/standard/OneTree.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/RightEndPlat.png", "https://s3.amazonaws.com/typescript-game-studio/standard/Santa.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/SnowMan.png", "https://s3.amazonaws.com/typescript-game-studio/standard/Stone.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/ThreeTrees.png", "https://s3.amazonaws.com/typescript-game-studio/standard/Igloo.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/Plane.png", "https://s3.amazonaws.com/typescript-game-studio/standard/PlaneBack.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/Ceiling.png", "https://s3.amazonaws.com/typescript-game-studio/standard/Floor.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/RockUp.png", "https://s3.amazonaws.com/typescript-game-studio/standard/RockDown.png"
     );
 
     // list the sound effects that the game will use
     this.mSoundNames = new Array<string>(
-    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/Shooting.ogg", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/EnemyKilled.wav",
-    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/MoneyGet.wav",
-    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/Crash.ogg"
+    "https://s3.amazonaws.com/typescript-game-studio/standard/Shooting.ogg", "https://s3.amazonaws.com/typescript-game-studio/standard/EnemyKilled.wav",
+    "https://s3.amazonaws.com/typescript-game-studio/standard/MoneyGet.wav",
+    "https://s3.amazonaws.com/typescript-game-studio/standard/Crash.ogg"
     );
 
     // list the background music files that the game will use
     this.mMusicNames = new Array<string>(
-    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/TitleTheme.mp3",
-    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/AngelTheme.mp3",
-    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/ChristmasTheme.mp3",
-    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/PlaneTheme.ogg"
+    "https://s3.amazonaws.com/typescript-game-studio/standard/TitleTheme.mp3",
+    "https://s3.amazonaws.com/typescript-game-studio/standard/AngelTheme.mp3",
+    "https://s3.amazonaws.com/typescript-game-studio/standard/ChristmasTheme.mp3",
+    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneTheme.ogg"
     );
 
     // don't change these lines unless you know what you are doing
