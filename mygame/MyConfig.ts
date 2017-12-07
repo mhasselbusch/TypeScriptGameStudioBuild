@@ -46,34 +46,34 @@ class MyConfig extends Config {
 
     // list the images that the game will use
     this.mImageNames = new Array<string>(
-     "./GameAssets/button.png", "./GameAssets/TitleBack.png",
-     "./GameAssets/AngelGame/Angel.png", "./GameAssets/AngelGame/Bat.png", "./GameAssets/AngelGame/Bullet.png",
-     "./GameAssets/AngelGame/CloudBall.png", "./GameAssets/AngelGame/SkyBack.png",
-     "./GameAssets/ChristmasGame/ArrowSign.png", "./GameAssets/ChristmasGame/ChristmasBack.png",
-     "./GameAssets/ChristmasGame/Crate.png", "./GameAssets/ChristmasGame/GoldCoin.png",
-     "./GameAssets/ChristmasGame/LeftEndPlat.png", "./GameAssets/ChristmasGame/MiddlePlat.png",
-     "./GameAssets/ChristmasGame/Miser.png", "./GameAssets/ChristmasGame/OneTree.png",
-     "./GameAssets/ChristmasGame/RightEndPlat.png", "./GameAssets/ChristmasGame/Santa.png",
-     "./GameAssets/ChristmasGame/SnowMan.png", "./GameAssets/ChristmasGame/Stone.png",
-     "./GameAssets/ChristmasGame/ThreeTrees.png", "./GameAssets/ChristmasGame/Igloo.png",
-     "./GameAssets/PlaneGame/Plane.png", "./GameAssets/PlaneGame/PlaneBack.png",
-     "./GameAssets/PlaneGame/Ceiling.png", "./GameAssets/PlaneGame/Floor.png",
-     "./GameAssets/PlaneGame/RockUp.png", "./GameAssets/PlaneGame/RockDown.png"
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/button.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/TitleBack.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/Angel.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/Bat.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/Bullet.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/CloudBall.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/SkyBack.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/ArrowSign.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/ChristmasBack.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/Crate.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/GoldCoin.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/LeftEndPlat.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/MiddlePlat.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/Miser.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/OneTree.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/RightEndPlat.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/Santa.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/SnowMan.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/Stone.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/ThreeTrees.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/Igloo.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/Plane.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/PlaneBack.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/Ceiling.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/Floor.png",
+     "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/RockUp.png", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/RockDown.png"
     );
 
     // list the sound effects that the game will use
     this.mSoundNames = new Array<string>(
-    "./GameAssets/AngelGame/Shooting.ogg", "./GameAssets/AngelGame/EnemyKilled.wav",
-    "./GameAssets/ChristmasGame/MoneyGet.wav",
-    "./GameAssets/PlaneGame/Crash.ogg"
+    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/Shooting.ogg", "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/EnemyKilled.wav",
+    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/MoneyGet.wav",
+    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/Crash.ogg"
     );
 
     // list the background music files that the game will use
     this.mMusicNames = new Array<string>(
-    "./GameAssets/TitleTheme.mp3",
-    "./GameAssets/AngelGame/AngelTheme.mp3",
-    "./GameAssets/ChristmasGame/ChristmasTheme.mp3",
-    "./GameAssets/PlaneGame/PlaneTheme.ogg"
+    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/TitleTheme.mp3",
+    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/AngelGame/AngelTheme.mp3",
+    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/ChristmasGame/ChristmasTheme.mp3",
+    "https://s3.amazonaws.com/typescript-game-studio/standard/GameAssets/PlaneGame/PlaneTheme.ogg"
     );
 
     // don't change these lines unless you know what you are doing
