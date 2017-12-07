@@ -1,32 +1,35 @@
 /// <reference path="../library/ScreenManager.ts"/>
 
 /**
-* Splash encapsulates the code that will be run to configure the opening screen of the game.
-* Typically this has buttons for playing, getting help, and quitting.
+* This is the scene that is displayed when you lose a level
 */
 class LoseScene implements ScreenManager {
   /**
-  * There is usually only one splash screen. However, the ScreenManager interface requires
-  * display() to take a parameter for which screen to display.  We ignore it.
+  * Implement the display function
   *
-  * @param index Which splash screen should be displayed (typically you can ignore this)
+  * @param index The level you lost on
   * @param level The physics-based world that comprises the splash screen
   */
   public display(index: number, level: Level): void {
     // Configure our win screen
 
-    // This is the Play button... it switches to the first screen of the
-    // level chooser. You could jump straight to the first level by using
-    // "doLevel(1)", but check the configuration in MyConfig... there's a
-    // field you should change if you don't want the 'back' button to go
-    // from that level to the chooser.
-    level.addStaticText(960/2 - 100, 640/2 - 10, "Arial", 0x00FFFF, 32, "Try Again", 0);
-
-    level.addTapControl(0, 0, 960, 640, "", new (class _ extends LolAction {
+    // Add a background
+    level.drawPicture(0, 0, 960, 540, "./GameAssets/TitleBack.png", -2);
+    // Add a degrading message to make the player feel bad about themself
+    level.addStaticTextCentered(960/2, 540/2, "Arial", 0x0000FF, 32, "You lost, try being better", 0);
+    // Make it so they can click to go back to the level select screen
+    level.addTapControl(0, 0, 960, 540, "", new (class _ extends LolAction {
       public go(): boolean {
         level.doLevel(index);
         return true;
       }
     })());
+    // Make it so we can use the spacebar
+    level.setKeyAction(32, new (class _ extends LolAction {
+      public go(): boolean {
+        level.doLevel(index);
+        return true;
+      }
+    })(), null, false);
   }
 }

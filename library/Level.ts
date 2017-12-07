@@ -52,12 +52,6 @@ class Level {
   */
   public setCameraBounds(width: number, height: number): void {
     this.mGame.mManager.mWorld.mCamBound.Set(width, height);
-
-    // warn on strange dimensions
-    if (width < this.mConfig.mWidth / this.mConfig.mPixelMeterRatio)
-      Lol.message(this.mConfig, "Warning", "Your game width is less than 1/10 of the screen width");
-    if (height < this.mConfig.mHeight / this.mConfig.mPixelMeterRatio)
-      Lol.message(this.mConfig, "Warning", "Your game height is less than 1/10 of the screen height");
   }
 
   /**
@@ -77,84 +71,6 @@ class Level {
   public setMusic(musicName: string): void {
     this.mGame.mManager.mWorld.mMusic = this.mMedia.getMusic(musicName);
   }
-
-  // /**
-  // * Specify that you want some code to run after a fixed amount of time passes.
-  // *
-  // * @param howLong  How long to wait before the timer code runs
-  // * @param callback The code to run
-  // */
-  // public void setTimerCallback(float howLong, final LolAction callback) {
-  //   Timer.schedule(new Timer.Task() {
-  //     @Override
-  //     public void run() {
-  //       if (!mGame.mManager.mGameOver)
-  //       callback.go();
-  //     }
-  //   }, howLong);
-  // }
-  //
-  // /**
-  // * Specify that you want some code to run repeatedly
-  // *
-  // * @param howLong  How long to wait before the timer code runs for the first time
-  // * @param interval The time between subsequent executions of the code
-  // * @param callback The code to run
-  // */
-  // public void setTimerCallback(float howLong, float interval, final LolAction callback) {
-  //   Timer.schedule(new Timer.Task() {
-  //     @Override
-  //     public void run() {
-  //       if (!mGame.mManager.mGameOver)
-  //       callback.go();
-  //     }
-  //   }, howLong, interval);
-  // }
-  //
-  // /**
-  // * Turn on scribble mode, so that scene touch events draw circular objects
-  // * <p>
-  // * Note: this code should be thought of as serving to demonstrate, only. If you really wanted to
-  // * do anything clever with scribbling, you'd certainly want to change this code.
-  // *
-  // * @param imgName          The name of the image to use for scribbling
-  // * @param width            Width of the individual components of the scribble
-  // * @param height           Height of the individual components of the scribble
-  // * @param interval         Time (in milliseconds) that must transpire between scribble events...
-  // *                         use this to avoid outrageously high rates of scribbling
-  // * @param onCreateCallback A callback to run in order to modify the scribble behavior. The
-  // *                         obstacle that is drawn in the scribble will be passed to the callback
-  // */
-  // public void setScribbleMode(final String imgName, final float width, final float height,
-  //   final int interval, final LolActorEvent onCreateCallback) {
-  //     // we set a callback on the Level, so that any touch to the level (down, drag, up) will
-  //     // affect our scribbling
-  //     mGame.mManager.mWorld.mPanHandlers.add(new PanEventHandler() {
-  //       /// The time of the last touch event... we use this to prevent high rates of scribble
-  //       long mLastTime;
-  //
-  //       /**
-  //       * Draw a new obstacle if enough time has transpired
-  //       */
-  //       public boolean go(float worldX, float worldY, float deltaX, float deltaY) {
-  //         // check if enough milliseconds have passed
-  //         long now = System.currentTimeMillis();
-  //         if (now < mLastTime + interval) {
-  //           return true;
-  //         }
-  //         mLastTime = now;
-  //
-  //         // make a circular obstacle
-  //         final Obstacle o = makeObstacleAsCircle(worldX - width / 2, worldY - height / 2,
-  //           width, height, imgName);
-  //           if (onCreateCallback != null) {
-  //             onCreateCallback.go(o);
-  //           }
-  //
-  //           return true;
-  //         }
-  //       });
-  //     }
 
   /**
   * Manually set the zoom level of the game
@@ -398,7 +314,6 @@ class Level {
   public DisplayGoodies1(): TextProducer {
     let out_this = this;
     return new (class _ implements TextProducer {
-      //@Override
       public makeText(): string {
         return "" + out_this.mGame.mManager.mGoodiesCollected[0];
       }
@@ -453,7 +368,7 @@ class Level {
     return new (class _ implements TextProducer {
       //@Override
       public makeText(): string {
-        return "" + out_this.mGame.mManager.mLoseCountDownRemaining;
+        return "" + (out_this.mGame.mManager.mLoseCountDownRemaining).toFixed(0);
       }
     })();
   }
@@ -466,7 +381,7 @@ class Level {
     return new (class _ implements TextProducer {
       //@Override
       public makeText(): string {
-        return "" + out_this.mGame.mManager.mWinCountRemaining;
+        return "" + (out_this.mGame.mManager.mWinCountRemaining).toFixed(0);
       }
     })();
   }
@@ -479,13 +394,14 @@ class Level {
     return new (class _ implements TextProducer {
       //@Override
       public makeText(): string {
-        return "" + out_this.mGame.mManager.mEnemiesDefeated;
+        let ed = out_this.mGame.mManager.getEnemiesDefeated();
+        return "" + ed;
       }
     })();
   }
 
   /**
-  * Generate text indicating the number of defeated enemies
+  * Generate text indicating the number of remaining projectiles
   */
   public DisplayRemainingProjectiles(): TextProducer {
     let out_this = this;
@@ -517,8 +433,8 @@ class Level {
   * Place some text on the screen.  The text will be generated by tp, which is called on every
   * screen render
   *
-  * @param x         The X coordinate of the bottom left corner (in pixels)
-  * @param y         The Y coordinate of the bottom left corner (in pixels)
+  * @param x         The X coordinate of the top left corner (in pixels)
+  * @param y         The Y coordinate of the top left corner (in pixels)
   * @param fontName  The name of the font to use
   * @param fontColor The color to use for the text
   * @param size      The font size
@@ -537,12 +453,10 @@ class Level {
   * Indicate that the level will end in defeat if it is not completed in a given amount of time.
   *
   * @param timeout The amount of time until the level will end in defeat
-  * @param text    The text to display when the level ends in defeat
   */
-  public setLoseCountdown(timeout: number, text: string): void {
+  public setLoseCountdown(timeout: number): void {
     // Once the Lose CountDown is not -100, it will start counting down
     this.mGame.mManager.mLoseCountDownRemaining = timeout;
-    this.mGame.mManager.mLoseCountDownText = text;
   }
 
   /**
@@ -561,8 +475,8 @@ class Level {
   /**
   * Add a button that performs an action when clicked.
   *
-  * @param x       The X coordinate of the bottom left corner (in pixels)
-  * @param y       The Y coordinate of the bottom left corner (in pixels)
+  * @param x       The X coordinate of the top left corner (in pixels)
+  * @param y       The Y coordinate of the top left corner (in pixels)
   * @param width   The width of the image
   * @param height  The height of the image
   * @param imgName The name of the image to display. Use "" for an invisible button
@@ -576,6 +490,7 @@ class Level {
       //action.mSource = c;
       c.mSprite.interactive = true;
       c.mSprite.on('click', () => action.go());
+      c.mSprite.on('tap', () => action.go());
       this.mGame.mManager.mHud.addActor(c, 0);
       return c;
   }
@@ -585,13 +500,19 @@ class Level {
   * Create an action that makes a hero jump.
   *
   * @param hero The hero who we want to jump
+  * @param milliDelay If there should be time between being allowed to jump
   * @return The action object
   */
-  public JumpAction(hero: Hero): LolAction {
+  public jumpAction(hero: Hero, milliDelay: number): LolAction {
     return new (class _ extends LolAction {
-      //@Override
+      mLastJump: number = 0;
+
       public go(): void {
-        hero.jump();
+        let now = new Date().getTime();
+        if (this.mLastJump + milliDelay < now) {
+          this.mLastJump = now;
+          hero.jump();
+        }
       }
     })();
   }
@@ -600,10 +521,10 @@ class Level {
   * Create an action that makes a hero throw a projectile
   *
   * @param hero      The hero who should throw the projectile
-  * @param offsetX   specifies the x distance between the bottom left of the projectile and the
-  *                  bottom left of the hero throwing the projectile
-  * @param offsetY   specifies the y distance between the bottom left of the projectile and the
-  *                  bottom left of the hero throwing the projectile
+  * @param offsetX   specifies the x distance between the top left of the projectile and the
+  *                  top left of the hero throwing the projectile
+  * @param offsetY   specifies the y distance between the top left of the projectile and the
+  *                  top left of the hero throwing the projectile
   * @param velocityX The X velocity of the projectile when it is thrown
   * @param velocityY The Y velocity of the projectile when it is thrown
   * @return The action object
@@ -624,18 +545,18 @@ class Level {
   * screen was touched
   *
   * @param hero    The hero who should throw the projectile
-  * @param offsetX specifies the x distance between the bottom left of the projectile and the
-  *                bottom left of the hero throwing the projectile
-  * @param offsetY specifies the y distance between the bottom left of the projectile and the
-  *                bottom left of the hero throwing the projectile
+  * @param offsetX specifies the x distance between the top left of the projectile and the
+  *                top left of the hero throwing the projectile
+  * @param offsetY specifies the y distance between the top left of the projectile and the
+  *                top left of the hero throwing the projectile
   * @return The action object
   */
   public ThrowDirectionalAction(hero: Hero, offsetX: number, offsetY: number): TouchEventHandler {
       let out_this = this;
       return new (class _ extends TouchEventHandler {
         public go(worldX: number, worldY: number): boolean {
-          out_this.mGame.mManager.mWorld.mProjectilePool.throwAt(hero.mBody.GetPosition().x,
-          hero.mBody.GetPosition().y, worldX, worldY, hero, offsetX, offsetY);
+          out_this.mGame.mManager.mWorld.mProjectilePool.throwAt(hero.getXPosition(),
+          hero.getYPosition(), worldX, worldY, hero, offsetX, offsetY);
           return true;
         }
       })();
@@ -703,6 +624,23 @@ class Level {
   }
 
   /**
+  * Create an action for adding velocity to an actor
+  * This action can be used by a control.
+  *
+  * @param actor The actor to move
+  * @param xRate The rate at which the actor should move in the X direction
+  * @param yRate The y velocity
+  * @return The action
+  */
+  public addVelocityAction(actor: WorldActor, xRate: number, yRate: number): LolAction {
+    return new (class _ extends LolAction {
+      public go(): void {
+        actor.addVelocity(xRate, yRate);
+      }
+    })();
+  }
+
+  /**
   * Create an action for moving an actor in the Y direction.  This action can be used by a
   * Control.
   *
@@ -721,7 +659,6 @@ class Level {
       }
     })();
   }
-
 
   /**
   * Create an action for moving an actor in the X and Y directions.  This action can be used by a
@@ -742,51 +679,6 @@ class Level {
     })();
   }
 
-
-  /**
-  * Let an actor be controlled by arrow keys
-  *
-  * @param actor     The actor to move
-  * @param speed     Speed to move an actor
-  * @param dampening The dampening factor
-  */
-  public setArrowKeyControls(actor: WorldActor, speed: number): void {
-    let up = this.makeYMotionAction(actor, -speed);
-    let down = this.makeYMotionAction(actor, speed,);
-    let left = this.makeXMotionAction(actor, -speed);
-    let right = this.makeXMotionAction(actor, speed);
-
-    document.onkeydown = (e) => {
-      if(e.key == "ArrowUp") {
-        up.go();
-      }
-      else if(e.key == "ArrowDown") {
-        down.go();
-      }
-      else if(e.key == "ArrowLeft") {
-        left.go();
-      }
-      else if(e.key == "ArrowRight") {
-        right.go();
-      }
-    };
-
-    document.onkeyup = (e) => {
-      if(e.key == "ArrowUp") {
-        actor.updateVelocity(actor.mBody.GetLinearVelocity().x, 0);
-      }
-      else if(e.key == "ArrowDown") {
-        actor.updateVelocity(actor.mBody.GetLinearVelocity().x, 0);
-      }
-      else if(e.key == "ArrowLeft") {
-        actor.updateVelocity(0, actor.mBody.GetLinearVelocity().y);
-      }
-      else if(e.key == "ArrowRight") {
-        actor.updateVelocity(0, actor.mBody.GetLinearVelocity().y);
-      }
-    };
-  }
-
   /**
   * Set a key to perform an action when it is pressed
   *
@@ -794,23 +686,50 @@ class Level {
   * @param action     An action to perform
   * @param repeat     Whether holding the button repeats the action
   */
-  public setKeyAction(key: string, action: LolAction, repeat: boolean): void {
-    let loop = repeat;
-    document.onkeydown = (e) => {
-      if(e.key == key) {
-        do {
-          action.go();
-        } while(loop);
-      }
-    };
+  public setKeyAction(keyCode: number, actionDown: LolAction, actionUp: LolAction, repeat: boolean): void {
+    actionDown.mIsActive = false;
+    if (repeat)
+      this.mGame.mManager.mWorld.mRepeatEvents.push(actionDown);
 
-    document.onkeyup = (e) => {
-      if(e.key == key) {
-        loop = false;
+    let func = (e: KeyboardEvent) => {
+      if (e.keyCode == keyCode) {
+        actionDown.mIsActive = true;
+        if (!repeat)
+          actionDown.go();
       }
     };
+    this.mGame.mManager.mFunctions.push(func);
+    this.mGame.mManager.mEventTypes.push("keydown");
+    document.addEventListener("keydown", func);
+
+    let func2 = (e: KeyboardEvent) => {
+      if (e.keyCode == keyCode) {
+        actionDown.mIsActive = false;
+        if (actionUp)
+          actionUp.go();
+      }
+    };
+    this.mGame.mManager.mFunctions.push(func2);
+    this.mGame.mManager.mEventTypes.push("keyup");
+    document.addEventListener("keyup", func2);
   }
 
+  /**
+  * Do an action when the mouse is clicked
+  *
+  * @param action The action to take when the mouse is clicked
+  */
+  public setClickAction(action: TouchEventHandler): void {
+    let func = (e: MouseEvent) => {
+      action.go(e.pageX, e.pageY);
+    };
+    this.mGame.mManager.mFunctions.push(func);
+    this.mGame.mManager.mEventTypes.push("mousedown");
+    document.addEventListener("mousedown", func);
+    this.mGame.mManager.mFunctions.push(func);
+    this.mGame.mManager.mEventTypes.push("touchstart");
+    document.addEventListener("touchstart", func);
+  }
 
   /**
   * Create an action for moving an actor in the X and Y directions, with dampening on release.
@@ -864,7 +783,6 @@ class Level {
   */
   public makeRotator(hero: Hero, rate: number): LolAction {
     return new (class _ extends LolAction {
-      //@Override
       public go(): void {
         hero.increaseRotation(rate);
       }
@@ -877,10 +795,10 @@ class Level {
   * @param hero       The hero who should throw the projectile
   * @param milliDelay A delay between throws, so that holding doesn't lead to too many throws at
   *                   once
-  * @param offsetX    specifies the x distance between the bottom left of the projectile and the
-  *                   bottom left of the hero throwing the projectile
-  * @param offsetY    specifies the y distance between the bottom left of the projectile and the
-  *                   bottom left of the hero throwing the projectile
+  * @param offsetX    specifies the x distance between the top left of the projectile and the
+  *                   top left of the hero throwing the projectile
+  * @param offsetY    specifies the y distance between the top left of the projectile and the
+  *                   top left of the hero throwing the projectile
   * @param velocityX  The X velocity of the projectile when it is thrown
   * @param velocityY  The Y velocity of the projectile when it is thrown
   * @return The action object
@@ -889,9 +807,8 @@ class Level {
     velocityX: number, velocityY: number): LolAction {
       let out_this = this;
       return new (class _ extends LolAction {
-        mLastThrow: number;
+        mLastThrow: number = 0;
 
-        //@Override
         public go(): void {
         let now = new Date().getTime();
         if (this.mLastThrow + milliDelay < now) {
@@ -902,86 +819,12 @@ class Level {
     })();
   }
 
-//   /**
-//   * The default behavior for throwing is to throw in a straight line. If we instead desire that
-//   * the projectiles have some sort of aiming to them, we need to use this method, which throws
-//   * toward where the screen was pressed
-//   * <p>
-//   * Note: you probably want to use an invisible button that covers the screen...
-//   *
-//   * @param x          The X coordinate of the bottom left corner (in pixels)
-//   * @param y          The Y coordinate of the bottom left corner (in pixels)
-//   * @param width      The width of the image
-//   * @param height     The height of the image
-//   * @param imgName    The name of the image to display. Use "" for an invisible button
-//   * @param h          The hero who should throw the projectile
-//   * @param milliDelay A delay between throws, so that holding doesn't lead to too many throws at
-//   *                   once
-//   * @param offsetX    specifies the x distance between the bottom left of the projectile and the
-//   *                   bottom left of the hero throwing the projectile
-//   * @param offsetY    specifies the y distance between the bottom left of the projectile and the
-//   *                   bottom left of the hero throwing the projectile
-//   * @return The button that was created
-//   */
-//   public SceneActor addDirectionalThrowButton(int x, int y, int width, int height, String imgName,
-//     final Hero h, final long milliDelay,
-//     final float offsetX, final float offsetY) {
-//       final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-//       c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-//       final Vector2 v = new Vector2();
-//       c.mToggleHandler = new ToggleEventHandler() {
-//         public boolean go(boolean isUp, float worldX, float worldY) {
-//           if (isUp) {
-//             isHolding = false;
-//           } else {
-//             isHolding = true;
-//             v.x = worldX;
-//             v.y = worldY;
-//           }
-//           return true;
-//         }
-//       };
-//       c.mPanHandler = new PanEventHandler() {
-//         public boolean go(float worldX, float worldY, float deltaX, float deltaY) {
-//           if (c.mToggleHandler.isHolding) {
-//             v.x = worldX;
-//             v.y = worldY;
-//           }
-//           return c.mToggleHandler.isHolding;
-//         }
-//       };
-//       mGame.mManager.mHud.addActor(c, 0);
-//       // on toggle, we start or stop throwing; on pan, we change throw direction
-//       mGame.mManager.mHud.mToggleControls.add(c);
-//
-//       c.mToggleHandler.mSource = c;
-//       c.mPanHandler.mSource = c;
-//
-//       mGame.mManager.mWorld.mRepeatEvents.add(new LolAction() {
-//         long mLastThrow;
-//
-//         @Override
-//         public void go() {
-//           if (c.mToggleHandler.isHolding) {
-//             long now = System.currentTimeMillis();
-//             if (mLastThrow + milliDelay < now) {
-//               mLastThrow = now;
-//               mGame.mManager.mWorld.mProjectilePool.throwAt(h.mBody.getPosition().x,
-//               h.mBody.getPosition().y, v.x, v.y, h, offsetX, offsetY);
-//             }
-//           }
-//         }
-//       });
-//       return c;
-//     }
-//
-//
 
   /**
   * Add an image to the heads-up display. Touching the image has no effect
   *
-  * @param x       The X coordinate of the bottom left corner (in pixels)
-  * @param y       The Y coordinate of the bottom left corner (in pixels)
+  * @param x       The X coordinate of the top left corner (in pixels)
+  * @param y       The Y coordinate of the top left corner (in pixels)
   * @param width   The width of the image
   * @param height  The height of the image
   * @param imgName The name of the image to display. Use "" for an invisible button
@@ -995,23 +838,11 @@ class Level {
   }
 
 
-  // /**
-  // * Set the background color for the current level
-  // *
-  // * @param color The color, formatted as a hex number
-  // */
-  // public setBackgroundColor(color: number) {
-  //   //this.mGame.mRenderer = PIXI.autoDetectRenderer(this.mConfig.mWidth, this.mConfig.mHeight, {backgroundColor: color});
-  //   //mGame.mManager.mBackground.mColor = Color.valueOf(color);
-  //
-  // }
-
-
   /**
   * Make an enemy that has an underlying rectangular shape.
   *
-  * @param x       The X coordinate of the bottom left corner
-  * @param y       The Y coordinate of the bottom right corner
+  * @param x       The X coordinate of the top left corner
+  * @param y       The Y coordinate of the top right corner
   * @param width   The width of the enemy
   * @param height  The height of the enemy
   * @param imgName The name of the image to display
@@ -1028,8 +859,8 @@ class Level {
   /**
   * Draw an enemy with an underlying polygon shape
   *
-  * @param x       X coordinate of the bottom left corner
-  * @param y       Y coordinate of the bottom left corner
+  * @param x       X coordinate of the top left corner
+  * @param y       Y coordinate of the top left corner
   * @param width   Width of the obstacle
   * @param height  Height of the obstacle
   * @param imgName Name of image file to use
@@ -1049,8 +880,8 @@ class Level {
   /**
   * Make an enemy that has an underlying circular shape.
   *
-  * @param x       The X coordinate of the bottom left corner
-  * @param y       The Y coordinate of the bottom right corner
+  * @param x       The X coordinate of the top left corner
+  * @param y       The Y coordinate of the top right corner
   * @param width   The width of the enemy
   * @param height  The height of the enemy
   * @param imgName The name of the image to display
@@ -1065,12 +896,11 @@ class Level {
     return e;
   }
 
-
   /**
   * Make a destination that has an underlying rectangular shape.
   *
-  * @param x       The X coordinate of the bottom left corner
-  * @param y       The Y coordinate of the bottom right corner
+  * @param x       The X coordinate of the top left corner
+  * @param y       The Y coordinate of the top right corner
   * @param width   The width of the destination
   * @param height  The height of the destination
   * @param imgName The name of the image to display
@@ -1088,8 +918,8 @@ class Level {
   /**
   * Draw a destination with an underlying polygon shape
   *
-  * @param x       X coordinate of the bottom left corner
-  * @param y       Y coordinate of the bottom left corner
+  * @param x       X coordinate of the top left corner
+  * @param y       Y coordinate of the top left corner
   * @param width   Width of the obstacle
   * @param height  Height of the obstacle
   * @param imgName Name of image file to use
@@ -1109,8 +939,8 @@ class Level {
   /**
   * Make a destination that has an underlying circular shape.
   *
-  * @param x       The X coordinate of the bottom left corner
-  * @param y       The Y coordinate of the bottom right corner
+  * @param x       The X coordinate of the top left corner
+  * @param y       The Y coordinate of the top right corner
   * @param width   The width of the destination
   * @param height  The height of the destination
   * @param imgName The name of the image to display
@@ -1126,12 +956,11 @@ class Level {
       return d;
   }
 
-
   /**
   * Draw an obstacle with an underlying box shape
   *
-  * @param x       X coordinate of the bottom left corner
-  * @param y       Y coordinate of the bottom left corner
+  * @param x       X coordinate of the top left corner
+  * @param y       Y coordinate of the top left corner
   * @param width   Width of the obstacle
   * @param height  Height of the obstacle
   * @param imgName Name of image file to use
@@ -1147,8 +976,8 @@ class Level {
   /**
   * Draw an obstacle with an underlying polygon shape
   *
-  * @param x       X coordinate of the bottom left corner
-  * @param y       Y coordinate of the bottom left corner
+  * @param x       X coordinate of the top left corner
+  * @param y       Y coordinate of the top left corner
   * @param width   Width of the obstacle
   * @param height  Height of the obstacle
   * @param imgName Name of image file to use
@@ -1167,8 +996,8 @@ class Level {
   /**
   * Draw an obstacle with an underlying circle shape
   *
-  * @param x       X coordinate of the bottom left corner
-  * @param y       Y coordinate of the bottom left corner
+  * @param x       X coordinate of the top left corner
+  * @param y       Y coordinate of the top left corner
   * @param width   Width of the obstacle
   * @param height  Height of the obstacle
   * @param imgName Name of image file to use
@@ -1186,8 +1015,8 @@ class Level {
   /**
   * Draw a goodie with an underlying box shape, and a default score of [1,0,0,0]
   *
-  * @param x       X coordinate of bottom left corner
-  * @param y       Y coordinate of bottom left corner
+  * @param x       X coordinate of top left corner
+  * @param y       Y coordinate of top left corner
   * @param width   Width of the image
   * @param height  Height of the image
   * @param imgName Name of image file to use
@@ -1204,8 +1033,8 @@ class Level {
   /**
   * Draw a goodie with an underlying circle shape, and a default score of [1,0,0,0]
   *
-  * @param x       X coordinate of bottom left corner
-  * @param y       Y coordinate of bottom left corner
+  * @param x       X coordinate of top left corner
+  * @param y       Y coordinate of top left corner
   * @param width   Width of the image
   * @param height  Height of the image
   * @param imgName Name of image file to use
@@ -1223,8 +1052,8 @@ class Level {
   /**
   * Draw a goodie with an underlying polygon shape
   *
-  * @param x       X coordinate of the bottom left corner
-  * @param y       Y coordinate of the bottom left corner
+  * @param x       X coordinate of the top left corner
+  * @param y       Y coordinate of the top left corner
   * @param width   Width of the obstacle
   * @param height  Height of the obstacle
   * @param imgName Name of image file to use
@@ -1281,8 +1110,8 @@ class Level {
   /**
   * Draw a hero with an underlying polygon shape
   *
-  * @param x       X coordinate of the bottom left corner
-  * @param y       Y coordinate of the bottom left corner
+  * @param x       X coordinate of the top left corner
+  * @param y       Y coordinate of the top left corner
   * @param width   Width of the obstacle
   * @param height  Height of the obstacle
   * @param imgName Name of image file to use
@@ -1317,8 +1146,6 @@ class Level {
     for (let p of this.mGame.mManager.mWorld.mProjectilePool.mPool)
       p.mBody.SetGravityScale(1);
   }
-
-
 
   /**
   * The "directional projectile" mechanism might lead to the projectiles moving too fast. This
@@ -1448,8 +1275,8 @@ class Level {
   * Note: the order in which this is called relative to other actors will determine whether they
   * go under or over this picture.
   *
-  * @param x       X coordinate of bottom left corner
-  * @param y       Y coordinate of bottom left corner
+  * @param x       X coordinate of top left corner
+  * @param y       Y coordinate of top left corner
   * @param width   Width of the picture
   * @param height  Height of this picture
   * @param imgName Name of the picture to display
@@ -1462,10 +1289,10 @@ class Level {
   }
 
   /**
-  * Draw some text in the scene, using a bottom-left coordinate
+  * Draw some text in the scene, using a top-left coordinate
   *
-  * @param x         The x coordinate of the bottom left corner
-  * @param y         The y coordinate of the bottom left corner
+  * @param x         The x coordinate of the top left corner
+  * @param y         The y coordinate of the top left corner
   * @param fontName  The name of the font to use
   * @param fontColor The color of the font
   * @param fontSize  The size of the font
@@ -1483,8 +1310,8 @@ class Level {
   /**
   * Draw some text in the scene, using a top-left coordinate
   *
-  * @param x         The x coordinate of the bottom left corner
-  * @param y         The y coordinate of the bottom left corner
+  * @param x         The x coordinate of the top left corner
+  * @param y         The y coordinate of the top left corner
   * @param fontName  The name of the font to use
   * @param fontColor The color of the font
   * @param fontSize  The size of the font
@@ -1494,6 +1321,22 @@ class Level {
   */
   public addStaticText(x: number, y: number, fontName: string, fontColor: number, fontSize: number, text: string, zIndex: number): Renderable {
       return this.mGame.mManager.mWorld.addStaticText(x, y, fontName, fontColor, fontSize, text, zIndex);
+  }
+
+  /**
+  * Draw some text in the scene, centering it
+  *
+  * @param x         The x coordinate of the middle
+  * @param y         The y coordinate of the middle
+  * @param fontName  The name of the font to use
+  * @param fontColor The color of the font
+  * @param fontSize  The size of the font
+  * @param text      Text text to put before the generated text
+  * @param zIndex    The z index of the text
+  * @return A Renderable of the text, so it can be enabled/disabled by program code
+  */
+  public addStaticTextCentered(x: number, y: number, fontName: string, fontColor: number, fontSize: number, text: string, zIndex: number): Renderable {
+      return this.mGame.mManager.mWorld.addStaticTextCentered(x, y, fontName, fontColor, fontSize, text, zIndex);
   }
 
   /**

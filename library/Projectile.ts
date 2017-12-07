@@ -1,9 +1,5 @@
 /// <reference path="./WorldActor.ts"/>
 /// <reference path="./MainScene.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
-
 
 /**
  * Projectiles are actors that can be thrown from the hero's location in order to remove enemies.
@@ -14,12 +10,12 @@ class Projectile extends WorldActor {
     /// We have to be careful in side-scrolling games, or else projectiles can continue traveling
     // off-screen forever. This field lets us cap the distance away from the hero that a projectile
     // can travel before we make it disappear.
-    mRange: number; //float
+    mRange: number;
     /// When projectiles collide, and they are not sensors, one will disappear. We can keep both on
     // screen by setting this false
     mDisappearOnCollide: boolean;
     /// How much damage does this projectile do?
-    mDamage: number; //int
+    mDamage: number;
 
     /**
      * Create a projectile, and give it a physics body
@@ -46,7 +42,7 @@ class Projectile extends WorldActor {
         this.disableRotation();
         this.mScene.addActor(this, zIndex);
         this.mDisappearOnCollide = true;
-        //NB: in physicstype2d, Vector2 constructor must take two arguments
+        // In physicstype2d, Vector2 must take two arguments
         this.mRangeFrom = new PhysicsType2d.Vector2(0, 0);
         this.mRange = 1000;
     }
@@ -65,7 +61,7 @@ class Projectile extends WorldActor {
         // if this is an obstacle, check if it is a projectile callback, and if so, do the callback
         if (other instanceof Obstacle) {
             let o: Obstacle = other as Obstacle;
-            if (o.mProjectileCollision != null) {
+            if (o.mProjectileCollision) {
                 o.mProjectileCollision.go(o, this, contact);
                 // return... don't remove the projectile
                 return;
@@ -76,17 +72,18 @@ class Projectile extends WorldActor {
                 return;
         }
         // only disappear if other is not a sensor
-        if (other.mBody.GetFixtures().Current().IsSensor()) //previously .getFixtureList.get(0) which may be different
-            return;
+        let f = other.mBody.GetFixtures();
+        f.MoveNext();
+        if (f.Current().IsSensor()) {
+          f.Reset();
+          return;
+        }
         this.remove(false);
     }
 
     /**
      * When drawing a projectile, we first check if it is too far from its starting point. We only
      * draw it if it is not.
-     *
-     * @param sb    The SpriteBatch to use for drawing this hero
-     * @param delta The time since the last render
      */
     //@Override
     public onRender(): void {
@@ -95,7 +92,6 @@ class Projectile extends WorldActor {
         let dy = Math.abs(this.mBody.GetPosition().y - this.mRangeFrom.y);
         if (dx * dx + dy * dy > this.mRange * this.mRange) {
            this.remove(true);
-           this.mBody.SetActive(false);
            return;
         }
         super.onRender();

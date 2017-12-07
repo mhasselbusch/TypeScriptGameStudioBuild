@@ -1,9 +1,5 @@
 /// <reference path="./Camera.ts" />
 /// <reference path="./LolAction.ts" />
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
-// ^this isn't working properly right now
 
 /**
  * LolScene is the parent of all Scene types
@@ -34,15 +30,8 @@ abstract class LolScene {
   /// We use this to avoid garbage collection when converting screen touches to camera coordinates
   readonly mCamBound: PhysicsType2d.Vector2;
 
-  /// This callback is used to get a touched actor from the physics world
-  //final mTouchCallback: QueryCallback;
   /// When there is a touch of an actor in the physics world, this is how we find it
   mHitActor: BaseActor
-
-  /// Use this for determining bounds of text boxes
-  //private final mGlyphLayout: GlyphLayout;
-  /// Actions that run in response to a screen tap
-  //final mTapHandlers: ArrayList<TouchEventHandler>;
 
   /// Events that get processed on the next render, then discarded
   readonly mOneTimeEvents: Array<LolAction>;
@@ -61,18 +50,19 @@ abstract class LolScene {
     this.mConfig = config;
     this.mMedia = media;
 
-    let w = config.mWidth / config.mPixelMeterRatio;
-    let h = config.mHeight / config.mPixelMeterRatio;
+    let w = config.mWidth; // config.mPixelMeterRatio;
+    let h = config.mHeight; // config.mPixelMeterRatio;
 
     this.mContainer.position.x = 0;
     this.mContainer.position.y = 0;
     // set up the event lists
     this.mOneTimeEvents = new Array<LolAction>();
-    //this.mRepeatEvents = new ArrayList<>();
+    this.mRepeatEvents = new Array<LolAction>();
 
-    // set up the game camera, with (0, 0) in the bottom left
+    // set up the game camera, with (0, 0) in the top left
     this.mCamera = new Camera(w, h);
-    this.mCamera.setPosition(w / 2, h / 2);
+    //this.mCamera.centerOn(w / 2, h / 2);
+    this.mCamera.setPosition(0, 0);
     this.mCamera.setZoom(1);
 
     // set default camera bounds
@@ -100,8 +90,16 @@ abstract class LolScene {
     zIndex = (zIndex > 2) ? 2 : zIndex;
     this.mRenderables[zIndex+2].push(actor);
 
-    if(actor.mSprite) this.mContainer.addChild(actor.mSprite);
-    if(actor.mText) this.mContainer.addChild(actor.mText);
+    this.mCamera.mContainer.removeChildren();
+    this.mContainer.removeChildren();
+
+    for (let i = 0; i < 5; i++) {
+      for (let a of this.mRenderables[i]) {
+        if(a.mSprite) this.mContainer.addChild(a.mSprite);
+        if(a.mText) this.mContainer.addChild(a.mText);
+      }
+    }
+
     this.mCamera.mContainer.addChild(this.mContainer);
   }
 
@@ -117,6 +115,9 @@ abstract class LolScene {
     zIndex = (zIndex > 2) ? 2 : zIndex;
     let i = this.mRenderables[zIndex + 2].indexOf(actor);
     this.mRenderables[zIndex + 2].splice(i, 1);
+    if(actor.mSprite) this.mContainer.removeChild(actor.mSprite);
+    if(actor.mText) this.mContainer.removeChild(actor.mText);
+    this.mCamera.mContainer.addChild(this.mContainer);
   }
 
   /**
@@ -152,7 +153,12 @@ abstract class LolScene {
         public onRender(): void {
         }
       })();
-      r.mSprite = PIXI.Sprite.fromImage(imgName);
+      r.mSprite = new PIXI.Sprite(PIXI.loader.resources[imgName].texture);
+      r.mSprite.position.x = x;
+      r.mSprite.position.y = y;
+      r.mSprite.height = height;
+      r.mSprite.width = width;
+
       this.addActor(r, zIndex);
       return r;
     }
@@ -175,13 +181,17 @@ abstract class LolScene {
                    fontColor: string, fontSize: number, prefix: string,
                    suffix: string, tp: TextProducer, zIndex: number): Renderable {
 
+      let out_this = this;
       // Create a renderable that updates its text on every render, and add it to the scene
       let d: Renderable = new (class _ extends Renderable {
-          //@Override
-          onRender(): void {}
+        //@Override
+        onRender(): void {
+          let txt: string = prefix + tp.makeText() + suffix;
+          this.mText.text = txt;
+        }
       })();
       let txt: string = prefix + tp.makeText() + suffix;
-      let newText = new PIXI.Text(txt, {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
+      let newText = new PIXI.Text(txt, {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'left'});
       d.mText = newText;
       d.mText.position.x = x;
       d.mText.position.y = y;
@@ -190,10 +200,10 @@ abstract class LolScene {
   }
 
   /**
-   * Draw some text in the scene, using a bottom-left coordinate
+   * Draw some text in the scene, using a top-left coordinate
    *
-   * @param x         The x coordinate of the bottom left corner
-   * @param y         The y coordinate of the bottom left corner
+   * @param x         The x coordinate of the top left corner
+   * @param y         The y coordinate of the top left corner
    * @param fontName  The name of the font to use
    * @param fontColor The color of the font
    * @param fontSize  The size of the font
@@ -209,8 +219,38 @@ abstract class LolScene {
           //@Override
           onRender(): void {}
       })();
+      let newText = new PIXI.Text(text, {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'left'});
+      d.mText = newText;
+      d.mText.position.x = x;
+      d.mText.position.y = y;
+      this.addActor(d, zIndex);
+      return d;
+  }
+
+  /**
+   * Draw some text in the scene, using the middle coordinate
+   *
+   * @param x         The x coordinate of the middle of the text
+   * @param y         The y coordinate of the middle of the text
+   * @param fontName  The name of the font to use
+   * @param fontColor The color of the font
+   * @param fontSize  The size of the font
+   * @param text      Text to put on screen
+   * @param zIndex    The z index of the text
+   * @return A Renderable of the text, so it can be enabled/disabled by program code
+   */
+  public addStaticTextCentered(x: number, y: number, fontName: string, fontColor: number,
+                fontSize: number, text: string, zIndex: number): Renderable {
+
+      // Create a renderable that updates its text on every render, and add it to the scene
+      let d: Renderable = new (class _ extends Renderable {
+          //@Override
+          onRender(): void {}
+      })();
       let newText = new PIXI.Text(text, {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
       d.mText = newText;
+      d.mText.anchor.x = 0.5;
+      d.mText.anchor.y = 0.5;
       d.mText.position.x = x;
       d.mText.position.y = y;
       this.addActor(d, zIndex);
@@ -235,25 +275,27 @@ abstract class LolScene {
                           fontColor: string, fontSize: number, prefix: string,
                           suffix: string, tp: TextProducer, zIndex: number): Renderable {
 
-      // Create a renderable that updates its text on every render, and add it to the scene
-      let d: Renderable = new (class _ extends Renderable {
-          //@Override
-          onRender(): void {}
-      })();
-      let txt: string = prefix + tp.makeText() + suffix;
-      let newText = new PIXI.Text(txt, {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
-      d.mText = newText;
-      d.mText.position.x = centerX;
-      d.mText.position.y = centerY;
-      this.addActor(d, zIndex);
-      return d;
+    let out_this = this;
+    // Create a renderable that updates its text on every render, and add it to the scene
+    let d: Renderable = new (class _ extends Renderable {
+      //@Override
+      onRender(): void {
+        let txt: string = prefix + tp.makeText() + suffix;
+        this.mText.text = txt;
+      }
+    })();
+    let txt: string = prefix + tp.makeText() + suffix;
+    let newText = new PIXI.Text(txt, {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
+    d.mText = newText;
+    d.mText.position.x = centerX;
+    d.mText.position.y = centerY;
+    this.addActor(d, zIndex);
+    return d;
   }
 
   /**
    * Render this scene
    *
-   * @param sb    The SpriteBatch used to render the scene
-   * @param delta The time since the last render
    * @return True if the scene was rendered, false if it was not
    */
   abstract render(): boolean;

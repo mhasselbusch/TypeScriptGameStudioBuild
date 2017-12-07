@@ -58,7 +58,7 @@ class BaseActor extends Renderable {
       this.mSprite = new PIXI.Sprite();
       this.mSprite.texture = PIXI.Texture.EMPTY;
     } else {
-      this.mSprite = PIXI.Sprite.fromImage(imgName);
+      this.mSprite = new PIXI.Sprite(PIXI.loader.resources[imgName].texture);
     }
     this.mSprite.width = this.mSize.x;
     this.mSprite.height = this.mSize.y;
@@ -70,8 +70,8 @@ class BaseActor extends Renderable {
   * Specify that this actor should have a rectangular physics shape
   *
   * @param type Is the actor's body static or dynamic?
-  * @param x    The X coordinate of the bottom left corner, in meters
-  * @param y    The Y coordinate of the bottom left corner, in meters
+  * @param x    The X coordinate of the top left corner
+  * @param y    The Y coordinate of the top left corner
   */
   setBoxPhysics(type: PhysicsType2d.Dynamics.BodyType, x: number, y: number): void {
     let shape = new PhysicsType2d.Collision.Shapes.PolygonShape();
@@ -104,19 +104,20 @@ class BaseActor extends Renderable {
   * Specify that this actor should have a polygon physics shape.
   * <p>
   * You must take extreme care when using this method. Polygon vertices must be given in
-  * counter-clockwise order, and they must describe a convex shape.
+  * CLOCKWISE order, and they must describe a convex shape.
+  * COORDINATES ARE RELATIVE TO THE MIDDLE OF THE OBJECT
   *
   * @param type     Is the actor's body static or dynamic?
-  * @param x        The X coordinate of the bottom left corner, in meters
-  * @param y        The Y coordinate of the bottom left corner, in meters
+  * @param x        The X coordinate of the top left corner
+  * @param y        The Y coordinate of the top left corner
   * @param vertices Up to 16 coordinates representing the vertexes of this polygon, listed as
   *                 x0,y0,x1,y1,x2,y2,...
   */
   setPolygonPhysics(type: PhysicsType2d.Dynamics.BodyType, x: number, y: number, vertices: number[]): void {
     let shape = new PhysicsType2d.Collision.Shapes.PolygonShape();
-    let verts = new Array<PhysicsType2d.Vector2>(vertices.length / 2);
+    let verts = new Array<PhysicsType2d.Vector2>();
     for (let i = 0; i < vertices.length; i += 2)
-    verts[i / 2] = new PhysicsType2d.Vector2(vertices[i], vertices[i + 1]);
+      verts[i / 2] = new PhysicsType2d.Vector2(vertices[i], vertices[i + 1]);
     // print some debug info, since vertices are tricky
     //for (let vert of verts)
     //Lol.message(mScene.mConfig, "vert", "at " + vert.x + "," + vert.y);
@@ -150,8 +151,8 @@ class BaseActor extends Renderable {
   * Specify that this actor should have a circular physics shape
   *
   * @param type   Is the actor's body static or dynamic?
-  * @param x      The X coordinate of the bottom left corner, in meters
-  * @param y      The Y coordinate of the bottom left corner, in meters
+  * @param x      The X coordinate of the top left corner
+  * @param y      The Y coordinate of the top left corner
   * @param radius The radius of the underlying circle
   */
   setCirclePhysics(type: PhysicsType2d.Dynamics.BodyType, x: number, y: number, radius: number): void {
@@ -206,8 +207,9 @@ class BaseActor extends Renderable {
   updateVelocity(x: number, y: number) {
     // make sure it is not static... heroes are already Dynamic, let's just set everything else
     // that is static to kinematic... that's probably safest.
-    if (this.mBody.GetType() == PhysicsType2d.Dynamics.BodyType.STATIC)
-    this.mBody.SetType(PhysicsType2d.Dynamics.BodyType.KINEMATIC);
+    if (this.mBody.GetType() == PhysicsType2d.Dynamics.BodyType.STATIC) {
+      this.mBody.SetType(PhysicsType2d.Dynamics.BodyType.KINEMATIC);
+    }
     this.breakJoints();
     this.mBody.SetLinearVelocity(new PhysicsType2d.Vector2(x, y));
   }
@@ -221,30 +223,16 @@ class BaseActor extends Renderable {
   breakJoints(): void {
   }
 
-
-  // /**
-  //  * When this actor is touched, play its mTouchSound and then execute its mTapHandler
-  //  *
-  //  * @param touchVec The coordinates of the touch, in meters
-  //  * @return True if the event was handled, false otherwise
-  //  */
-  // boolean onTap(Vector3 touchVec) {
-  //     if (mTouchSound != null)
-  //         mTouchSound.play(Lol.getGameFact(mScene.mConfig, "volume", 1));
-  //     return mTapHandler != null && mTapHandler.go(touchVec.x, touchVec.y);
-  // }
-
   /**
   * Every time the world advances by a timestep, we call this code to update the actor route and
   * animation, and then draw the actor
-  *
-  * @param sb    The spritebatch to use in order to draw this actor
-  * @param delta The amount of time since the last render event
   */
   //@Override
   onRender() {
+    if(this.mRoute) this.mRoute.drive();
     if(this.mBody) this.mSprite.position.x = this.mBody.GetPosition().x;
     if(this.mBody) this.mSprite.position.y = this.mBody.GetPosition().y;
+    if(this.mBody) this.mSprite.rotation = this.mBody.GetAngle();
   }
 
   /**
@@ -284,14 +272,12 @@ class BaseActor extends Renderable {
     this.mBody.ResetMassData();
   }
 
-
   /**
   * Indicate that this actor should be immune to the force of gravity
   */
   public setGravityDefy(): void {
     this.mBody.SetGravityScale(0);
   }
-
 
   /**
   * Ensure that an actor is subject to gravitational forces.
@@ -352,7 +338,7 @@ class BaseActor extends Renderable {
   /**
   * Returns the X coordinate of this actor
   *
-  * @return x coordinate of bottom left corner, in meters
+  * @return x coordinate of top left corner, in pixels
   */
   public getXPosition(): number {
     return this.mBody.GetPosition().x - this.mSize.x / 2;
@@ -361,7 +347,7 @@ class BaseActor extends Renderable {
   /**
   * Returns the Y coordinate of this actor
   *
-  * @return y coordinate of bottom left corner, in meters
+  * @return y coordinate of top left corner, in pixels
   */
   public getYPosition(): number {
     return this.mBody.GetPosition().y - this.mSize.y / 2;
@@ -370,8 +356,8 @@ class BaseActor extends Renderable {
   /**
   * Change the position of an actor
   *
-  * @param x The new X position, in meters
-  * @param y The new Y position, in meters
+  * @param x The new X position, in pixels
+  * @param y The new Y position, in pixels
   */
   public setPosition(x: number, y: number): void {
     this.mBody.SetTransform(new PhysicsType2d.Vector2(x + this.mSize.x / 2, y + this.mSize.y / 2), this.mBody.GetAngle());
@@ -380,7 +366,7 @@ class BaseActor extends Renderable {
   /**
   * Returns the width of this actor
   *
-  * @return the actor's width, in meters
+  * @return the actor's width, in pixels
   */
   public getWidth(): number {
     return this.mSize.x;
@@ -389,20 +375,19 @@ class BaseActor extends Renderable {
   /**
   * Return the height of this actor
   *
-  * @return the actor's height, in meters
+  * @return the actor's height, in pixels
   */
   public getHeight(): number {
     return this.mSize.y;
   }
 
-
   /**
   * Change the size of an actor, and/or change its position
   *
-  * @param x      The new X coordinate of its bottom left corner, in meters
-  * @param y      The new Y coordinate of its bototm left corner, in meters
-  * @param width  The new width of the actor, in meters
-  * @param height The new height of the actor, in meters
+  * @param x      The new X coordinate of its top left corner, in pixels
+  * @param y      The new Y coordinate of its top left corner, in pixels
+  * @param width  The new width of the actor, in pixels
+  * @param height The new height of the actor, in pixels
   */
   public resize(x: number, y: number, width: number, height: number): void {
     // set new height and width
@@ -441,7 +426,6 @@ class BaseActor extends Renderable {
     oldBody.SetActive(false);
   }
 
-
   /**
   * Use this to find the current rotation of an actor
   *
@@ -450,7 +434,6 @@ class BaseActor extends Renderable {
   public getRotation(): number {
     return this.mBody.GetAngle();
   }
-
 
   /**
   * Call this on an actor to rotate it. Note that this works best on boxes.
@@ -488,28 +471,17 @@ class BaseActor extends Renderable {
     // set it invisible immediately, so that future calls know to ignore this actor
     this.mEnabled = false;
     this.mBody.SetActive(false);
+    this.mSprite.visible = false;
 
     // play a sound when we remove this actor?
-     if (this.mDisappearSound != null && !quiet)
+     if (this.mDisappearSound && !quiet)
          this.mDisappearSound.play();
-
-    // To do a disappear animation after we've removed the actor, we draw an actor, so that
-    // we have a clean hook into the animation system, but we disable its physics
-    //  if (this.mDisappearAnimation != null) {
-    //      float x = getXPosition() + mDisappearAnimateOffset.x;
-    //      float y = getYPosition() + mDisappearAnimateOffset.y;
-    //      BaseActor o = new BaseActor(mScene, "", mDisappearAnimateSize.x, mDisappearAnimateSize.y);
-    //      o.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-    //      mScene.addActor(o, 0);
-    //      o.mBody.setActive(false);
-    //      o.setDefaultAnimation(mDisappearAnimation);
-    //  }
   }
 
   /**
   * Returns the X velocity of of this actor
   *
-  * @return Velocity in X dimension, in meters per second
+  * @return Velocity in X dimension, in pixels per second
   */
   public getXVelocity(): number {
     return this.mBody.GetLinearVelocity().x;
@@ -518,7 +490,7 @@ class BaseActor extends Renderable {
   /**
   * Returns the Y velocity of of this actor
   *
-  * @return Velocity in Y dimension, in meters per second
+  * @return Velocity in Y dimension, in pixels per second
   */
   public getYVelocity(): number {
     return this.mBody.GetLinearVelocity().y;
@@ -527,8 +499,8 @@ class BaseActor extends Renderable {
   /**
   * Add velocity to this actor
   *
-  * @param x Velocity in X dimension, in meters per second
-  * @param y Velocity in Y dimension, in meters per second
+  * @param x Velocity in X dimension
+  * @param y Velocity in Y dimension
   */
   public addVelocity(x: number, y: number): void {
     // ensure this is a moveable actor
@@ -546,8 +518,8 @@ class BaseActor extends Renderable {
   /**
   * Set the absolute velocity of this actor
   *
-  * @param x Velocity in X dimension, in meters per second
-  * @param y Velocity in Y dimension, in meters per second
+  * @param x Velocity in X dimension
+  * @param y Velocity in Y dimension
   */
   public setAbsoluteVelocity(x: number, y: number): void {
     // ensure this is a moveable actor
@@ -577,40 +549,6 @@ class BaseActor extends Renderable {
     this.mBody.SetAngularDamping(amount);
   }
 
-  //  /**
-  //   * Specify some code to run when this actor is tapped
-  //   *
-  //   * @param handler The TouchEventHandler to run in response to the tap
-  //   */
-  //  public void setTapCallback(TouchEventHandler handler) {
-  //      mTapHandler = handler;
-  //  }
-
-  //  /**
-  //   * Specify some code to run while this actor is down-pressed and when it is released
-  //   *
-  //   * @param whileDownAction The code to run for as long as the actor is being pressed
-  //   * @param onUpAction      The code to run when the actor is released
-  //   */
-  //  public void setToggleCallback(final LolAction whileDownAction, final LolAction onUpAction) {
-  //      whileDownAction.mIsActive = false;
-  //
-  //      // set up the toggle behavior
-  //      mToggleHandler = new ToggleEventHandler() {
-  //          public boolean go(boolean isUp, float worldX, float worldY) {
-  //              if (isUp) {
-  //                  whileDownAction.mIsActive = false;
-  //                  if (onUpAction != null)
-  //                      onUpAction.go();
-  //              } else {
-  //                  whileDownAction.mIsActive = true;
-  //              }
-  //              return true;
-  //          }
-  //      };
-  //      mScene.mRepeatEvents.add(whileDownAction);
-  //  }
-
   /**
   * Request that this actor moves according to a fixed route
   *
@@ -627,15 +565,6 @@ class BaseActor extends Renderable {
     // Create a Driver to advance the actor's position according to the route
     this.mRoute = new Route.Driver(route, velocity, loop, this);
   }
-
-  //  /**
-  //   * Request that a sound plays whenever the player touches this actor
-  //   *
-  //   * @param sound The name of the sound file to play
-  //   */
-  //  public void setTouchSound(String sound) {
-  //      mTouchSound = mScene.mMedia.getSound(sound);
-  //  }
 
    /**
     * Request that a sound plays whenever this actor disappears
@@ -670,40 +599,6 @@ class BaseActor extends Renderable {
     this.mScene.addActor(this, this.mZIndex);
   }
 
-  //  /**
-  //   * Set the default animation sequence for this actor, and start playing it
-  //   *
-  //   * @param animation The animation to display
-  //   */
-  //  public void setDefaultAnimation(Animation animation) {
-  //      mDefaultAnimation = animation;
-  //      mAnimator.setCurrentAnimation(mDefaultAnimation);
-  //  }
-  //
-  //  /**
-  //   * Set the animation sequence to use when the actor is moving in the negative X direction
-  //   *
-  //   * @param animation The animation to display
-  //   */
-  //  public void setDefaultReverseAnimation(Animation animation) {
-  //      mDefaultReverseAnimation = animation;
-  //  }
-
-  //  /**
-  //   * Set the animation sequence to use when the actor is removed from the world
-  //   *
-  //   * @param animation The animation to display
-  //   * @param offsetX   Distance between the animation and the left side of the actor
-  //   * @param offsetY   Distance between the animation and the bottom of the actor
-  //   * @param width     The width of the animation, in case it's not the same as the actor width
-  //   * @param height    The height of the animation, in case it's not the same as the actor height
-  //   */
-  //  public void setDisappearAnimation(Animation animation, float offsetX, float offsetY, float width, float height) {
-  //      mDisappearAnimation = animation;
-  //      mDisappearAnimateOffset.set(offsetX, offsetY);
-  //      mDisappearAnimateSize.set(width, height);
-  //  }
-
   /**
   * Set a time that should pass before this actor appears on the screen
   *
@@ -731,44 +626,6 @@ class BaseActor extends Renderable {
     }, delay);
   }
 
-  //  /**
-  //   * Indicate that this actor should shrink over time.  Note that using negative values will lead
-  //   * to growing instead of shrinking.
-  //   *
-  //   * @param shrinkX      The number of meters by which the X dimension should shrink each second
-  //   * @param shrinkY      The number of meters by which the Y dimension should shrink each second
-  //   * @param keepCentered Should the actor's center point stay the same as it shrinks, or should
-  //   *                     its bottom left corner stay in the same position
-  //   */
-  //  public void setShrinkOverTime(final float shrinkX, final float shrinkY, final boolean keepCentered) {
-  //      // NB: we shrink 20 times per second
-  //      final Timer.Task t = new Timer.Task() {
-  //          @Override
-  //          public void run() {
-  //              if (mEnabled) {
-  //                  float x, y;
-  //                  if (keepCentered) {
-  //                      x = getXPosition() + shrinkX / 20 / 2;
-  //                      y = getYPosition() + shrinkY / 20 / 2;
-  //                  } else {
-  //                      x = getXPosition();
-  //                      y = getYPosition();
-  //                  }
-  //                  float w = mSize.x - shrinkX / 20;
-  //                  float h = mSize.y - shrinkY / 20;
-  //                  // if the area remains >0, resize it and schedule a timer to run again
-  //                  if ((w > 0.05f) && (h > 0.05f)) {
-  //                      resize(x, y, w, h);
-  //                      Timer.schedule(this, .05f);
-  //                  } else {
-  //                      remove(false);
-  //                  }
-  //              }
-  //          }
-  //      };
-  //      Timer.schedule(t, .05f);
-  //  }
-
   /**
   * Indicate that this actor's rotation should change in response to its direction of motion
   */
@@ -786,23 +643,4 @@ class BaseActor extends Renderable {
       }
     })());
   }
-
-
-  //  /**
-  //   * Specify that a limited amount of the actor should be displayed (image clipping)
-  //   *
-  //   * @param x The starting X position of the displayed portion, as a fraction from 0 to 1
-  //   * @param y The starting Y position of the displayed portion, as a fraction from 0 to 1
-  //   * @param w The width to display, as a fraction from 0 to 1
-  //   * @param h The height to display, as a fraction from 0 to 1
-  //   */
-  //  public void setFlipAndClipRatio(float x, float y, float w, float h) {
-  //      if (mClippingBL == null) {
-  //          mClippingBL = new Vector2(x, y);
-  //          mClippingWH = new Vector2(w, h);
-  //      } else {
-  //          mClippingBL.set(x, y);
-  //          mClippingWH.set(w, h);
-  //      }
-  //  }
 }

@@ -1,14 +1,12 @@
 /// <reference path="./Config.ts"/>
 
 class Media {
-    /// Store the fonts used by this game
-    //private readonly mFonts: Map<String, BitmapFont> = new Map<>();
     /// Store the sounds used by this game
-    private readonly mSounds: Map<String, Sound>;
+    private readonly mSounds: Map<string, Sound>;
     /// Store the music used by this game
-    private readonly mTunes: Map<String, Sound>;
+    private readonly mTunes: Map<string, Sound>;
     /// Store the images used by this game
-    //private readonly mImages: Map<String, TextureRegion>;
+    private readonly mImages: Map<string, PIXI.Texture>;
     /// A copy of the game-wide configuration object
     private mConfig: Config;
 
@@ -19,10 +17,16 @@ class Media {
      */
     constructor(config: Config) {
         this.mConfig = config;
-        // for (String imgName : config.mImageNames) {
-        //     TextureRegion tr = new TextureRegion(new Texture(Gdx.files.internal(imgName)));
-        //     mImages.put(imgName, tr);
-        // }
+        this.mSounds = new Map<string, Sound>();
+        this.mTunes = new Map<string, Sound>();
+        for (let imgName of config.mImageNames) {
+            // PIXI has a built-in image loader
+            PIXI.loader.add(imgName);
+
+            //let texture: PIXI.Texture
+            //this.mImages.set(imgName, texture);
+        }
+        //PIXI.loader.load();
         for (let soundName of config.mSoundNames) {
             let s: Sound = new Sound(soundName);
             this.mSounds.set(soundName, s);
@@ -33,43 +37,6 @@ class Media {
             this.mTunes.set(musicName, m);
         }
     }
-
-    // /**
-    //  * Get the font described by the file name and font size
-    //  *
-    //  * @param fontFileName The filename for the font. This should be in the android
-    //  *                     project's assets folder, and should end in .ttf
-    //  * @param fontSize     The font size to use for the BitmapFont we create
-    //  * @return A font object that can be used to render text
-    //  */
-    // BitmapFont getFont(String fontFileName, int fontSize) {
-    //     // we store fonts as their filename appended with their size
-    //     String key = fontFileName + "--" + fontSize;
-    //
-    //     // check if we've already got this font, return it if we do
-    //     BitmapFont f = mFonts.get(key);
-    //     if (f != null) {
-    //         // just to play it safe, make the font white... the caller can
-    //         // change this
-    //         f.setColor(1, 1, 1, 1);
-    //         return f;
-    //     }
-    //
-    //     // Generate the font, save it, and return it
-    //     //
-    //     // NB: if this crashes, the user will get a reasonably good error message
-    //     FreeTypeFontParameter parameter = new FreeTypeFontParameter();
-    //     parameter.size = fontSize;
-    //     parameter.minFilter = Texture.TextureFilter.Linear;
-    //     parameter.magFilter = Texture.TextureFilter.Linear;
-    //     FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal(fontFileName));
-    //     generator.scaleForPixelHeight(fontSize);
-    //     f = generator.generateFont(parameter);
-    //     f.setUseIntegerPositions(false); // NB: when we switch to HTML builds, this helps
-    //     generator.dispose();
-    //     mFonts.put(key, f);
-    //     return f;
-    // }
 
     /**
      * Get a previously loaded Sound object
@@ -98,22 +65,4 @@ class Media {
         }
         return ret;
     }
-
-    // /**
-    //  * Get a previously loaded image
-    //  *
-    //  * @param imgName Name of the image file to retrieve
-    //  * @return a TextureRegion object that can be used to create Actors
-    //  */
-    // TextureRegion getImage(String imgName) {
-    //     // don't give an error for "", since it's probably intentional
-    //     if (imgName.equals("")) {
-    //         return null;
-    //     }
-    //     TextureRegion ret = mImages.get(imgName);
-    //     if (ret == null) {
-    //         Lol.message(mConfig, "ERROR", "Error retrieving image '" + imgName + "'");
-    //     }
-    //     return ret;
-    // }
 }

@@ -72,12 +72,12 @@ class Destination extends WorldActor {
         this.mCapacity = heroes;
     }
 
-    // /**
-    //  * Specify the sound to play when a hero arrives at this destination
-    //  *
-    //  * @param soundName The name of the sound file that should play
-    //  */
-    // public setArrivalSound(String soundName): void {
-    //     this.mArrivalSound = this.mScene.mMedia.getSound(soundName);
-    // }
+    /**
+    * Specify the sound to play when a hero arrives at this destination
+    *
+    * @param soundName The name of the sound file that should play
+    */
+    public setArrivalSound(soundName: string): void {
+      this.mArrivalSound = this.mScene.mMedia.getSound(soundName);
+    }
 }

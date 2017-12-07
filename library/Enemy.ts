@@ -1,7 +1,4 @@
 /// <reference path="./WorldActor.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 
 /**
  * Enemies are things to be avoided or defeated by the Hero. Enemies do damage to heroes when they
@@ -10,7 +7,7 @@
 class Enemy extends WorldActor {
     /// Amount of damage this enemy does to a hero on a collision. The default is 2, so that an
     /// enemy will defeat a hero and not disappear.
-    mDamage: number; //int
+    mDamage: number;
     /// Message to display when this enemy defeats the last hero
     mOnDefeatHeroText: string;
     /// Does a crawling hero automatically defeat this enemy?
@@ -39,16 +36,16 @@ class Enemy extends WorldActor {
         this.mOnDefeatHeroText = "";
     }
 
-    // /**
-    //  * Code to run when an Enemy collides with a WorldActor.
-    //  * <p>
-    //  * Based on our WorldActor numbering scheme, the only concerns are collisions with Obstacles
-    //  * and Projectiles
-    //  *
-    //  * @param other   Other actor involved in this collision
-    //  * @param contact A description of the collision
-    //  */
-    // @Override
+    /**
+     * Code to run when an Enemy collides with a WorldActor.
+     * <p>
+     * Based on our WorldActor numbering scheme, the only concerns are collisions with Obstacles
+     * and Projectiles
+     *
+     * @param other   Other actor involved in this collision
+     * @param contact A description of the collision
+     */
+    //@Override
     onCollide(other: WorldActor, contact: PhysicsType2d.Dynamics.Contacts.Contact): void {
         // collision with obstacles
         if (other instanceof Obstacle)
@@ -160,27 +157,13 @@ class Enemy extends WorldActor {
       this.mAlwaysDoesDamage = true;
   }
 
-    // /**
-    //  * Indicate that if the player touches this enemy, the enemy will be removed from the game
-    //  */
-    // public void setDisappearOnTouch() {
-    //     mTapHandler = new TouchEventHandler() {
-    //         public boolean go(float worldX, float worldY) {
-    //             Lol.vibrate(mScene.mConfig, 100);
-    //             defeat(true);
-    //             mTapHandler = null;
-    //             return true;
-    //         }
-    //     };
-    // }
-
-    /**
-     * Provide code to run when this Enemy is defeated
-     *
-     * @param callback The callback to run when the enemy is defeated.  Note that a value of
-     *                 <code>null</code> will remove a previously-set callback
-     */
-    public setDefeatCallback(callback: LolActorEvent): void {
-        this.mDefeatCallback = callback;
-    }
+  /**
+  * Provide code to run when this Enemy is defeated
+  *
+  * @param callback The callback to run when the enemy is defeated.  Note that a value of
+  *                 <code>null</code> will remove a previously-set callback
+  */
+  public setDefeatCallback(callback: LolActorEvent): void {
+    this.mDefeatCallback = callback;
+  }
 }

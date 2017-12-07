@@ -1,4 +1,10 @@
 /// <reference path="../library/Config.ts"/>
+/// <reference path="./Levels.ts"/>
+/// <reference path="./Chooser.ts"/>
+/// <reference path="./Help.ts"/>
+/// <reference path="./Splash.ts"/>
+/// <reference path="./WinScene.ts"/>
+/// <reference path="./LoseScene.ts"/>
 
 /**
 * Any configuration that the programmer needs to provide to Lol should go here.
@@ -22,9 +28,7 @@ class MyConfig extends Config {
     super();
     // The size of the screen, and some game behavior configuration
     this.mWidth = 960;
-    this.mHeight = 640;
-    this.mPixelMeterRatio = 20;
-    this.mEnableVibration = true;
+    this.mHeight = 540;
     this.mGameTitle = "Micah's Basic Game";
     this.mDefaultWinText = "Good Job";
     this.mDefaultLoseText = "Try Again";
@@ -42,14 +46,35 @@ class MyConfig extends Config {
 
     // list the images that the game will use
     this.mImageNames = new Array<string>(
-    "./images/fun.jpg", "./images/BlueBox.png", "./images/OrangeBox.png"
+     "./GameAssets/button.png", "./GameAssets/TitleBack.png",
+     "./GameAssets/AngelGame/Angel.png", "./GameAssets/AngelGame/Bat.png", "./GameAssets/AngelGame/Bullet.png",
+     "./GameAssets/AngelGame/CloudBall.png", "./GameAssets/AngelGame/SkyBack.png",
+     "./GameAssets/ChristmasGame/ArrowSign.png", "./GameAssets/ChristmasGame/ChristmasBack.png",
+     "./GameAssets/ChristmasGame/Crate.png", "./GameAssets/ChristmasGame/GoldCoin.png",
+     "./GameAssets/ChristmasGame/LeftEndPlat.png", "./GameAssets/ChristmasGame/MiddlePlat.png",
+     "./GameAssets/ChristmasGame/Miser.png", "./GameAssets/ChristmasGame/OneTree.png",
+     "./GameAssets/ChristmasGame/RightEndPlat.png", "./GameAssets/ChristmasGame/Santa.png",
+     "./GameAssets/ChristmasGame/SnowMan.png", "./GameAssets/ChristmasGame/Stone.png",
+     "./GameAssets/ChristmasGame/ThreeTrees.png", "./GameAssets/ChristmasGame/Igloo.png",
+     "./GameAssets/PlaneGame/Plane.png", "./GameAssets/PlaneGame/PlaneBack.png",
+     "./GameAssets/PlaneGame/Ceiling.png", "./GameAssets/PlaneGame/Floor.png",
+     "./GameAssets/PlaneGame/RockUp.png", "./GameAssets/PlaneGame/RockDown.png"
     );
 
     // list the sound effects that the game will use
-    //this.mSoundNames = new string[]();
+    this.mSoundNames = new Array<string>(
+    "./GameAssets/AngelGame/Shooting.ogg", "./GameAssets/AngelGame/EnemyKilled.wav",
+    "./GameAssets/ChristmasGame/MoneyGet.wav",
+    "./GameAssets/PlaneGame/Crash.ogg"
+    );
 
     // list the background music files that the game will use
-    //this.mMusicNames = new string[]();
+    this.mMusicNames = new Array<string>(
+    "./GameAssets/TitleTheme.mp3",
+    "./GameAssets/AngelGame/AngelTheme.mp3",
+    "./GameAssets/ChristmasGame/ChristmasTheme.mp3",
+    "./GameAssets/PlaneGame/PlaneTheme.ogg"
+    );
 
     // don't change these lines unless you know what you are doing
     this.mLevels = new Levels();

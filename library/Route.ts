@@ -1,14 +1,13 @@
 /// <reference path="./BaseActor.ts"/>
-/// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
 
 /**
 * A Route specifies a set of points that an actor will move between at a fixed speed.
 */
 class Route {
   /// The X coordinates of the points in the route
-  mXIndices: number[];
+  mXIndices: Array<number>;
   /// The Y coordinates of the points in the route
-  mYIndices: number[];
+  mYIndices: Array<number>;
   /// The current number of points that have been set
   mPoints: number;
 
@@ -20,6 +19,8 @@ class Route {
   */
   constructor(numberOfPoints: number) {
     this.mPoints = 0;
+    this.mXIndices = new Array<number>();
+    this.mYIndices = new Array<number>();
   }
 
   /**
@@ -52,7 +53,7 @@ namespace Route {
     /// When the actor reaches the end of the route, should it start again?
     private readonly mRouteLoop: boolean;
     /// A temp for computing positions
-    private readonly mRouteVec: PhysicsType2d.Vector2
+    private mRouteVec: PhysicsType2d.Vector2
     /// Is the route still running?
     private mRouteDone: boolean;
     /// Index of the next point in the route
@@ -71,6 +72,7 @@ namespace Route {
       this.mRouteVelocity = velocity;
       this.mRouteLoop = loop;
       this.mActor = actor;
+      this.mRouteVec = new PhysicsType2d.Vector2(0, 0);
       // kick off the route, indicate that we aren't all done yet
       this.startRoute();
       this.mRouteDone = false;
@@ -97,7 +99,7 @@ namespace Route {
       this.mRouteVec.y = this.mRoute.mYIndices[this.mNextRouteGoal] - this.mActor.getYPosition();
       // normalize and scale the vector, then apply the velocity
       this.mRouteVec.Normalize();
-      this.mRouteVec.Multiply(this.mRouteVelocity);
+      this.mRouteVec = this.mRouteVec.Multiply(this.mRouteVelocity);
       this.mActor.mBody.SetLinearVelocity(this.mRouteVec);
     }
 
@@ -135,7 +137,7 @@ namespace Route {
           this.mRouteVec.x = this.mRoute.mXIndices[this.mNextRouteGoal] - this.mActor.getXPosition();
           this.mRouteVec.y = this.mRoute.mYIndices[this.mNextRouteGoal] - this.mActor.getYPosition();
           this.mRouteVec.Normalize();
-          this.mRouteVec.Multiply(this.mRouteVelocity);
+          this.mRouteVec = this.mRouteVec.Multiply(this.mRouteVelocity);
           this.mActor.mBody.SetLinearVelocity(this.mRouteVec);
         }
       }
