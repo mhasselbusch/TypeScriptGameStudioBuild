@@ -3,20 +3,19 @@
 /// <reference path="../library/Level.ts"/>
 /// <reference path="./MyConfig.ts"/>
 /// <reference path="../library/typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-/// <reference types="pixi.js"/>
+/// <reference path="../library/typedefinitions/pixi.js/index.d.ts"/>
+//// <reference types="pixi.js"/>
 
-document.addEventListener("DOMContentLoaded", () => {
+function runGame(id : string){
+  PIXI.utils.sayHello("Hello");
 
-PIXI.utils.sayHello("Hello");
+  let myConfig = new MyConfig();
 
-let myConfig = new MyConfig();
-
-let game = new Lol(myConfig);
-game.create();
-document.body.appendChild(game.mRenderer.view);
-requestAnimationFrame(() => gameLoop(game));
-});
+  let game = new Lol(myConfig);
+  game.create();
+  document.getElementById(id).appendChild(game.mRenderer.view);
+  requestAnimationFrame(() => gameLoop(game));
+}
 
 function gameLoop(game: Lol) {
   game.render();
