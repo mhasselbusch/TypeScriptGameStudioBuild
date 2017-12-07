@@ -16,9 +16,9 @@
     // different entities in the game
     if (index == 1) {
       // Put in some catchy background muzak
-      level.setMusic("./GameAssets/TitleTheme.mp3");
+      level.setMusic("https://s3.amazonaws.com/typescript-game-studio/standard/TitleTheme.mp3");
       // Add a background
-      level.drawPicture(0, 0, 960, 540, "./GameAssets/TitleBack.png", -2);
+      level.drawPicture(0, 0, 960, 540, "https://s3.amazonaws.com/typescript-game-studio/standard/TitleBack.png", -2);
 
       // Set up variables for the middle of the page to aid placement
       let midX = 960 / 2;

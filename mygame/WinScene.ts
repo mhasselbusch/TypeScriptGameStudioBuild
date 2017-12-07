@@ -13,7 +13,7 @@ class WinScene implements ScreenManager {
   public display(index: number, level: Level): void {
     // Configure our win screen
     // Add a background
-    level.drawPicture(0, 0, 960, 540, "./GameAssets/TitleBack.png", -2);
+    level.drawPicture(0, 0, 960, 540, "https://s3.amazonaws.com/typescript-game-studio/standard/TitleBack.png", -2);
     // Add an uplifting message
     level.addStaticTextCentered(960/2, 540/2, "Arial", 0x0000FF, 32, "You win!! You must be super cool!", 0);
     // Make it so they can click to go back to the level select screen

@@ -10,9 +10,9 @@ class Chooser implements ScreenManager {
   public display(index: number, level: Level): void {
     if (index == 1) {
       // Put in some catchy background muzak
-      level.setMusic("./GameAssets/TitleTheme.mp3");
+      level.setMusic("https://s3.amazonaws.com/typescript-game-studio/standard/TitleTheme.mp3");
       // Add a background
-      level.drawPicture(0, 0, 960, 540, "./GameAssets/TitleBack.png", -2);
+      level.drawPicture(0, 0, 960, 540, "https://s3.amazonaws.com/typescript-game-studio/standard/TitleBack.png", -2);
 
       // Set variables for easy placement of objects
       let midX = 960 / 2;
@@ -29,7 +29,7 @@ class Chooser implements ScreenManager {
         }
       })());
       // This draws the button picture
-      level.drawPicture(midX - 50, midY + 75, 100, 50, "./GameAssets/button.png", -1);
+      level.drawPicture(midX - 50, midY + 75, 100, 50, "https://s3.amazonaws.com/typescript-game-studio/standard/button.png", -1);
 
 
       // Play level 1 button
@@ -43,7 +43,7 @@ class Chooser implements ScreenManager {
         }
       })());
       // Draw the image behind the text
-      level.drawPicture(50, midY - 125, 200, 50, "./GameAssets/button.png", -1);
+      level.drawPicture(50, midY - 125, 200, 50, "https://s3.amazonaws.com/typescript-game-studio/standard/button.png", -1);
 
 
       // Play level 2 button
@@ -56,7 +56,7 @@ class Chooser implements ScreenManager {
         }
       })());
 
-      level.drawPicture(midX - 125, midY - 125, 250, 50, "./GameAssets/button.png", -1);
+      level.drawPicture(midX - 125, midY - 125, 250, 50, "https://s3.amazonaws.com/typescript-game-studio/standard/button.png", -1);
 
 
       // Play level 3 button
@@ -69,7 +69,7 @@ class Chooser implements ScreenManager {
         }
       })());
 
-      level.drawPicture(960 - 250, midY - 125, 200, 50, "./GameAssets/button.png", -1);
+      level.drawPicture(960 - 250, midY - 125, 200, 50, "https://s3.amazonaws.com/typescript-game-studio/standard/button.png", -1);
     }
   }
 }

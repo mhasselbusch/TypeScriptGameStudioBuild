@@ -14,7 +14,7 @@ class LoseScene implements ScreenManager {
     // Configure our win screen
 
     // Add a background
-    level.drawPicture(0, 0, 960, 540, "./GameAssets/TitleBack.png", -2);
+    level.drawPicture(0, 0, 960, 540, "https://s3.amazonaws.com/typescript-game-studio/standard/TitleBack.png", -2);
     // Add a degrading message to make the player feel bad about themself
     level.addStaticTextCentered(960/2, 540/2, "Arial", 0x0000FF, 32, "You lost, try being better", 0);
     // Make it so they can click to go back to the level select screen
