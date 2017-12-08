@@ -19,6 +19,10 @@ class Media {
         this.mConfig = config;
         this.mSounds = new Map<string, Sound>();
         this.mTunes = new Map<string, Sound>();
+
+        // Make sure we're starting fresh
+        PIXI.loader.reset();
+        
         for (let imgName of config.mImageNames) {
             // PIXI has a built-in image loader
             PIXI.loader.add(imgName);
