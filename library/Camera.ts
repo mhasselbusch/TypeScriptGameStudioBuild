@@ -1,11 +1,10 @@
-// TODO: Right now the camera can only follow an actor
-// The Camera is essentially a wrapper for a pixi Container
-// which could contain an actor to chase
-// and the scene it is acting as a camera for
+/*
+ * The Camera is essentially a wrapper for a pixi Container
+ * which could contain an actor to chase
+ * and the scene it is acting as a camera for
+ */
 class Camera {
   mContainer: PIXI.Container;
-  //mScene: LolScene;
-  //mChaseActor: WorldActor;
   mHeight: number;
   mWidth: number;
 
@@ -13,44 +12,41 @@ class Camera {
     this.mContainer = new PIXI.Container();
     this.mWidth = x;
     this.mHeight = y;
-    //this.mContainer.position.x = x;
-    //this.mContainer.position.y = y;
   }
 
-  // changeScene(scene: Scene) {
-  //   this.mContainer.removeChildren();
-  //   this.mScene = scene;
-  //   this.mContainer.addChild(scene.mContainer);
-  // }
-
+  /*
+   * Sets the position of the camera
+   */
   setPosition(x: number, y: number) {
-    this.mContainer.position.x = x;// - this.mWidth / 2;
-    this.mContainer.position.y = y;// - this.mHeight / 2;
+    this.mContainer.position.x = x;
+    this.mContainer.position.y = y;
   }
 
+  /*
+   * Tells the camera to center on a coordinate
+   */
   centerOn(x: number, y: number) {
-    this.mContainer.pivot.x = x;// - this.mWidth / 2;
-    this.mContainer.pivot.y = y;// - this.mHeight / 2;
+    this.mContainer.pivot.x = x;
+    this.mContainer.pivot.y = y;
   }
 
-  // updatePosition() {
-  //   this.mContainer.pivot = this.mChaseActor.mSprite.position;
-  //   this.mContainer.position.x = this.mWidth / 2;
-  //   this.mContainer.position.y = this.mHeight / 2;
-  // }
-
-  // setChase(chaseActor: WorldActor) {
-  //   this.mChaseActor = chaseActor;
-  // }
-
+  /*
+   * Sets the zoom, <1 zooms in, >1 zooms out
+   */
   setZoom(zoom: number) {
     this.mContainer.scale.set((1 / zoom), (1 / zoom));
   }
 
+  /*
+   * Gets the current amount of zoom
+   */
   getZoom(): number {
     return (1 / this.mContainer.scale.x);
   }
 
+  /*
+   * Zooms in or out based on the zoom factor, <1 zooms in, >1 zooms out
+   */
   zoomInOut(zoom: number) {
     let z = this.mContainer.scale;
     this.mContainer.scale.set(z.x * (1 / zoom), z.y * (1 /zoom));
