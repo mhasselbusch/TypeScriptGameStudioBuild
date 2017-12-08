@@ -47,9 +47,6 @@ abstract class Renderable {
 
   /**
   * User-provided code to run when a renderable object is enabled and ready to be rendered.
-  *
-  * @param sb      The SpriteBatch to use for rendering
-  * @param elapsed The time since the last render
   */
   abstract onRender(): void;
 }

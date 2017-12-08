@@ -1,13 +1,11 @@
 /// <reference path="./HudScene.ts"/>
 /// <reference path="./MainScene.ts"/>
 /// <reference path="./Enemy.ts"/>
+/// <reference path="./Hero.ts"/>
 /// <reference path="./Goodie.ts"/>
 /// <reference path="./QuickScene.ts"/>
 /// <reference path="./Media.ts"/>
 /// <reference path="./Lol.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 
 /**
 * These are the ways you can complete a level: you can reach the destination, you can collect
@@ -43,10 +41,6 @@ class LolManager {
   mLoseScene: QuickScene;
   /// The scene to show when the level is paused (if any)
   mPauseScene: QuickScene;
-  /// The background layers
-  // mBackground: ParallaxScene;
-  /// The foreground layers
-  // mForeground: ParallaxScene;
 
   /// Store string/integer pairs that get reset whenever we restart the program, but which persist
   /// across levels
@@ -107,6 +101,11 @@ class LolManager {
   mWinCallback: LolAction | null;
   /// Code to run when a level is lost
   mLoseCallback: LolAction | null;
+  /// The events placed on the webpage
+  mFunctions = new Array<EventListener | EventListenerObject>();
+  mEventTypes = new Array<string>();
+  /// Keys being pressed
+  mKeysPressed = new Array<boolean>();
 
   /**
   * Construct the LolManager, build the scenes, set up the state machine, and clear the scores.
@@ -128,9 +127,6 @@ class LolManager {
     for (let i = 0; i < 5; ++i)
     this.mModeStates[i] = 1;
     this.resetScores();
-
-    //
-    // this.mGoodiesCollected = new Array<number>();
   }
 
   /**
@@ -163,50 +159,29 @@ class LolManager {
   * Create all scenes for a playable level.
   */
   private createScenes(): void {
-    // Create the easy scenes
+    // Create the main scene and hud
     this.mWorld = new MainScene(this.mConfig, this.mMedia);
     this.mHud = new HudScene(this.mConfig, this.mMedia);
-    //this.mBackground = new ParallaxScene(this.mConfig);
-    //this.mForeground = new ParallaxScene(this.mConfig);
-    // the win/lose/pre/pause scenes are a little bit complicated
-    // this.mWinScene = new QuickScene(this.mConfig, this.mMedia, this.mConfig.mDefaultWinText);
-    // let out_this = this;
-    // this.mWinScene.setDismissAction(new (class _ extends LolAction {
-    //   //@Override
-    //   public go(): void {
-    //     out_this.doChooser(1);
-    //   }
-    // })());
-    // this.mLoseScene = new QuickScene(this.mConfig, this.mMedia, this.mConfig.mDefaultLoseText);
-    // this.mLoseScene.setDismissAction(new (class _ extends LolAction {
-    //   //@Override
-    //   public go(): void {
-    //     out_this.repeatLevel();
-    //   }
-    // })());
 
     this.mContainer = new PIXI.Container();
+    // All of a scene's renderables should be in its camera's container
     this.mContainer.addChild(this.mWorld.mCamera.mContainer);
     this.mContainer.addChild(this.mHud.mCamera.mContainer);
-    //this.mWorld.mContainer.addChild(new PIXI.Text("Hello", {fontFamily: "Arial", fontSize: 24, fill: 0x0000FF, align: 'center'}));
-    // this.mPreScene = new QuickScene(this.mConfig, this.mMedia, "");
-    // this.mPreScene.setShowAction(null);
-    // this.mPauseScene = new QuickScene(this.mConfig, this.mMedia, "");
-    // this.mPauseScene.setAsPauseScene();
   }
-
-
 
   /**
   * Before we call programmer code to load a new scene, we call this to ensure that everything is
   * in a clean state.
   */
   private onScreenChange(): void {
-    //this.mWorld.pauseMusic();
+    for(let i=0; i < this.mFunctions.length; i++) {
+      document.removeEventListener(this.mEventTypes[i], this.mFunctions[i]);
+    }
+    this.mFunctions.length = 0;
+    this.mEventTypes.length = 0;
+
+    this.mWorld.pauseMusic();
     this.createScenes();
-    // When debug mode is on, print the frames per second
-    // if (this.mConfig.mShowDebugBoxes)
-    //   this.mLevel.addDisplay(800, 15, mConfig.mDefaultFontFace, mConfig.mDefaultFontColor, 12, "fps: ", "", mLevel.DisplayFPS, 2);
   }
 
   // /**
@@ -226,7 +201,7 @@ class LolManager {
   */
   advanceLevel(): void {
     // Make sure to stop the music!
-    //this.mWorld.stopMusic();
+    this.mWorld.stopMusic();
     if (this.mModeStates[this.PLAY] == this.mConfig.mNumLevels) {
       this.doChooser(1);
     } else {
@@ -304,20 +279,22 @@ class LolManager {
   /**
   * Load a lose scene
   *
-  * @param index The index of the help level to load
+  * @param index The index of the level that was lost
   */
   doLose(index: number): void {
     this.onScreenChange();
+    this.resetScores();
     this.mConfig.mLose.display(index, this.mLevel);
   }
 
   /**
   * Load a win scene
   *
-  * @param index The index of the help level to load
+  * @param index The index of the level that was won
   */
   doWin(index: number): void {
     this.onScreenChange();
+    this.resetScores();
     this.mConfig.mWin.display(index, this.mLevel);
   }
 
@@ -333,14 +310,11 @@ class LolManager {
     this.mConfig.mStore.display(index, this.mLevel);
   }
 
-  // TODO: What does quitting the game look like??
-  // With a webpage, closing the browser tab should be sufficient?
   /**
   * Quit the game
   */
   doQuit(): void {
-    //this.mWorld.stopMusic();
-    //Gdx.app.exit();
+    this.mWorld.stopMusic();
   }
 
 
@@ -367,7 +341,7 @@ class LolManager {
   */
   onGoodieCollected(goodie: Goodie): void {
     // Update goodie counts
-    for (let i = 0; i < 4; ++i) {
+    for (let i = 0; i < 4; i++) {
       this.mGoodiesCollected[i] += goodie.mScore[i];
     }
     // possibly win the level, but only if we win on goodie count and all
@@ -417,6 +391,13 @@ class LolManager {
     }
   }
 
+  /*
+   *  Returns number of enemies defeated
+   */
+  getEnemiesDefeated(): number {
+    return this.mEnemiesDefeated;
+  }
+
   /**
   * When a level ends, we run this code to shut it down, print a message, and
   * then let the user resume play
@@ -431,93 +412,27 @@ class LolManager {
     else {
       this.doLose(this.mModeStates[this.PLAY]);
     }
-    // if (this.mEndGameEvent == null) {
-    //   let out_this = this;
-    //   this.mEndGameEvent = new (class _ extends LolAction {
-    //     //@Override
-    //     public go(): void {
-    //       // Safeguard: only call this method once per level
-    //       if (out_this.mGameOver){
-    //         return;
-    //       }
-    //       out_this.mGameOver = true;
-    //
-    //       // Run the level-complete callback
-    //       if (win && out_this.mWinCallback != null){
-    //         out_this.mWinCallback.go();
-    //       } else if (!win && out_this.mLoseCallback != null){
-    //         out_this.mLoseCallback.go();
-    //       }
-    //       // if we won, unlock the next level
-    //       // if (win){
-    //       //   out_this.mGame.mManager.unlockNext();
-    //       // }
-    //       // drop everything from the hud
-    //       out_this.mGame.mManager.mHud.reset();
-    //
-    //       //TODO: clear setInterval calls or create a timer class
-    //       // clear any pending timers
-    //       //PhysicsType2d.Timer.clear();
-    //
-    //       // display the PostScene before we retry/start the next level
-    //       if (win) {
-    //         out_this.mGame.mManager.mWinScene.show();
-    //       } else {
-    //         out_this.mGame.mManager.mLoseScene.show();
-    //       }
-    //     }
-    //   })();
-    //}
   }
 
   /**
   * Update all timer counters associated with the current level
   */
-  // TODO: This uses PIXI.ticker, which may require some adjustments
   updateTimeCounts(): void {
     // Check the countdown timers
     if (this.mLoseCountDownRemaining != -100) {
-      this.mLoseCountDownRemaining -= PIXI.ticker.shared.deltaTime;  //Gdx.graphics.getDeltaTime();
+      this.mLoseCountDownRemaining -= (PIXI.ticker.shared.deltaTime / 100);
       if (this.mLoseCountDownRemaining < 0) {
-        if (this.mLoseCountDownText !== "") {
-          this.mLoseScene.setDefaultText(this.mLoseCountDownText);
-        }
         this.endLevel(false);
       }
     }
     if (this.mWinCountRemaining != -100) {
-      this.mWinCountRemaining -= PIXI.ticker.shared.deltaTime;  //Gdx.graphics.getDeltaTime();
+      this.mWinCountRemaining -= PIXI.ticker.shared.deltaTime / 100;
       if (this.mWinCountRemaining < 0) {
-        if (this.mWinCountText !== "") {
-          this.mWinScene.setDefaultText(this.mWinCountText);
-        }
         this.endLevel(true);
       }
     }
     if (this.mStopWatchProgress != -100) {
-      this.mStopWatchProgress += PIXI.ticker.shared.deltaTime //Gdx.graphics.getDeltaTime();
+      this.mStopWatchProgress += PIXI.ticker.shared.deltaTime / 100;
     }
   }
-
-  // /**
-  // * Code to run when the back key is pressed, or when we are simulating a back key pressed
-  // */
-  // handleBack(): void {
-  //   // clear all timers, just in case...
-  //   Timer.instance().clear();
-  //   // if we're looking at main menu, then exit
-  //   if (mMode == SPLASH) {
-  //     // TODO: return a bool, let game dispose of itself?
-  //     mGame.dispose();
-  //     Gdx.app.exit();
-  //   }
-  //   // if we're looking at the chooser or help, switch to the splash screen
-  //   else if (mMode == CHOOSER || mMode == HELP || mMode == STORE) {
-  //     doSplash();
-  //   }
-  //   // ok, we're looking at a game scene... switch to chooser
-  //   else {
-  //     doChooser(mModeStates[CHOOSER]);
-  //   }
-  //}
 }

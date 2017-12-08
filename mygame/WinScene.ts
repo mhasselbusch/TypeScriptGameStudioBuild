@@ -1,32 +1,34 @@
 /// <reference path="../library/ScreenManager.ts"/>
 
 /**
-* Splash encapsulates the code that will be run to configure the opening screen of the game.
-* Typically this has buttons for playing, getting help, and quitting.
+* This is the scene that is displayed when you win a level
 */
 class WinScene implements ScreenManager {
   /**
-  * There is usually only one splash screen. However, the ScreenManager interface requires
-  * display() to take a parameter for which screen to display.  We ignore it.
+  * Implement the display function
   *
-  * @param index Which splash screen should be displayed (typically you can ignore this)
-  * @param level The physics-based world that comprises the splash screen
+  * @param index Which level you won
+  * @param level The public api
   */
   public display(index: number, level: Level): void {
     // Configure our win screen
-
-    // This is the Play button... it switches to the first screen of the
-    // level chooser. You could jump straight to the first level by using
-    // "doLevel(1)", but check the configuration in MyConfig... there's a
-    // field you should change if you don't want the 'back' button to go
-    // from that level to the chooser.
-    level.addStaticText(960/2 - 100, 640/2 - 10, "Arial", 0x00FFFF, 32, "You Win!!", 0);
-
-    level.addTapControl(0, 0, 960, 640, "", new (class _ extends LolAction {
+    // Add a background
+    level.drawPicture(0, 0, 960, 540, "https://s3.amazonaws.com/typescript-game-studio/standard/TitleBack.png", -2);
+    // Add an uplifting message
+    level.addStaticTextCentered(960/2, 540/2, "Arial", 0x0000FF, 32, "You win!! You must be super cool!", 0);
+    // Make it so they can click to go back to the level select screen
+    level.addTapControl(0, 0, 960, 540, "", new (class _ extends LolAction {
       public go(): boolean {
         level.doChooser(1);
         return true;
       }
     })());
+    // Make it so we can use the spacebar
+    level.setKeyAction(32, new (class _ extends LolAction {
+      public go(): boolean {
+        level.doChooser(1);
+        return true;
+      }
+    })(), null, false);
   }
 }

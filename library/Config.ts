@@ -6,37 +6,24 @@
 * A programmer should extend Config, and change these values in their class constructor.
 */
 class Config {
-  /// The number of pixels on screen that correspond to a meter in the game.
-  ///
-  /// NB: 'pixels' are relative to <code>mWidth</code> and <code>mHeight</code>
-  public mPixelMeterRatio: number; //float
-  /// The default screen width (note: it will be stretched to fill the phone screen)
-  public mWidth: number; //int
-  /// The default screen height (note: it will be stretched to fill the phone screen)
-  public mHeight: number; //int
-  /// Should the phone vibrate on certain events?
-  /* protected */ mEnableVibration: boolean;
+  /// The default game width
+  public mWidth: number;
+  /// The default game height
+  public mHeight: number;
 
-  /// The game title.  This only matters in Desktop mode.
+  /// The game title.
   public mGameTitle: string;
   /// Default text to display when a level is won
   /* protected */ mDefaultWinText: string;
   /// Default text to display when a level is lost
   /* protected */ mDefaultLoseText: string;
 
-  /// When this is true, the game will show an outline corresponding to the physics body behind
-  /// each WorldActor
-  /* protected */ mShowDebugBoxes: boolean;
-
   /// Total number of levels. This helps the transition when a level is won
-  /* protected */ mNumLevels: number; //int
+  /* protected */ mNumLevels: number;
   /// Should the level chooser be activated?
   /* protected */ mEnableChooser: boolean;
   /// Should all levels be unlocked?
   /* protected */ mUnlockAllLevels: boolean;
-
-  /// A per-game string, to use for storing information on an Android device
-  /* protected */ //mStorageKey: string;
 
   /// The default font face to use when writing text to the screen
   /* protected */ mDefaultFontFace: string;

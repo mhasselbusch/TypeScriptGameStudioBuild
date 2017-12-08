@@ -38,24 +38,7 @@ class Renderable {
         this.onRender();
     }
 }
-/**
- * ToggleEventHandler is a wrapper for code that ought to run in response to a toggle event.
- */
-class ToggleEventHandler {
-    constructor() {
-        /// A flag to control whether the event is allowed to execute or not
-        this.mIsActive = true;
-        /// The actor who generated this touch event
-        this.mSource = null;
-        /// A flag to track if we are in a 'hold' state
-        this.isHolding = false;
-    }
-}
 /// <reference path="./Renderable.ts"/>
-/// <reference path="./ToggleEventHandler.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 /**
 * BaseActor is the parent of all Actor types.
 *
@@ -75,7 +58,7 @@ class BaseActor extends Renderable {
             this.mSprite.texture = PIXI.Texture.EMPTY;
         }
         else {
-            this.mSprite = PIXI.Sprite.fromImage(imgName);
+            this.mSprite = new PIXI.Sprite(PIXI.loader.resources[imgName].texture);
         }
         this.mSprite.width = this.mSize.x;
         this.mSprite.height = this.mSize.y;
@@ -86,8 +69,8 @@ class BaseActor extends Renderable {
     * Specify that this actor should have a rectangular physics shape
     *
     * @param type Is the actor's body static or dynamic?
-    * @param x    The X coordinate of the bottom left corner, in meters
-    * @param y    The Y coordinate of the bottom left corner, in meters
+    * @param x    The X coordinate of the top left corner
+    * @param y    The Y coordinate of the top left corner
     */
     setBoxPhysics(type, x, y) {
         let shape = new PhysicsType2d.Collision.Shapes.PolygonShape();
@@ -115,17 +98,18 @@ class BaseActor extends Renderable {
     * Specify that this actor should have a polygon physics shape.
     * <p>
     * You must take extreme care when using this method. Polygon vertices must be given in
-    * counter-clockwise order, and they must describe a convex shape.
+    * CLOCKWISE order, and they must describe a convex shape.
+    * COORDINATES ARE RELATIVE TO THE MIDDLE OF THE OBJECT
     *
     * @param type     Is the actor's body static or dynamic?
-    * @param x        The X coordinate of the bottom left corner, in meters
-    * @param y        The Y coordinate of the bottom left corner, in meters
+    * @param x        The X coordinate of the top left corner
+    * @param y        The Y coordinate of the top left corner
     * @param vertices Up to 16 coordinates representing the vertexes of this polygon, listed as
     *                 x0,y0,x1,y1,x2,y2,...
     */
     setPolygonPhysics(type, x, y, vertices) {
         let shape = new PhysicsType2d.Collision.Shapes.PolygonShape();
-        let verts = new Array(vertices.length / 2);
+        let verts = new Array();
         for (let i = 0; i < vertices.length; i += 2)
             verts[i / 2] = new PhysicsType2d.Vector2(vertices[i], vertices[i + 1]);
         // print some debug info, since vertices are tricky
@@ -156,8 +140,8 @@ class BaseActor extends Renderable {
     * Specify that this actor should have a circular physics shape
     *
     * @param type   Is the actor's body static or dynamic?
-    * @param x      The X coordinate of the bottom left corner, in meters
-    * @param y      The Y coordinate of the bottom left corner, in meters
+    * @param x      The X coordinate of the top left corner
+    * @param y      The Y coordinate of the top left corner
     * @param radius The radius of the underlying circle
     */
     setCirclePhysics(type, x, y, radius) {
@@ -204,8 +188,9 @@ class BaseActor extends Renderable {
     updateVelocity(x, y) {
         // make sure it is not static... heroes are already Dynamic, let's just set everything else
         // that is static to kinematic... that's probably safest.
-        if (this.mBody.GetType() == PhysicsType2d.Dynamics.BodyType.STATIC)
+        if (this.mBody.GetType() == PhysicsType2d.Dynamics.BodyType.STATIC) {
             this.mBody.SetType(PhysicsType2d.Dynamics.BodyType.KINEMATIC);
+        }
         this.breakJoints();
         this.mBody.SetLinearVelocity(new PhysicsType2d.Vector2(x, y));
     }
@@ -216,30 +201,20 @@ class BaseActor extends Renderable {
     */
     breakJoints() {
     }
-    // /**
-    //  * When this actor is touched, play its mTouchSound and then execute its mTapHandler
-    //  *
-    //  * @param touchVec The coordinates of the touch, in meters
-    //  * @return True if the event was handled, false otherwise
-    //  */
-    // boolean onTap(Vector3 touchVec) {
-    //     if (mTouchSound != null)
-    //         mTouchSound.play(Lol.getGameFact(mScene.mConfig, "volume", 1));
-    //     return mTapHandler != null && mTapHandler.go(touchVec.x, touchVec.y);
-    // }
     /**
     * Every time the world advances by a timestep, we call this code to update the actor route and
     * animation, and then draw the actor
-    *
-    * @param sb    The spritebatch to use in order to draw this actor
-    * @param delta The amount of time since the last render event
     */
     //@Override
     onRender() {
+        if (this.mRoute)
+            this.mRoute.drive();
         if (this.mBody)
             this.mSprite.position.x = this.mBody.GetPosition().x;
         if (this.mBody)
             this.mSprite.position.y = this.mBody.GetPosition().y;
+        if (this.mBody)
+            this.mSprite.rotation = this.mBody.GetAngle();
     }
     /**
     * Indicate whether this actor engages in physics collisions or not
@@ -247,7 +222,6 @@ class BaseActor extends Renderable {
     * @param state True or false, depending on whether the actor will participate in physics
     *              collisions or not
     */
-    //TODO: This needs to be tested
     setCollisionsEnabled(state) {
         // The default is for all fixtures of a actor have the same sensor state
         let fixtures = this.mBody.GetFixtures();
@@ -333,7 +307,7 @@ class BaseActor extends Renderable {
     /**
     * Returns the X coordinate of this actor
     *
-    * @return x coordinate of bottom left corner, in meters
+    * @return x coordinate of top left corner, in pixels
     */
     getXPosition() {
         return this.mBody.GetPosition().x - this.mSize.x / 2;
@@ -341,7 +315,7 @@ class BaseActor extends Renderable {
     /**
     * Returns the Y coordinate of this actor
     *
-    * @return y coordinate of bottom left corner, in meters
+    * @return y coordinate of top left corner, in pixels
     */
     getYPosition() {
         return this.mBody.GetPosition().y - this.mSize.y / 2;
@@ -349,8 +323,8 @@ class BaseActor extends Renderable {
     /**
     * Change the position of an actor
     *
-    * @param x The new X position, in meters
-    * @param y The new Y position, in meters
+    * @param x The new X position, in pixels
+    * @param y The new Y position, in pixels
     */
     setPosition(x, y) {
         this.mBody.SetTransform(new PhysicsType2d.Vector2(x + this.mSize.x / 2, y + this.mSize.y / 2), this.mBody.GetAngle());
@@ -358,7 +332,7 @@ class BaseActor extends Renderable {
     /**
     * Returns the width of this actor
     *
-    * @return the actor's width, in meters
+    * @return the actor's width, in pixels
     */
     getWidth() {
         return this.mSize.x;
@@ -366,7 +340,7 @@ class BaseActor extends Renderable {
     /**
     * Return the height of this actor
     *
-    * @return the actor's height, in meters
+    * @return the actor's height, in pixels
     */
     getHeight() {
         return this.mSize.y;
@@ -374,10 +348,10 @@ class BaseActor extends Renderable {
     /**
     * Change the size of an actor, and/or change its position
     *
-    * @param x      The new X coordinate of its bottom left corner, in meters
-    * @param y      The new Y coordinate of its bototm left corner, in meters
-    * @param width  The new width of the actor, in meters
-    * @param height The new height of the actor, in meters
+    * @param x      The new X coordinate of its top left corner, in pixels
+    * @param y      The new Y coordinate of its top left corner, in pixels
+    * @param width  The new width of the actor, in pixels
+    * @param height The new height of the actor, in pixels
     */
     resize(x, y, width, height) {
         // set new height and width
@@ -458,25 +432,15 @@ class BaseActor extends Renderable {
         // set it invisible immediately, so that future calls know to ignore this actor
         this.mEnabled = false;
         this.mBody.SetActive(false);
+        this.mSprite.visible = false;
         // play a sound when we remove this actor?
-        //  if (mDisappearSound != null && !quiet)
-        //      mDisappearSound.play(Lol.getGameFact(mScene.mConfig, "volume", 1));
-        // To do a disappear animation after we've removed the actor, we draw an actor, so that
-        // we have a clean hook into the animation system, but we disable its physics
-        //  if (this.mDisappearAnimation != null) {
-        //      float x = getXPosition() + mDisappearAnimateOffset.x;
-        //      float y = getYPosition() + mDisappearAnimateOffset.y;
-        //      BaseActor o = new BaseActor(mScene, "", mDisappearAnimateSize.x, mDisappearAnimateSize.y);
-        //      o.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-        //      mScene.addActor(o, 0);
-        //      o.mBody.setActive(false);
-        //      o.setDefaultAnimation(mDisappearAnimation);
-        //  }
+        if (this.mDisappearSound && !quiet)
+            this.mDisappearSound.play();
     }
     /**
     * Returns the X velocity of of this actor
     *
-    * @return Velocity in X dimension, in meters per second
+    * @return Velocity in X dimension, in pixels per second
     */
     getXVelocity() {
         return this.mBody.GetLinearVelocity().x;
@@ -484,7 +448,7 @@ class BaseActor extends Renderable {
     /**
     * Returns the Y velocity of of this actor
     *
-    * @return Velocity in Y dimension, in meters per second
+    * @return Velocity in Y dimension, in pixels per second
     */
     getYVelocity() {
         return this.mBody.GetLinearVelocity().y;
@@ -492,8 +456,8 @@ class BaseActor extends Renderable {
     /**
     * Add velocity to this actor
     *
-    * @param x Velocity in X dimension, in meters per second
-    * @param y Velocity in Y dimension, in meters per second
+    * @param x Velocity in X dimension
+    * @param y Velocity in Y dimension
     */
     addVelocity(x, y) {
         // ensure this is a moveable actor
@@ -510,8 +474,8 @@ class BaseActor extends Renderable {
     /**
     * Set the absolute velocity of this actor
     *
-    * @param x Velocity in X dimension, in meters per second
-    * @param y Velocity in Y dimension, in meters per second
+    * @param x Velocity in X dimension
+    * @param y Velocity in Y dimension
     */
     setAbsoluteVelocity(x, y) {
         // ensure this is a moveable actor
@@ -538,69 +502,29 @@ class BaseActor extends Renderable {
     setAngularDamping(amount) {
         this.mBody.SetAngularDamping(amount);
     }
-    //  /**
-    //   * Specify some code to run when this actor is tapped
-    //   *
-    //   * @param handler The TouchEventHandler to run in response to the tap
-    //   */
-    //  public void setTapCallback(TouchEventHandler handler) {
-    //      mTapHandler = handler;
-    //  }
-    //  /**
-    //   * Specify some code to run while this actor is down-pressed and when it is released
-    //   *
-    //   * @param whileDownAction The code to run for as long as the actor is being pressed
-    //   * @param onUpAction      The code to run when the actor is released
-    //   */
-    //  public void setToggleCallback(final LolAction whileDownAction, final LolAction onUpAction) {
-    //      whileDownAction.mIsActive = false;
-    //
-    //      // set up the toggle behavior
-    //      mToggleHandler = new ToggleEventHandler() {
-    //          public boolean go(boolean isUp, float worldX, float worldY) {
-    //              if (isUp) {
-    //                  whileDownAction.mIsActive = false;
-    //                  if (onUpAction != null)
-    //                      onUpAction.go();
-    //              } else {
-    //                  whileDownAction.mIsActive = true;
-    //              }
-    //              return true;
-    //          }
-    //      };
-    //      mScene.mRepeatEvents.add(whileDownAction);
-    //  }
-    //  /**
-    //   * Request that this actor moves according to a fixed route
-    //   *
-    //   * @param route    The route to follow
-    //   * @param velocity speed at which to travel along the route
-    //   * @param loop     When the route completes, should we start it over again?
-    //   */
-    //  public void setRoute(Route route, float velocity, boolean loop) {
-    //      // This must be a KinematicBody or a Dynamic Body!
-    //      if (mBody.getType() == BodyDef.BodyType.StaticBody)
-    //          mBody.setType(BodyDef.BodyType.KinematicBody);
-    //
-    //      // Create a Driver to advance the actor's position according to the route
-    //      mRoute = new Route.Driver(route, velocity, loop, this);
-    //  }
-    //  /**
-    //   * Request that a sound plays whenever the player touches this actor
-    //   *
-    //   * @param sound The name of the sound file to play
-    //   */
-    //  public void setTouchSound(String sound) {
-    //      mTouchSound = mScene.mMedia.getSound(sound);
-    //  }
-    //  /**
-    //   * Request that a sound plays whenever this actor disappears
-    //   *
-    //   * @param soundName The name of the sound file to play
-    //   */
-    //  public void setDisappearSound(String soundName) {
-    //      mDisappearSound = mScene.mMedia.getSound(soundName);
-    //  }
+    /**
+    * Request that this actor moves according to a fixed route
+    *
+    * @param route    The route to follow
+    * @param velocity speed at which to travel along the route
+    * @param loop     When the route completes, should we start it over again?
+    */
+    setRoute(route, velocity, loop) {
+        // This must be a KinematicBody or a Dynamic Body!
+        if (this.mBody.GetType() == PhysicsType2d.Dynamics.BodyType.STATIC) {
+            this.mBody.SetType(PhysicsType2d.Dynamics.BodyType.KINEMATIC);
+        }
+        // Create a Driver to advance the actor's position according to the route
+        this.mRoute = new Route.Driver(route, velocity, loop, this);
+    }
+    /**
+     * Request that a sound plays whenever this actor disappears
+     *
+     * @param soundName The name of the sound file to play
+     */
+    setDisappearSound(soundName) {
+        this.mDisappearSound = this.mScene.mMedia.getSound(soundName);
+    }
     /**
     * Change the image being used to display the actor
     *
@@ -623,44 +547,12 @@ class BaseActor extends Renderable {
         this.mZIndex = zIndex;
         this.mScene.addActor(this, this.mZIndex);
     }
-    //  /**
-    //   * Set the default animation sequence for this actor, and start playing it
-    //   *
-    //   * @param animation The animation to display
-    //   */
-    //  public void setDefaultAnimation(Animation animation) {
-    //      mDefaultAnimation = animation;
-    //      mAnimator.setCurrentAnimation(mDefaultAnimation);
-    //  }
-    //
-    //  /**
-    //   * Set the animation sequence to use when the actor is moving in the negative X direction
-    //   *
-    //   * @param animation The animation to display
-    //   */
-    //  public void setDefaultReverseAnimation(Animation animation) {
-    //      mDefaultReverseAnimation = animation;
-    //  }
-    //  /**
-    //   * Set the animation sequence to use when the actor is removed from the world
-    //   *
-    //   * @param animation The animation to display
-    //   * @param offsetX   Distance between the animation and the left side of the actor
-    //   * @param offsetY   Distance between the animation and the bottom of the actor
-    //   * @param width     The width of the animation, in case it's not the same as the actor width
-    //   * @param height    The height of the animation, in case it's not the same as the actor height
-    //   */
-    //  public void setDisappearAnimation(Animation animation, float offsetX, float offsetY, float width, float height) {
-    //      mDisappearAnimation = animation;
-    //      mDisappearAnimateOffset.set(offsetX, offsetY);
-    //      mDisappearAnimateSize.set(width, height);
-    //  }
     /**
     * Set a time that should pass before this actor appears on the screen
     *
     * @param delay How long to wait before displaying the actor, in milliseconds
     */
-    //TODO: Timer vs setTimeout
+    //TODO: Timer vs setTimeout?
     setAppearDelay(delay) {
         this.mEnabled = false;
         this.mBody.SetActive(false);
@@ -680,43 +572,6 @@ class BaseActor extends Renderable {
             this.remove(quiet);
         }, delay);
     }
-    //  /**
-    //   * Indicate that this actor should shrink over time.  Note that using negative values will lead
-    //   * to growing instead of shrinking.
-    //   *
-    //   * @param shrinkX      The number of meters by which the X dimension should shrink each second
-    //   * @param shrinkY      The number of meters by which the Y dimension should shrink each second
-    //   * @param keepCentered Should the actor's center point stay the same as it shrinks, or should
-    //   *                     its bottom left corner stay in the same position
-    //   */
-    //  public void setShrinkOverTime(final float shrinkX, final float shrinkY, final boolean keepCentered) {
-    //      // NB: we shrink 20 times per second
-    //      final Timer.Task t = new Timer.Task() {
-    //          @Override
-    //          public void run() {
-    //              if (mEnabled) {
-    //                  float x, y;
-    //                  if (keepCentered) {
-    //                      x = getXPosition() + shrinkX / 20 / 2;
-    //                      y = getYPosition() + shrinkY / 20 / 2;
-    //                  } else {
-    //                      x = getXPosition();
-    //                      y = getYPosition();
-    //                  }
-    //                  float w = mSize.x - shrinkX / 20;
-    //                  float h = mSize.y - shrinkY / 20;
-    //                  // if the area remains >0, resize it and schedule a timer to run again
-    //                  if ((w > 0.05f) && (h > 0.05f)) {
-    //                      resize(x, y, w, h);
-    //                      Timer.schedule(this, .05f);
-    //                  } else {
-    //                      remove(false);
-    //                  }
-    //              }
-    //          }
-    //      };
-    //      Timer.schedule(t, .05f);
-    //  }
     /**
     * Indicate that this actor's rotation should change in response to its direction of motion
     */
@@ -735,55 +590,78 @@ class BaseActor extends Renderable {
         })());
     }
 }
-// TODO: Right now the camera can only follow an actor
-// The Camera is essentially a wrapper for a pixi Container
-// which could contain an actor to chase
-// and the scene it is acting as a camera for
+/*
+ * The Camera is essentially a wrapper for a pixi Container
+ * which could contain an actor to chase
+ * and the scene it is acting as a camera for
+ */
 class Camera {
     constructor(x, y) {
         this.mContainer = new PIXI.Container();
         this.mWidth = x;
         this.mHeight = y;
-        //this.mContainer.position.x = x;
-        //this.mContainer.position.y = y;
     }
-    // changeScene(scene: Scene) {
-    //   this.mContainer.removeChildren();
-    //   this.mScene = scene;
-    //   this.mContainer.addChild(scene.mContainer);
-    // }
+    /*
+     * Sets the position of the camera
+     */
     setPosition(x, y) {
-        this.mContainer.position.x = x; // - this.mWidth / 2;
-        this.mContainer.position.y = y; // - this.mHeight / 2;
+        this.mContainer.position.x = x;
+        this.mContainer.position.y = y;
     }
+    /*
+     * Tells the camera to center on a coordinate
+     */
     centerOn(x, y) {
-        this.mContainer.pivot.x = x; // - this.mWidth / 2;
-        this.mContainer.pivot.y = y; // - this.mHeight / 2;
+        this.mContainer.pivot.x = x;
+        this.mContainer.pivot.y = y;
     }
-    // updatePosition() {
-    //   this.mContainer.pivot = this.mChaseActor.mSprite.position;
-    //   this.mContainer.position.x = this.mWidth / 2;
-    //   this.mContainer.position.y = this.mHeight / 2;
-    // }
-    // setChase(chaseActor: WorldActor) {
-    //   this.mChaseActor = chaseActor;
-    // }
+    /*
+     * Sets the zoom, <1 zooms in, >1 zooms out
+     */
     setZoom(zoom) {
         this.mContainer.scale.set((1 / zoom), (1 / zoom));
     }
+    /*
+     * Gets the current amount of zoom
+     */
     getZoom() {
         return (1 / this.mContainer.scale.x);
     }
+    /*
+     * Zooms in or out based on the zoom factor, <1 zooms in, >1 zooms out
+     */
     zoomInOut(zoom) {
         let z = this.mContainer.scale;
         this.mContainer.scale.set(z.x * (1 / zoom), z.y * (1 / zoom));
     }
 }
-//// <reference path="./WorldActor.ts" />
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-// <reference types="pixi.js"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
+/// <reference path="./BaseActor.ts"/>
+class SceneActor extends BaseActor {
+    /**
+    * Construct a SceneActor, but do not give it any physics yet
+    *
+    * @param scene   The scene into which this actor should be placed
+    * @param imgName The image to show for this actor
+    * @param width   The width of the actor's image and body, in pixels
+    * @param height  The height of the actor's image and body, in pixels
+    */
+    constructor(scene, imgName, width, height) {
+        super(scene, imgName, width, height);
+    }
+    /**
+    * Disable touch for this actor
+    */
+    disableTouch() {
+        this.mIsTouchable = false;
+    }
+    /**
+    * Enable touch for this actor
+    */
+    enableTouch() {
+        this.mIsTouchable = true;
+    }
+}
+/// <reference path="./SceneActor.ts"/>
 /**
 * Level provides a broad, public, declarative interface to the core functionality of LibLOL.
 * <p>
@@ -817,23 +695,17 @@ class Level {
         this.mConfig = config;
         this.mMedia = media;
     }
-    // /**
-    // * Configure the camera bounds for a level
-    // * <p>
-    // * TODO: set upper and lower bounds, instead of assuming a lower bound of (0, 0)
-    // *
-    // * @param width  width of the camera
-    // * @param height height of the camera
-    // */
-    // public void setCameraBounds(float width, float height) {
-    //   mGame.mManager.mWorld.mCamBound.set(width, height);
-    //
-    //   // warn on strange dimensions
-    //   if (width < mConfig.mWidth / mConfig.mPixelMeterRatio)
-    //   Lol.message(mConfig, "Warning", "Your game width is less than 1/10 of the screen width");
-    //   if (height < mConfig.mHeight / mConfig.mPixelMeterRatio)
-    //   Lol.message(mConfig, "Warning", "Your game height is less than 1/10 of the screen height");
-    // }
+    /**
+    * Configure the camera bounds for a level
+    * <p>
+    * TODO: set upper and lower bounds, instead of assuming a lower bound of (0, 0)
+    *
+    * @param width  width of the camera
+    * @param height height of the camera
+    */
+    setCameraBounds(width, height) {
+        this.mGame.mManager.mWorld.mCamBound.Set(width, height);
+    }
     /**
     * Identify the actor that the camera should try to keep on screen at all times
     *
@@ -842,121 +714,40 @@ class Level {
     setCameraChase(actor) {
         this.mGame.mManager.mWorld.mChaseActor = actor;
     }
-    // /**
-    // * Set the background music for this level
-    // *
-    // * @param musicName Name of the Music file to play
-    // */
-    // public void setMusic(String musicName) {
-    //   mGame.mManager.mWorld.mMusic = mMedia.getMusic(musicName);
-    // }
-    //
-    // /**
-    // * Specify that you want some code to run after a fixed amount of time passes.
-    // *
-    // * @param howLong  How long to wait before the timer code runs
-    // * @param callback The code to run
-    // */
-    // public void setTimerCallback(float howLong, final LolAction callback) {
-    //   Timer.schedule(new Timer.Task() {
-    //     @Override
-    //     public void run() {
-    //       if (!mGame.mManager.mGameOver)
-    //       callback.go();
-    //     }
-    //   }, howLong);
-    // }
-    //
-    // /**
-    // * Specify that you want some code to run repeatedly
-    // *
-    // * @param howLong  How long to wait before the timer code runs for the first time
-    // * @param interval The time between subsequent executions of the code
-    // * @param callback The code to run
-    // */
-    // public void setTimerCallback(float howLong, float interval, final LolAction callback) {
-    //   Timer.schedule(new Timer.Task() {
-    //     @Override
-    //     public void run() {
-    //       if (!mGame.mManager.mGameOver)
-    //       callback.go();
-    //     }
-    //   }, howLong, interval);
-    // }
-    //
-    // /**
-    // * Turn on scribble mode, so that scene touch events draw circular objects
-    // * <p>
-    // * Note: this code should be thought of as serving to demonstrate, only. If you really wanted to
-    // * do anything clever with scribbling, you'd certainly want to change this code.
-    // *
-    // * @param imgName          The name of the image to use for scribbling
-    // * @param width            Width of the individual components of the scribble
-    // * @param height           Height of the individual components of the scribble
-    // * @param interval         Time (in milliseconds) that must transpire between scribble events...
-    // *                         use this to avoid outrageously high rates of scribbling
-    // * @param onCreateCallback A callback to run in order to modify the scribble behavior. The
-    // *                         obstacle that is drawn in the scribble will be passed to the callback
-    // */
-    // public void setScribbleMode(final String imgName, final float width, final float height,
-    //   final int interval, final LolActorEvent onCreateCallback) {
-    //     // we set a callback on the Level, so that any touch to the level (down, drag, up) will
-    //     // affect our scribbling
-    //     mGame.mManager.mWorld.mPanHandlers.add(new PanEventHandler() {
-    //       /// The time of the last touch event... we use this to prevent high rates of scribble
-    //       long mLastTime;
-    //
-    //       /**
-    //       * Draw a new obstacle if enough time has transpired
-    //       */
-    //       public boolean go(float worldX, float worldY, float deltaX, float deltaY) {
-    //         // check if enough milliseconds have passed
-    //         long now = System.currentTimeMillis();
-    //         if (now < mLastTime + interval) {
-    //           return true;
-    //         }
-    //         mLastTime = now;
-    //
-    //         // make a circular obstacle
-    //         final Obstacle o = makeObstacleAsCircle(worldX - width / 2, worldY - height / 2,
-    //           width, height, imgName);
-    //           if (onCreateCallback != null) {
-    //             onCreateCallback.go(o);
-    //           }
-    //
-    //           return true;
-    //         }
-    //       });
-    //     }
-    //
-    //     /**
-    //     * Manually set the zoom level of the game
-    //     *
-    //     * @param zoom The amount of zoom (1 is no zoom, &gt;1 zooms out)
-    //     */
-    //     public void setZoom(float zoom) {
-    //       mGame.mManager.mWorld.mCamera.zoom = zoom;
-    //       mGame.mManager.mBackground.mBgCam.zoom = zoom;
-    //       mGame.mManager.mForeground.mBgCam.zoom = zoom;
-    //     }
-    //
-    //     /**
-    //     * Register a callback so that custom code will run when the level is won
-    //     *
-    //     * @param callback The code to run
-    //     */
-    //     public void setWinCallback(LolAction callback) {
-    //       mGame.mManager.mWinCallback = callback;
-    //     }
-    //
-    //     /**
-    //     * Register a callback so that custom code will run when the level is lost
-    //     *
-    //     * @param callback The code to run
-    //     */
-    //     public void setLoseCallback(LolAction callback) {
-    //       mGame.mManager.mLoseCallback = callback;
-    //     }
+    /**
+    * Set the background music for this level
+    *
+    * @param musicName Name of the Music file to play
+    */
+    setMusic(musicName) {
+        this.mGame.mManager.mWorld.mMusic = this.mMedia.getMusic(musicName);
+    }
+    /**
+    * Manually set the zoom level of the game
+    *
+    * @param zoom The amount of zoom (1 is no zoom, >1 zooms out)
+    */
+    setZoom(zoom) {
+        this.mGame.mManager.mWorld.mCamera.setZoom(zoom);
+        //this.mGame.mManager.mBackground.mBgCam.zoom = zoom;
+        //this.mGame.mManager.mForeground.mBgCam.zoom = zoom;
+    }
+    /**
+    * Register a callback so that custom code will run when the level is won
+    *
+    * @param callback The code to run
+    */
+    setWinCallback(callback) {
+        this.mGame.mManager.mWinCallback = callback;
+    }
+    /**
+    * Register a callback so that custom code will run when the level is lost
+    *
+    * @param callback The code to run
+    */
+    setLoseCallback(callback) {
+        this.mGame.mManager.mLoseCallback = callback;
+    }
     /**
     * Manually increment the number of goodies of type 1 that have been collected.
     */
@@ -1093,53 +884,30 @@ class Level {
     updateTimerExpiration(delta) {
         this.mGame.mManager.mLoseCountDownRemaining += delta;
     }
-    //     /**
-    //     * Report the total distance the hero has traveled
-    //     *
-    //     * @return The distance the hero has traveled
-    //     */
-    //     public int getDistance() {
-    //       return mGame.mManager.mDistance;
-    //     }
-    //
-    //     /**
-    //     * Report the stopwatch value
-    //     *
-    //     * @return the stopwatch value
-    //     */
-    //     public int getStopwatch() {
-    //       // Inactive stopwatch should return 0
-    //       if (mGame.mManager.mStopWatchProgress == -100)
-    //       return 0;
-    //       return (int) mGame.mManager.mStopWatchProgress;
-    //     }
-    //
-    //     /**
-    //     * Report the number of enemies that have been defeated
-    //     *
-    //     * @return the number of defeated enemies
-    //     */
-    //     public int getEnemiesDefeated() {
-    //       return mGame.mManager.mEnemiesDefeated;
-    //     }
-    //
-    //     /**
-    //     * Force the level to end in victory
-    //     * <p>
-    //     * This is useful in callbacks, where we might want to immediately end the game
-    //     */
-    //     public void winLevel() {
-    //       mGame.mManager.endLevel(true);
-    //     }
-    //
-    //     /**
-    //     * Force the level to end in defeat
-    //     * <p>
-    //     * This is useful in callbacks, where we might want to immediately end the game
-    //     */
-    //     public void loseLevel() {
-    //       mGame.mManager.endLevel(false);
-    //     }
+    /**
+    * Report the number of enemies that have been defeated
+    *
+    * @return the number of defeated enemies
+    */
+    getEnemiesDefeated() {
+        return this.mGame.mManager.mEnemiesDefeated;
+    }
+    /**
+    * Force the level to end in victory
+    * <p>
+    * This is useful in callbacks, where we might want to immediately end the game
+    */
+    winLevel() {
+        this.mGame.mManager.endLevel(true);
+    }
+    /**
+    * Force the level to end in defeat
+    * <p>
+    * This is useful in callbacks, where we might want to immediately end the game
+    */
+    loseLevel() {
+        this.mGame.mManager.endLevel(false);
+    }
     /**
     * Change the gravity in a running level
     *
@@ -1149,299 +917,174 @@ class Level {
     resetGravity(newXGravity, newYGravity) {
         this.mGame.mManager.mWorld.mWorld.SetGravity(new PhysicsType2d.Vector2(newXGravity, newYGravity));
     }
-    //
-    //     /**
-    //     * Turn on accelerometer support so that tilt can control actors in this level
-    //     *
-    //     * @param xGravityMax Max X force that the accelerometer can produce
-    //     * @param yGravityMax Max Y force that the accelerometer can produce
-    //     */
-    //     public void enableTilt(float xGravityMax, float yGravityMax) {
-    //       mGame.mManager.mWorld.mTiltMax = new Vector2(xGravityMax, yGravityMax);
-    //     }
-    //
-    //     /**
-    //     * Turn off accelerometer support so that tilt stops controlling actors in this level
-    //     */
-    //     public void disableTilt() {
-    //       mGame.mManager.mWorld.mTiltMax = null;
-    //     }
-    //
-    //     /**
-    //     * This method lets us change the behavior of tilt, so that instead of applying a force, we
-    //     * directly set the velocity of objects using the accelerometer data.
-    //     *
-    //     * @param toggle This should usually be false. Setting it to true means that tilt does not cause
-    //     *               forces upon objects, but instead the tilt of the phone directly sets velocities
-    //     */
-    //     public void setTiltAsVelocity(boolean toggle) {
-    //       mGame.mManager.mWorld.mTiltVelocityOverride = toggle;
-    //     }
-    //
-    //     /**
-    //     * Use this to make the accelerometer more or less responsive, by multiplying accelerometer
-    //     * values by a constant.
-    //     *
-    //     * @param multiplier The constant that should be multiplied by the accelerometer data. This can
-    //     *                   be a fraction, like 0.5f, to make the accelerometer less sensitive
-    //     */
-    //     public void setGravityMultiplier(float multiplier) {
-    //       mGame.mManager.mWorld.mTiltMultiplier = multiplier;
-    //     }
-    //
-    //     /**
-    //     * Generate text that doesn't change
-    //     *
-    //     * @param text The text to generate each time the TextProducer is called
-    //     * @return A TextProducer who generates the text
-    //     */
-    //     public TextProducer DisplayFixedText(final String text) {
-    //       return new TextProducer() {
-    //         @Override
-    //         public String makeText() {
-    //           return text;
-    //         }
-    //       };
-    //     }
-    //
-    //     /**
-    //     * Generate text indicating the current FPS
-    //     */
-    //     public final TextProducer DisplayFPS = new TextProducer() {
-    //       @Override
-    //       public String makeText() {
-    //         return "" + Gdx.graphics.getFramesPerSecond();
-    //       }
-    //     };
-    //
-    //     /**
-    //     * Generate text indicating the current count of Type 1 Goodies
-    //     */
-    //     public final TextProducer DisplayGoodies1 = new TextProducer() {
-    //       @Override
-    //       public String makeText() {
-    //         return "" + mGame.mManager.mGoodiesCollected[0];
-    //       }
-    //     };
-    //
-    //     /**
-    //     * Generate text indicating the current count of Type 2 Goodies
-    //     */
-    //     public final TextProducer DisplayGoodies2 = new TextProducer() {
-    //       @Override
-    //       public String makeText() {
-    //         return "" + mGame.mManager.mGoodiesCollected[1];
-    //       }
-    //     };
-    //
-    //     /**
-    //     * Generate text indicating the current count of Type 3 Goodies
-    //     */
-    //     public final TextProducer DisplayGoodies3 = new TextProducer() {
-    //       @Override
-    //       public String makeText() {
-    //         return "" + mGame.mManager.mGoodiesCollected[2];
-    //       }
-    //     };
-    //
-    //     /**
-    //     * Generate text indicating the current count of Type 4 Goodies
-    //     */
-    //     public final TextProducer DisplayGoodies4 = new TextProducer() {
-    //       @Override
-    //       public String makeText() {
-    //         return "" + mGame.mManager.mGoodiesCollected[3];
-    //       }
-    //     };
-    //
-    //     /**
-    //     * Generate text indicating the time until the level is lost
-    //     */
-    //     public final TextProducer DisplayLoseCountdown = new TextProducer() {
-    //       @Override
-    //       public String makeText() {
-    //         return "" + (int) mGame.mManager.mLoseCountDownRemaining;
-    //       }
-    //     };
-    //
-    //     /**
-    //     * Generate text indicating the time until the level is won
-    //     */
-    //     public final TextProducer DisplayWinCountdown = new TextProducer() {
-    //       @Override
-    //       public String makeText() {
-    //         return "" + (int) mGame.mManager.mWinCountRemaining;
-    //       }
-    //     };
-    //
-    //     /**
-    //     * Generate text indicating the number of defeated enemies
-    //     */
-    //     public final TextProducer DisplayEnemiesDefeated = new TextProducer() {
-    //       @Override
-    //       public String makeText() {
-    //         return "" + mGame.mManager.mEnemiesDefeated;
-    //       }
-    //     };
-    //
-    //     /**
-    //     * Generate text indicating the value of the stopwatch
-    //     */
-    //     public final TextProducer DisplayStopwatch = new TextProducer() {
-    //       @Override
-    //       public String makeText() {
-    //         return "" + (int) mGame.mManager.mStopWatchProgress;
-    //       }
-    //     };
-    //
-    //     /**
-    //     * Generate text indicating the remaining projectiles
-    //     */
-    //     public final TextProducer DisplayRemainingProjectiles = new TextProducer() {
-    //       @Override
-    //       public String makeText() {
-    //         return "" + mGame.mManager.mWorld.mProjectilePool.mProjectilesRemaining;
-    //       }
-    //     };
-    //
-    //     /**
-    //     * Generate text indicating the strength of a hero
-    //     *
-    //     * @param h The hero whose strength is to be displayed
-    //     * @return A TextProducer who produces the hero's strength
-    //     */
-    //     public TextProducer DisplayStrength(final Hero h) {
-    //       return new TextProducer() {
-    //         @Override
-    //         public String makeText() {
-    //           return "" + h.getStrength();
-    //         }
-    //       };
-    //     }
-    //
-    //     /**
-    //     * Generate text indicating the value of a Level fact
-    //     *
-    //     * @param key The key to use to get the Level fact
-    //     * @return A TextProducer who reports the current value
-    //     */
-    //     public TextProducer DisplayLevelFact(final String key) {
-    //       return new TextProducer() {
-    //         @Override
-    //         public String makeText() {
-    //           return "" + getLevelFact(key, -1);
-    //         }
-    //       };
-    //     }
-    //
-    //     /**
-    //     * Generate text indicating the value of a Session fact
-    //     *
-    //     * @param key The key to use to get the Session fact
-    //     * @return A TextProducer who reports the current value
-    //     */
-    //     public TextProducer DisplaySessionFact(final String key) {
-    //       return new TextProducer() {
-    //         @Override
-    //         public String makeText() {
-    //           return "" + getSessionFact(key, -1);
-    //         }
-    //       };
-    //     }
-    //
-    //     /**
-    //     * Generate text indicating the value of a Game fact
-    //     *
-    //     * @param key The key to use to get the Game fact
-    //     * @return A TextProducer who reports the current value
-    //     */
-    //     public TextProducer DisplayGameFact(final String key) {
-    //       return new TextProducer() {
-    //         @Override
-    //         public String makeText() {
-    //           return "" + getGameFact(key, -1);
-    //         }
-    //       };
-    //     }
-    //
-    //     /**
-    //     * Generate text indicating the distance that an actor has travelled.
-    //     * <p>
-    //     * Note: This distance will also become the Distance Score for the level.
-    //     *
-    //     * @param actor The actor whose distance is being monitored
-    //     * @return A TextProducer that reports the current value
-    //     */
-    //     public TextProducer DisplayDistance(final WorldActor actor) {
-    //       return new TextProducer() {
-    //         @Override
-    //         public String makeText() {
-    //           mGame.mManager.mDistance = (int) actor.getXPosition();
-    //           return "" + mGame.mManager.mDistance;
-    //         }
-    //       };
-    //     }
-    //
-    //     /**
-    //     * Place some text on the screen.  The text will be generated by tp, which is called on every
-    //     * screen render
-    //     *
-    //     * @param x         The X coordinate of the bottom left corner (in pixels)
-    //     * @param y         The Y coordinate of the bottom left corner (in pixels)
-    //     * @param fontName  The name of the font to use
-    //     * @param fontColor The color to use for the text
-    //     * @param size      The font size
-    //     * @param prefix    Text to display before the produced text
-    //     * @param suffix    Text to display after the produced text
-    //     * @param tp        The TextProducer
-    //     * @param zIndex    The z index where the text should go
-    //     * @return The display, so that it can be controlled further if needed
-    //     */
-    //     public Renderable addDisplay(final float x, final float y, final String fontName,
-    //       final String fontColor, final int size, final String prefix,
-    //       final String suffix, final TextProducer tp, int zIndex) {
-    //         return mGame.mManager.mHud.addText(x, y, fontName, fontColor, size, prefix, suffix, tp,
-    //           zIndex);
-    //         }
-    //
-    //         /**
-    //         * Indicate that the level will end in defeat if it is not completed in a given amount of time.
-    //         *
-    //         * @param timeout The amount of time until the level will end in defeat
-    //         * @param text    The text to display when the level ends in defeat
-    //         */
-    //         public void setLoseCountdown(float timeout, String text) {
-    //           // Once the Lose CountDown is not -100, it will start counting down
-    //           this.mGame.mManager.mLoseCountDownRemaining = timeout;
-    //           this.mGame.mManager.mLoseCountDownText = text;
-    //         }
-    //
-    //         /**
-    //         * Indicate that the level will end in victory if the hero survives for a given amount of time
-    //         *
-    //         * @param timeout The amount of time until the level will end in victory
-    //         * @param text    The text to display when the level ends in victory
-    //         */
-    //         public void setWinCountdown(float timeout, String text) {
-    //           // Once the Win CountDown is not -100, it will start counting down
-    //           this.mGame.mManager.mWinCountRemaining = timeout;
-    //           this.mGame.mManager.mWinCountText = text;
-    //         }
-    //
-    //         /**
-    //         * Set the current value of the stopwatch.  Use -100 to disable the stopwatch, otherwise it will
-    //         * start counting immediately.
-    //         *
-    //         * @param newVal The new value of the stopwatch
-    //         */
-    //         public void setStopwatch(float newVal) {
-    //           this.mGame.mManager.mStopWatchProgress = newVal;
-    //         }
+    /**
+    * Generate text that doesn't change
+    *
+    * @param text The text to generate each time the TextProducer is called
+    * @return A TextProducer who generates the text
+    */
+    DisplayFixedText(text) {
+        return new (class _ {
+            //@Override
+            makeText() {
+                return text;
+            }
+        })();
+    }
+    /**
+    * Generate text indicating the current count of Type 1 Goodies
+    */
+    DisplayGoodies1() {
+        let out_this = this;
+        return new (class _ {
+            makeText() {
+                return "" + out_this.mGame.mManager.mGoodiesCollected[0];
+            }
+        })();
+    }
+    /**
+    * Generate text indicating the current count of Type 2 Goodies
+    */
+    DisplayGoodies2() {
+        let out_this = this;
+        return new (class _ {
+            //@Override
+            makeText() {
+                return "" + out_this.mGame.mManager.mGoodiesCollected[1];
+            }
+        })();
+    }
+    /**
+    * Generate text indicating the current count of Type 3 Goodies
+    */
+    DisplayGoodies3() {
+        let out_this = this;
+        return new (class _ {
+            //@Override
+            makeText() {
+                return "" + out_this.mGame.mManager.mGoodiesCollected[2];
+            }
+        })();
+    }
+    /**
+    * Generate text indicating the current count of Type 4 Goodies
+    */
+    DisplayGoodies4() {
+        let out_this = this;
+        return new (class _ {
+            //@Override
+            makeText() {
+                return "" + out_this.mGame.mManager.mGoodiesCollected[3];
+            }
+        })();
+    }
+    /**
+    * Generate text indicating the time until the level is lost
+    */
+    DisplayLoseCountdown() {
+        let out_this = this;
+        return new (class _ {
+            //@Override
+            makeText() {
+                return "" + (out_this.mGame.mManager.mLoseCountDownRemaining).toFixed(0);
+            }
+        })();
+    }
+    /**
+    * Generate text indicating the time until the level is won
+    */
+    DisplayWinCountdown() {
+        let out_this = this;
+        return new (class _ {
+            //@Override
+            makeText() {
+                return "" + (out_this.mGame.mManager.mWinCountRemaining).toFixed(0);
+            }
+        })();
+    }
+    /**
+    * Generate text indicating the number of defeated enemies
+    */
+    DisplayEnemiesDefeated() {
+        let out_this = this;
+        return new (class _ {
+            //@Override
+            makeText() {
+                let ed = out_this.mGame.mManager.getEnemiesDefeated();
+                return "" + ed;
+            }
+        })();
+    }
+    /**
+    * Generate text indicating the number of remaining projectiles
+    */
+    DisplayRemainingProjectiles() {
+        let out_this = this;
+        return new (class _ {
+            //@Override
+            makeText() {
+                return "" + out_this.mGame.mManager.mWorld.mProjectilePool.mProjectilesRemaining;
+            }
+        })();
+    }
+    /**
+    * Generate text indicating the strength of a hero
+    *
+    * @param h The hero whose strength is to be displayed
+    * @return A TextProducer who produces the hero's strength
+    */
+    DisplayStrength(h) {
+        let out_this = this;
+        return new (class _ {
+            //@Override
+            makeText() {
+                return "" + h.getStrength();
+            }
+        })();
+    }
+    /**
+    * Place some text on the screen.  The text will be generated by tp, which is called on every
+    * screen render
+    *
+    * @param x         The X coordinate of the top left corner (in pixels)
+    * @param y         The Y coordinate of the top left corner (in pixels)
+    * @param fontName  The name of the font to use
+    * @param fontColor The color to use for the text
+    * @param size      The font size
+    * @param prefix    Text to display before the produced text
+    * @param suffix    Text to display after the produced text
+    * @param tp        The TextProducer
+    * @param zIndex    The z index where the text should go
+    * @return The display, so that it can be controlled further if needed
+    */
+    addDisplay(x, y, fontName, fontColor, size, prefix, suffix, tp, zIndex) {
+        return this.mGame.mManager.mHud.addText(x, y, fontName, fontColor, size, prefix, suffix, tp, zIndex);
+    }
+    /**
+    * Indicate that the level will end in defeat if it is not completed in a given amount of time.
+    *
+    * @param timeout The amount of time until the level will end in defeat
+    */
+    setLoseCountdown(timeout) {
+        // Once the Lose CountDown is not -100, it will start counting down
+        this.mGame.mManager.mLoseCountDownRemaining = timeout;
+    }
+    /**
+    * Indicate that the level will end in victory if the hero survives for a given amount of time
+    *
+    * @param timeout The amount of time until the level will end in victory
+    * @param text    The text to display when the level ends in victory
+    */
+    setWinCountdown(timeout, text) {
+        // Once the Win CountDown is not -100, it will start counting down
+        this.mGame.mManager.mWinCountRemaining = timeout;
+        this.mGame.mManager.mWinCountText = text;
+    }
     /**
     * Add a button that performs an action when clicked.
     *
-    * @param x       The X coordinate of the bottom left corner (in pixels)
-    * @param y       The Y coordinate of the bottom left corner (in pixels)
+    * @param x       The X coordinate of the top left corner (in pixels)
+    * @param y       The Y coordinate of the top left corner (in pixels)
     * @param width   The width of the image
     * @param height  The height of the image
     * @param imgName The name of the image to display. Use "" for an invisible button
@@ -1454,161 +1097,111 @@ class Level {
         //action.mSource = c;
         c.mSprite.interactive = true;
         c.mSprite.on('click', () => action.go());
+        c.mSprite.on('tap', () => action.go());
         this.mGame.mManager.mHud.addActor(c, 0);
         return c;
     }
-    //           /**
-    //           * An action to pause the game.  This action can be used as the action taken on a Control tap.
-    //           */
-    //           public TouchEventHandler PauseAction = new TouchEventHandler() {
-    //             @Override
-    //             public boolean go(float x, float y) {
-    //               getPauseScene().show();
-    //               return true;
-    //             }
-    //           };
-    //
-    //           /**
-    //           * Create an action that makes a hero jump.  This action can be used as the action taken on a
-    //           * Control tap.
-    //           *
-    //           * @param hero The hero who we want to jump
-    //           * @return The action object
-    //           */
-    //           public TouchEventHandler JumpAction(final Hero hero) {
-    //             return new TouchEventHandler() {
-    //               @Override
-    //               public boolean go(float x, float y) {
-    //                 hero.jump();
-    //                 return true;
-    //               }
-    //             };
-    //           }
-    //
-    //           /**
-    //           * Create an action that makes a hero throw a projectile
-    //           *
-    //           * @param hero      The hero who should throw the projectile
-    //           * @param offsetX   specifies the x distance between the bottom left of the projectile and the
-    //           *                  bottom left of the hero throwing the projectile
-    //           * @param offsetY   specifies the y distance between the bottom left of the projectile and the
-    //           *                  bottom left of the hero throwing the projectile
-    //           * @param velocityX The X velocity of the projectile when it is thrown
-    //           * @param velocityY The Y velocity of the projectile when it is thrown
-    //           * @return The action object
-    //           */
-    //           public TouchEventHandler ThrowFixedAction(final Hero hero, final float offsetX,
-    //             final float offsetY, final float velocityX,
-    //             final float velocityY) {
-    //               return new TouchEventHandler() {
-    //                 public boolean go(float x, float y) {
-    //                   mGame.mManager.mWorld.mProjectilePool.throwFixed(hero, offsetX, offsetY, velocityX,
-    //                     velocityY);
-    //                     return true;
-    //                   }
-    //                 };
-    //               }
-    //
-    //               /**
-    //               * Create an action that makes a hero throw a projectile in a direction that relates to how the
-    //               * screen was touched
-    //               *
-    //               * @param hero    The hero who should throw the projectile
-    //               * @param offsetX specifies the x distance between the bottom left of the projectile and the
-    //               *                bottom left of the hero throwing the projectile
-    //               * @param offsetY specifies the y distance between the bottom left of the projectile and the
-    //               *                bottom left of the hero throwing the projectile
-    //               * @return The action object
-    //               */
-    //               public TouchEventHandler ThrowDirectionalAction(final Hero hero, final float offsetX,
-    //                 final float offsetY) {
-    //                   return new TouchEventHandler() {
-    //                     public boolean go(float worldX, float worldY) {
-    //                       mGame.mManager.mWorld.mProjectilePool.throwAt(hero.mBody.getPosition().x,
-    //                       hero.mBody.getPosition().y, worldX, worldY, hero, offsetX, offsetY);
-    //                       return true;
-    //                     }
-    //                   };
-    //                 }
-    //
-    //                 /**
-    //                 * Create an action that makes the screen zoom out
-    //                 *
-    //                 * @param maxZoom The maximum zoom factor to allow
-    //                 * @return The action object
-    //                 */
-    //                 public TouchEventHandler ZoomOutAction(final float maxZoom) {
-    //                   return new TouchEventHandler() {
-    //                     public boolean go(float x, float y) {
-    //                       float curzoom = mGame.mManager.mWorld.mCamera.zoom;
-    //                       if (curzoom < maxZoom) {
-    //                         mGame.mManager.mWorld.mCamera.zoom *= 2;
-    //                         mGame.mManager.mBackground.mBgCam.zoom *= 2;
-    //                         mGame.mManager.mForeground.mBgCam.zoom *= 2;
-    //                       }
-    //                       return true;
-    //                     }
-    //                   };
-    //                 }
-    //
-    //                 /**
-    //                 * Create an action that makes the screen zoom in
-    //                 *
-    //                 * @param minZoom The minimum zoom factor to allow
-    //                 * @return The action object
-    //                 */
-    //                 public TouchEventHandler ZoomInAction(final float minZoom) {
-    //                   return new TouchEventHandler() {
-    //                     public boolean go(float x, float y) {
-    //                       float curzoom = mGame.mManager.mWorld.mCamera.zoom;
-    //                       if (curzoom > minZoom) {
-    //                         mGame.mManager.mWorld.mCamera.zoom /= 2;
-    //                         mGame.mManager.mBackground.mBgCam.zoom /= 2;
-    //                         mGame.mManager.mForeground.mBgCam.zoom /= 2;
-    //                       }
-    //                       return true;
-    //                     }
-    //                   };
-    //                 }
-    //
-    //                 /**
-    //                 * Add a button that has one behavior while it is being pressed, and another when it is released
-    //                 *
-    //                 * @param x               The X coordinate of the bottom left corner
-    //                 * @param y               The Y coordinate of the bottom left corner
-    //                 * @param width           The width of the image
-    //                 * @param height          The height of the image
-    //                 * @param imgName         The name of the image to display.  Use "" for an invisible button
-    //                 * @param whileDownAction The action to execute, repeatedly, whenever the button is pressed
-    //                 * @param onUpAction      The action to execute once any time the button is released
-    //                 * @return The control, so we can do more with it as needed.
-    //                 */
-    //                 public SceneActor addToggleButton(int x, int y, int width, int height, String imgName,
-    //                   final LolAction whileDownAction, final LolAction onUpAction) {
-    //                     SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-    //                     c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-    //                     // initially the down action is not active
-    //                     whileDownAction.mIsActive = false;
-    //                     // set up the toggle behavior
-    //                     c.mToggleHandler = new ToggleEventHandler() {
-    //                       public boolean go(boolean isUp, float x, float y) {
-    //                         if (isUp) {
-    //                           whileDownAction.mIsActive = false;
-    //                           if (onUpAction != null)
-    //                           onUpAction.go();
-    //                         } else {
-    //                           whileDownAction.mIsActive = true;
-    //                         }
-    //                         return true;
-    //                       }
-    //                     };
-    //                     // Put the control and events in the appropriate lists
-    //                     c.mToggleHandler.mSource = c;
-    //                     mGame.mManager.mHud.addActor(c, 0);
-    //                     mGame.mManager.mHud.mToggleControls.add(c);
-    //                     mGame.mManager.mWorld.mRepeatEvents.add(whileDownAction);
-    //                     return c;
-    //                   }
+    /**
+    * Create an action that makes a hero jump.
+    *
+    * @param hero The hero who we want to jump
+    * @param milliDelay If there should be time between being allowed to jump
+    * @return The action object
+    */
+    jumpAction(hero, milliDelay) {
+        return new (class _ extends LolAction {
+            constructor() {
+                super(...arguments);
+                this.mLastJump = 0;
+            }
+            go() {
+                let now = new Date().getTime();
+                if (this.mLastJump + milliDelay < now) {
+                    this.mLastJump = now;
+                    hero.jump();
+                }
+            }
+        })();
+    }
+    /**
+    * Create an action that makes a hero throw a projectile
+    *
+    * @param hero      The hero who should throw the projectile
+    * @param offsetX   specifies the x distance between the top left of the projectile and the
+    *                  top left of the hero throwing the projectile
+    * @param offsetY   specifies the y distance between the top left of the projectile and the
+    *                  top left of the hero throwing the projectile
+    * @param velocityX The X velocity of the projectile when it is thrown
+    * @param velocityY The Y velocity of the projectile when it is thrown
+    * @return The action object
+    */
+    ThrowFixedAction(hero, offsetX, offsetY, velocityX, velocityY) {
+        let out_this = this;
+        return new (class _ extends LolAction {
+            go() {
+                out_this.mGame.mManager.mWorld.mProjectilePool.throwFixed(hero, offsetX, offsetY, velocityX, velocityY);
+                return true;
+            }
+        })();
+    }
+    /**
+    * Create an action that makes a hero throw a projectile in a direction that relates to how the
+    * screen was touched
+    *
+    * @param hero    The hero who should throw the projectile
+    * @param offsetX specifies the x distance between the top left of the projectile and the
+    *                top left of the hero throwing the projectile
+    * @param offsetY specifies the y distance between the top left of the projectile and the
+    *                top left of the hero throwing the projectile
+    * @return The action object
+    */
+    ThrowDirectionalAction(hero, offsetX, offsetY) {
+        let out_this = this;
+        return new (class _ extends TouchEventHandler {
+            go(worldX, worldY) {
+                out_this.mGame.mManager.mWorld.mProjectilePool.throwAt(hero.getXPosition(), hero.getYPosition(), worldX, worldY, hero, offsetX, offsetY);
+                return true;
+            }
+        })();
+    }
+    /**
+    * Create an action that makes the screen zoom out
+    *
+    * @param maxZoom The maximum zoom factor to allow
+    * @return The action object
+    */
+    ZoomOutAction(maxZoom) {
+        let out_this = this;
+        return new (class _ extends LolAction {
+            go() {
+                let curzoom = out_this.mGame.mManager.mWorld.mCamera.getZoom();
+                if (curzoom < maxZoom) {
+                    out_this.mGame.mManager.mWorld.mCamera.zoomInOut(2);
+                    //out_this.mGame.mManager.mBackground.mBgCam.zoom *= 2;
+                    //out_this.mGame.mManager.mForeground.mBgCam.zoom *= 2;
+                }
+            }
+        })();
+    }
+    /**
+    * Create an action that makes the screen zoom in
+    *
+    * @param minZoom The minimum zoom factor to allow
+    * @return The action object
+    */
+    ZoomInAction(minZoom) {
+        let out_this = this;
+        return new (class _ extends LolAction {
+            go() {
+                let curzoom = out_this.mGame.mManager.mWorld.mCamera.getZoom();
+                if (curzoom > minZoom) {
+                    out_this.mGame.mManager.mWorld.mCamera.zoomInOut(0.5);
+                    //out_this.mGame.mManager.mBackground.mBgCam.zoom /= 2;
+                    //out_this.mGame.mManager.mForeground.mBgCam.zoom /= 2;
+                }
+            }
+        })();
+    }
     /**
     * Create an action for moving an actor in the X direction.  This action can be used by a
     * Control.
@@ -1625,6 +1218,22 @@ class Level {
                 let v = actor.mBody.GetLinearVelocity();
                 v.x = xRate;
                 actor.updateVelocity(v.x, v.y);
+            }
+        })();
+    }
+    /**
+    * Create an action for adding velocity to an actor
+    * This action can be used by a control.
+    *
+    * @param actor The actor to move
+    * @param xRate The rate at which the actor should move in the X direction
+    * @param yRate The y velocity
+    * @return The action
+    */
+    addVelocityAction(actor, xRate, yRate) {
+        return new (class _ extends LolAction {
+            go() {
+                actor.addVelocity(xRate, yRate);
             }
         })();
     }
@@ -1647,67 +1256,71 @@ class Level {
             }
         })();
     }
-    //
-    //                   /**
-    //                   * Create an action for moving an actor in the X and Y directions.  This action can be used by a
-    //                   * Control.
-    //                   *
-    //                   * @param actor The actor to move
-    //                   * @param xRate The rate at which the actor should move in the X direction (negative values are
-    //                   *              allowed)
-    //                   * @param yRate The rate at which the actor should move in the Y direction (negative values are
-    //                   *              allowed)
-    //                   * @return The action
-    //                   */
-    //                   public LolAction makeXYMotionAction(final WorldActor actor, final float xRate,
-    //                     final float yRate) {
-    //                       return new LolAction() {
-    //                         @Override
-    //                         public void go() {
-    //                           actor.updateVelocity(xRate, yRate);
-    //                         }
-    //                       };
-    //                     }
     /**
-    * Let an actor be controlled by arrow keys
+    * Create an action for moving an actor in the X and Y directions.  This action can be used by a
+    * Control.
     *
-    * @param actor     The actor to move
-    * @param speed     Speed to move an actor
-    * @param dampening The dampening factor
+    * @param actor The actor to move
+    * @param xRate The rate at which the actor should move in the X direction (negative values are
+    *              allowed)
+    * @param yRate The rate at which the actor should move in the Y direction (negative values are
+    *              allowed)
+    * @return The action
     */
-    setArrowKeyControls(actor, speed) {
-        let up = this.makeYMotionAction(actor, -speed);
-        let down = this.makeYMotionAction(actor, speed);
-        let left = this.makeXMotionAction(actor, -speed);
-        let right = this.makeXMotionAction(actor, speed);
-        document.onkeydown = (e) => {
-            if (e.key == "ArrowUp") {
-                up.go();
+    makeXYMotionAction(actor, xRate, yRate) {
+        return new (class _ extends LolAction {
+            go() {
+                actor.updateVelocity(xRate, yRate);
             }
-            else if (e.key == "ArrowDown") {
-                down.go();
-            }
-            else if (e.key == "ArrowLeft") {
-                left.go();
-            }
-            else if (e.key == "ArrowRight") {
-                right.go();
-            }
-        };
-        document.onkeyup = (e) => {
-            if (e.key == "ArrowUp") {
-                actor.updateVelocity(actor.mBody.GetLinearVelocity().x, 0);
-            }
-            else if (e.key == "ArrowDown") {
-                actor.updateVelocity(actor.mBody.GetLinearVelocity().x, 0);
-            }
-            else if (e.key == "ArrowLeft") {
-                actor.updateVelocity(0, actor.mBody.GetLinearVelocity().y);
-            }
-            else if (e.key == "ArrowRight") {
-                actor.updateVelocity(0, actor.mBody.GetLinearVelocity().y);
+        })();
+    }
+    /**
+    * Set a key to perform an action when it is pressed
+    *
+    * @param key        The key that performs the action
+    * @param action     An action to perform
+    * @param repeat     Whether holding the button repeats the action
+    */
+    setKeyAction(keyCode, actionDown, actionUp, repeat) {
+        actionDown.mIsActive = false;
+        if (repeat)
+            this.mGame.mManager.mWorld.mRepeatEvents.push(actionDown);
+        let func = (e) => {
+            if (e.keyCode == keyCode) {
+                actionDown.mIsActive = true;
+                if (!repeat)
+                    actionDown.go();
             }
         };
+        this.mGame.mManager.mFunctions.push(func);
+        this.mGame.mManager.mEventTypes.push("keydown");
+        document.addEventListener("keydown", func);
+        let func2 = (e) => {
+            if (e.keyCode == keyCode) {
+                actionDown.mIsActive = false;
+                if (actionUp)
+                    actionUp.go();
+            }
+        };
+        this.mGame.mManager.mFunctions.push(func2);
+        this.mGame.mManager.mEventTypes.push("keyup");
+        document.addEventListener("keyup", func2);
+    }
+    /**
+    * Do an action when the mouse is clicked
+    *
+    * @param action The action to take when the mouse is clicked
+    */
+    setClickAction(action) {
+        let func = (e) => {
+            action.go(e.pageX, e.pageY);
+        };
+        this.mGame.mManager.mFunctions.push(func);
+        this.mGame.mManager.mEventTypes.push("mousedown");
+        document.addEventListener("mousedown", func);
+        this.mGame.mManager.mFunctions.push(func);
+        this.mGame.mManager.mEventTypes.push("touchstart");
+        document.addEventListener("touchstart", func);
     }
     /**
     * Create an action for moving an actor in the X and Y directions, with dampening on release.
@@ -1731,249 +1344,73 @@ class Level {
         })();
         return action;
     }
-    //
-    //                       /**
-    //                       * Create an action for making a hero either start or stop crawling
-    //                       *
-    //                       * @param hero       The hero to control
-    //                       * @param crawlState True to start crawling, false to stop
-    //                       * @return The action
-    //                       */
-    //                       public LolAction makeCrawlToggle(final Hero hero, final boolean crawlState) {
-    //                         return new LolAction() {
-    //                           @Override
-    //                           public void go() {
-    //                             if (crawlState)
-    //                             hero.crawlOn();
-    //                             else
-    //                             hero.crawlOff();
-    //                           }
-    //                         };
-    //                       }
-    //
-    //                       /**
-    //                       * Create an action for making a hero rotate
-    //                       *
-    //                       * @param hero The hero to rotate
-    //                       * @param rate Amount of rotation to apply to the hero on each press
-    //                       * @return The action
-    //                       */
-    //                       public LolAction makeRotator(final Hero hero, final float rate) {
-    //                         return new LolAction() {
-    //                           @Override
-    //                           public void go() {
-    //                             hero.increaseRotation(rate);
-    //                           }
-    //                         };
-    //                       }
-    //
-    //                       /**
-    //                       * Create an action for making a hero throw a projectile
-    //                       *
-    //                       * @param hero       The hero who should throw the projectile
-    //                       * @param milliDelay A delay between throws, so that holding doesn't lead to too many throws at
-    //                       *                   once
-    //                       * @param offsetX    specifies the x distance between the bottom left of the projectile and the
-    //                       *                   bottom left of the hero throwing the projectile
-    //                       * @param offsetY    specifies the y distance between the bottom left of the projectile and the
-    //                       *                   bottom left of the hero throwing the projectile
-    //                       * @param velocityX  The X velocity of the projectile when it is thrown
-    //                       * @param velocityY  The Y velocity of the projectile when it is thrown
-    //                       * @return The action object
-    //                       */
-    //                       public LolAction makeRepeatThrow(final Hero hero, final int milliDelay, final float offsetX,
-    //                         final float offsetY, final float velocityX,
-    //                         final float velocityY) {
-    //                           return new LolAction() {
-    //                             long mLastThrow;
-    //
-    //                             @Override
-    //                             public void go() {
-    //                               long now = System.currentTimeMillis();
-    //                               if (mLastThrow + milliDelay < now) {
-    //                                 mLastThrow = now;
-    //                                 mGame.mManager.mWorld.mProjectilePool.throwFixed(hero, offsetX, offsetY,
-    //                                   velocityX, velocityY);
-    //                                 }
-    //                               }
-    //                             };
-    //                           }
-    //
-    //                           /**
-    //                           * The default behavior for throwing is to throw in a straight line. If we instead desire that
-    //                           * the projectiles have some sort of aiming to them, we need to use this method, which throws
-    //                           * toward where the screen was pressed
-    //                           * <p>
-    //                           * Note: you probably want to use an invisible button that covers the screen...
-    //                           *
-    //                           * @param x          The X coordinate of the bottom left corner (in pixels)
-    //                           * @param y          The Y coordinate of the bottom left corner (in pixels)
-    //                           * @param width      The width of the image
-    //                           * @param height     The height of the image
-    //                           * @param imgName    The name of the image to display. Use "" for an invisible button
-    //                           * @param h          The hero who should throw the projectile
-    //                           * @param milliDelay A delay between throws, so that holding doesn't lead to too many throws at
-    //                           *                   once
-    //                           * @param offsetX    specifies the x distance between the bottom left of the projectile and the
-    //                           *                   bottom left of the hero throwing the projectile
-    //                           * @param offsetY    specifies the y distance between the bottom left of the projectile and the
-    //                           *                   bottom left of the hero throwing the projectile
-    //                           * @return The button that was created
-    //                           */
-    //                           public SceneActor addDirectionalThrowButton(int x, int y, int width, int height, String imgName,
-    //                             final Hero h, final long milliDelay,
-    //                             final float offsetX, final float offsetY) {
-    //                               final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-    //                               c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-    //                               final Vector2 v = new Vector2();
-    //                               c.mToggleHandler = new ToggleEventHandler() {
-    //                                 public boolean go(boolean isUp, float worldX, float worldY) {
-    //                                   if (isUp) {
-    //                                     isHolding = false;
-    //                                   } else {
-    //                                     isHolding = true;
-    //                                     v.x = worldX;
-    //                                     v.y = worldY;
-    //                                   }
-    //                                   return true;
-    //                                 }
-    //                               };
-    //                               c.mPanHandler = new PanEventHandler() {
-    //                                 public boolean go(float worldX, float worldY, float deltaX, float deltaY) {
-    //                                   if (c.mToggleHandler.isHolding) {
-    //                                     v.x = worldX;
-    //                                     v.y = worldY;
-    //                                   }
-    //                                   return c.mToggleHandler.isHolding;
-    //                                 }
-    //                               };
-    //                               mGame.mManager.mHud.addActor(c, 0);
-    //                               // on toggle, we start or stop throwing; on pan, we change throw direction
-    //                               mGame.mManager.mHud.mToggleControls.add(c);
-    //
-    //                               c.mToggleHandler.mSource = c;
-    //                               c.mPanHandler.mSource = c;
-    //
-    //                               mGame.mManager.mWorld.mRepeatEvents.add(new LolAction() {
-    //                                 long mLastThrow;
-    //
-    //                                 @Override
-    //                                 public void go() {
-    //                                   if (c.mToggleHandler.isHolding) {
-    //                                     long now = System.currentTimeMillis();
-    //                                     if (mLastThrow + milliDelay < now) {
-    //                                       mLastThrow = now;
-    //                                       mGame.mManager.mWorld.mProjectilePool.throwAt(h.mBody.getPosition().x,
-    //                                       h.mBody.getPosition().y, v.x, v.y, h, offsetX, offsetY);
-    //                                     }
-    //                                   }
-    //                                 }
-    //                               });
-    //                               return c;
-    //                             }
-    //
-    //
-    //                             /**
-    //                             * Allow panning to view more of the screen than is currently visible
-    //                             *
-    //                             * @param x       The X coordinate of the bottom left corner (in pixels)
-    //                             * @param y       The Y coordinate of the bottom left corner (in pixels)
-    //                             * @param width   The width of the image
-    //                             * @param height  The height of the image
-    //                             * @param imgName The name of the image to display. Use "" for an invisible button
-    //                             * @return The button that was created
-    //                             */
-    //                             public SceneActor addPanControl(int x, int y, int width, int height, String imgName) {
-    //                               final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-    //                               c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-    //                               c.mPanStopHandler = new TouchEventHandler() {
-    //                                 /**
-    //                                 * Handle a pan stop event by restoring the chase actor, if there was one
-    //                                 */
-    //                                 public boolean go(float worldX, float worldY) {
-    //                                   setCameraChase((WorldActor) mSource);
-    //                                   mSource = null;
-    //                                   return true;
-    //                                 }
-    //                               };
-    //                               c.mPanHandler = new PanEventHandler() {
-    //                                 public boolean go(float worldX, float worldY, float deltaX, float deltaY) {
-    //                                   if (mGame.mManager.mWorld.mChaseActor != null) {
-    //                                     c.mPanStopHandler.mSource = mGame.mManager.mWorld.mChaseActor;
-    //                                     mGame.mManager.mWorld.mChaseActor = null;
-    //                                   }
-    //                                   OrthographicCamera cam = mGame.mManager.mWorld.mCamera;
-    //                                   Vector2 camBound = mGame.mManager.mWorld.mCamBound;
-    //                                   float x = cam.position.x - deltaX * .1f * cam.zoom;
-    //                                   float y = cam.position.y + deltaY * .1f * cam.zoom;
-    //                                   // if x or y is too close to MAX,MAX, stick with max acceptable values
-    //                                   if (x > camBound.x - mConfig.mWidth * cam.zoom / mConfig.mPixelMeterRatio / 2)
-    //                                   x = camBound.x - mConfig.mWidth * cam.zoom / mConfig.mPixelMeterRatio / 2;
-    //                                   if (y > camBound.y - mConfig.mHeight * cam.zoom / mConfig.mPixelMeterRatio / 2)
-    //                                   y = camBound.y - mConfig.mHeight * cam.zoom / mConfig.mPixelMeterRatio / 2;
-    //
-    //                                   // if x or y is too close to 0,0, stick with minimum acceptable values
-    //                                   //
-    //                                   // NB: we do MAX before MIN, so that if we're zoomed out, we show extra space at the
-    //                                   // top instead of the bottom
-    //                                   if (x < mConfig.mWidth * cam.zoom / mConfig.mPixelMeterRatio / 2)
-    //                                   x = mConfig.mWidth * cam.zoom / mConfig.mPixelMeterRatio / 2;
-    //                                   if (y < mConfig.mHeight * cam.zoom / mConfig.mPixelMeterRatio / 2)
-    //                                   y = mConfig.mHeight * cam.zoom / mConfig.mPixelMeterRatio / 2;
-    //
-    //                                   // update the camera position
-    //                                   cam.position.set(x, y, 0);
-    //                                   return true;
-    //                                 }
-    //                               };
-    //                               c.mPanHandler.mSource = c;
-    //                               c.mPanStopHandler.mSource = c;
-    //                               mGame.mManager.mHud.addActor(c, 0);
-    //                               return c;
-    //                             }
-    //
-    //                             /**
-    //                             * Allow pinch-to-zoom
-    //                             *
-    //                             * @param x       The X coordinate of the bottom left corner (in pixels)
-    //                             * @param y       The Y coordinate of the bottom left corner (in pixels)
-    //                             * @param width   The width of the image
-    //                             * @param height  The height of the image
-    //                             * @param imgName The name of the image to display. Use "" for an invisible button
-    //                             * @param maxZoom The maximum zoom (out) factor. 8 is usually a good choice.
-    //                             * @param minZoom The minimum zoom (int) factor. .25f is usually a good choice.
-    //                             * @return The button that was created
-    //                             */
-    //                             public SceneActor addPinchZoomControl(float x, float y, float width, float height,
-    //                               String imgName, final float maxZoom,
-    //                               final float minZoom) {
-    //                                 final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-    //                                 c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-    //                                 c.mDownHandler = new TouchEventHandler() {
-    //                                   public boolean go(float worldX, float worldY) {
-    //                                     // this handler is being used for up/down, so we can safely use the deltaX as a way
-    //                                     // of storing the last zoom value
-    //                                     c.setInfoInt((int) (mGame.mManager.mWorld.mCamera.zoom * 1000));
-    //                                     return false;
-    //                                   }
-    //                                 };
-    //                                 c.mZoomHandler = new TouchEventHandler() {
-    //                                   public boolean go(float initialDistance, float distance) {
-    //                                     float ratio = initialDistance / distance;
-    //                                     float newZoom = ((float) c.getInfoInt()) / 1000 * ratio;
-    //                                     if (newZoom > minZoom && newZoom < maxZoom)
-    //                                     mGame.mManager.mWorld.mCamera.zoom = newZoom;
-    //                                     return true;
-    //                                   }
-    //                                 };
-    //                                 mGame.mManager.mHud.addActor(c, 0);
-    //                                 return c;
-    //                               }
+    /**
+    * Create an action for making a hero either start or stop crawling
+    *
+    * @param hero       The hero to control
+    * @param crawlState True to start crawling, false to stop
+    * @return The action
+    */
+    makeCrawlToggle(hero, crawlState) {
+        return new (class _ extends LolAction {
+            //@Override
+            go() {
+                if (crawlState)
+                    hero.crawlOn();
+                else
+                    hero.crawlOff();
+            }
+        })();
+    }
+    /**
+    * Create an action for making a hero rotate
+    *
+    * @param hero The hero to rotate
+    * @param rate Amount of rotation to apply to the hero on each press
+    * @return The action
+    */
+    makeRotator(hero, rate) {
+        return new (class _ extends LolAction {
+            go() {
+                hero.increaseRotation(rate);
+            }
+        })();
+    }
+    /**
+    * Create an action for making a hero throw a projectile
+    *
+    * @param hero       The hero who should throw the projectile
+    * @param milliDelay A delay between throws, so that holding doesn't lead to too many throws at
+    *                   once
+    * @param offsetX    specifies the x distance between the top left of the projectile and the
+    *                   top left of the hero throwing the projectile
+    * @param offsetY    specifies the y distance between the top left of the projectile and the
+    *                   top left of the hero throwing the projectile
+    * @param velocityX  The X velocity of the projectile when it is thrown
+    * @param velocityY  The Y velocity of the projectile when it is thrown
+    * @return The action object
+    */
+    makeRepeatThrow(hero, milliDelay, offsetX, offsetY, velocityX, velocityY) {
+        let out_this = this;
+        return new (class _ extends LolAction {
+            constructor() {
+                super(...arguments);
+                this.mLastThrow = 0;
+            }
+            go() {
+                let now = new Date().getTime();
+                if (this.mLastThrow + milliDelay < now) {
+                    this.mLastThrow = now;
+                    out_this.mGame.mManager.mWorld.mProjectilePool.throwFixed(hero, offsetX, offsetY, velocityX, velocityY);
+                }
+            }
+        })();
+    }
     /**
     * Add an image to the heads-up display. Touching the image has no effect
     *
-    * @param x       The X coordinate of the bottom left corner (in pixels)
-    * @param y       The Y coordinate of the bottom left corner (in pixels)
+    * @param x       The X coordinate of the top left corner (in pixels)
+    * @param y       The Y coordinate of the top left corner (in pixels)
     * @param width   The width of the image
     * @param height  The height of the image
     * @param imgName The name of the image to display. Use "" for an invisible button
@@ -1985,400 +1422,11 @@ class Level {
         this.mGame.mManager.mHud.addActor(c, 0);
         return c;
     }
-    //                               /**
-    //                               * Add a control with callbacks for down, up, and pan
-    //                               *
-    //                               * @param x       The X coordinate of the bottom left corner (in pixels)
-    //                               * @param y       The Y coordinate of the bottom left corner (in pixels)
-    //                               * @param width   The width of the image
-    //                               * @param height  The height of the image
-    //                               * @param imgName The name of the image to display. Use "" for an invisible button
-    //                               * @param upCB    The callback to run when the Control is released
-    //                               * @param dnCB    The callback to run when the Control is pressed
-    //                               * @param mvCB    The callback to run when there is a finger move (pan) on the Control
-    //                               * @return The button that was created
-    //                               */
-    //                               // TODO: we never test this code!
-    //                               public SceneActor addPanCallbackControl(float x, float y, float width, float height,
-    //                                 String imgName, final TouchEventHandler upCB,
-    //                                 final TouchEventHandler dnCB,
-    //                                 final TouchEventHandler mvCB) {
-    //                                   final SceneActor c = new SceneActor(mGame.mManager.mHud, imgName, width, height);
-    //                                   c.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-    //                                   // Pan only consists of pan-stop and pan events. That means we can't capture a down-press or
-    //                                   // up-press that isn't also involved in a move.  To overcome this limitation, we'll make
-    //                                   // this BOTH a pan control and a toggle control
-    //                                   c.mToggleHandler = new ToggleEventHandler() {
-    //                                     public boolean go(boolean isUp, float worldX, float worldY) {
-    //                                       // up event
-    //                                       if (isUp) {
-    //                                         upCB.go(worldX, worldY);
-    //                                         isHolding = false;
-    //                                       }
-    //                                       // down event
-    //                                       else {
-    //                                         isHolding = true;
-    //                                         dnCB.go(worldX, worldY);
-    //                                       }
-    //                                       // toggle state
-    //                                       isHolding = !isUp;
-    //                                       return true;
-    //                                     }
-    //                                   };
-    //                                   c.mPanHandler = new PanEventHandler() {
-    //                                     public boolean go(float worldX, float worldY, float deltaX, float deltaY) {
-    //                                       // force a down event, if we didn't get one
-    //                                       if (!c.mToggleHandler.isHolding) {
-    //                                         c.mToggleHandler.go(false, worldX, worldY);
-    //                                         return true;
-    //                                       }
-    //                                       // pan event
-    //                                       mvCB.go(worldX, worldY);
-    //                                       return true;
-    //                                     }
-    //                                   };
-    //                                   c.mPanStopHandler = new TouchEventHandler() {
-    //                                     public boolean go(float worldX, float worldY) {
-    //                                       // force an up event?
-    //                                       if (c.mToggleHandler.isHolding) {
-    //                                         c.mToggleHandler.go(true, worldX, worldY);
-    //                                         return true;
-    //                                       }
-    //                                       return false;
-    //                                     }
-    //                                   };
-    //                                   c.mPanHandler.mSource = c;
-    //                                   c.mPanStopHandler.mSource = c;
-    //                                   c.mToggleHandler.mSource = c;
-    //                                   mGame.mManager.mHud.addActor(c, 0);
-    //                                   mGame.mManager.mHud.mToggleControls.add(c);
-    //                                   return c;
-    //                                 }
-    //
-    //                                 /**
-    //                                 * Look up a fact that was stored for the current level. If no such fact exists, defaultVal will
-    //                                 * be returned.
-    //                                 *
-    //                                 * @param factName   The name used to store the fact
-    //                                 * @param defaultVal The default value to use if the fact cannot be found
-    //                                 * @return The integer value corresponding to the last value stored
-    //                                 */
-    //                                 public int getLevelFact(String factName, int defaultVal) {
-    //                                   Integer i = mGame.mManager.mWorld.mLevelFacts.get(factName);
-    //                                   if (i == null) {
-    //                                     Lol.message(mConfig, "ERROR", "Error retreiving level fact '" + factName + "'");
-    //                                     return defaultVal;
-    //                                   }
-    //                                   return i;
-    //                                 }
-    //
-    //                                 /**
-    //                                 * Save a fact about the current level. If the factName has already been used for this level,
-    //                                 * the new value will overwrite the old.
-    //                                 *
-    //                                 * @param factName  The name for the fact being saved
-    //                                 * @param factValue The integer value that is the fact being saved
-    //                                 */
-    //                                 public void putLevelFact(String factName, int factValue) {
-    //                                   mGame.mManager.mWorld.mLevelFacts.put(factName, factValue);
-    //                                 }
-    //
-    //                                 /**
-    //                                 * Look up a fact that was stored for the current game session. If no such fact exists, -1 will
-    //                                 * be returned.
-    //                                 *
-    //                                 * @param factName   The name used to store the fact
-    //                                 * @param defaultVal The default value to use if the fact cannot be found
-    //                                 * @return The integer value corresponding to the last value stored
-    //                                 */
-    //                                 public int getSessionFact(String factName, int defaultVal) {
-    //                                   Integer i = mGame.mManager.mSessionFacts.get(factName);
-    //                                   if (i == null) {
-    //                                     Lol.message(mConfig, "ERROR", "Error retreiving level fact '" + factName + "'");
-    //                                     return defaultVal;
-    //                                   }
-    //                                   return i;
-    //                                 }
-    //
-    //                                 /**
-    //                                 * Save a fact about the current game session. If the factName has already been used for this
-    //                                 * game session, the new value will overwrite the old.
-    //                                 *
-    //                                 * @param factName  The name for the fact being saved
-    //                                 * @param factValue The integer value that is the fact being saved
-    //                                 */
-    //                                 public void putSessionFact(String factName, int factValue) {
-    //                                   mGame.mManager.mSessionFacts.put(factName, factValue);
-    //                                 }
-    //
-    //                                 /**
-    //                                 * Look up a fact that was stored for the current game session. If no such fact exists,
-    //                                 * defaultVal will be returned.
-    //                                 *
-    //                                 * @param factName   The name used to store the fact
-    //                                 * @param defaultVal The value to return if the fact does not exist
-    //                                 * @return The integer value corresponding to the last value stored
-    //                                 */
-    //                                 public int getGameFact(String factName, int defaultVal) {
-    //                                   return Lol.getGameFact(mConfig, factName, defaultVal);
-    //                                 }
-    //
-    //                                 /**
-    //                                 * Save a fact about the current game session. If the factName has already been used for this
-    //                                 * game session, the new value will overwrite the old.
-    //                                 *
-    //                                 * @param factName  The name for the fact being saved
-    //                                 * @param factValue The integer value that is the fact being saved
-    //                                 */
-    //                                 public void putGameFact(String factName, int factValue) {
-    //                                   Lol.putGameFact(mConfig, factName, factValue);
-    //                                 }
-    //
-    //                                 /**
-    //                                 * Look up an WorldActor that was stored for the current level. If no such WorldActor exists,
-    //                                 * null will be returned.
-    //                                 *
-    //                                 * @param actorName The name used to store the WorldActor
-    //                                 * @return The last WorldActor stored with this name
-    //                                 */
-    //                                 public WorldActor getLevelActor(String actorName) {
-    //                                   WorldActor actor = mGame.mManager.mWorld.mLevelActors.get(actorName);
-    //                                   if (actor == null) {
-    //                                     Lol.message(mConfig, "ERROR", "Error retreiving level fact '" + actorName + "'");
-    //                                     return null;
-    //                                   }
-    //                                   return actor;
-    //                                 }
-    //
-    //                                 /**
-    //                                 * Save a WorldActor from the current level. If the actorName has already been used for this
-    //                                 * level, the new value will overwrite the old.
-    //                                 *
-    //                                 * @param actorName The name for the WorldActor being saved
-    //                                 * @param actor     The WorldActor that is the fact being saved
-    //                                 */
-    //                                 public void putLevelActor(String actorName, WorldActor actor) {
-    //                                   mGame.mManager.mWorld.mLevelActors.put(actorName, actor);
-    //                                 }
-    //
-    //                                 /**
-    //                                 * Set the background color for the current level
-    //                                 *
-    //                                 * @param color The color, formated as #RRGGBB
-    //                                 */
-    //                                 public void setBackgroundColor(String color) {
-    //                                   mGame.mManager.mBackground.mColor = Color.valueOf(color);
-    //                                 }
-    /**
-    * Set the background color for the current level
-    *
-    * @param color The color, formatted as a hex number
-    */
-    setBackgroundColor(color) {
-        //this.mGame.mRenderer = PIXI.autoDetectRenderer(this.mConfig.mWidth, this.mConfig.mHeight, {backgroundColor: color});
-    }
-    //                                 /**
-    //                                 * Add a picture that may repeat in the X dimension
-    //                                 *
-    //                                 * @param xSpeed  Speed that the picture seems to move in the X direction. "1" is the same speed
-    //                                 *                as the hero; "0" is not at all; ".5f" is at half the hero's speed
-    //                                 * @param ySpeed  Speed that the picture seems to move in the Y direction. "1" is the same speed
-    //                                 *                as the hero; "0" is not at all; ".5f" is at half the hero's speed
-    //                                 * @param imgName The name of the image file to use as the background
-    //                                 * @param yOffset The default is to draw the image at y=0. This field allows the picture to be
-    //                                 *                moved up or down.
-    //                                 * @param width   The width of the image being used as a background layer
-    //                                 * @param height  The height of the image being used as a background layer
-    //                                 */
-    //                                 public void addHorizontalBackgroundLayer(float xSpeed, float ySpeed, String imgName,
-    //                                   float yOffset, float width, float height) {
-    //                                     ParallaxLayer pl = new ParallaxLayer(xSpeed, ySpeed,
-    //                                       mMedia.getImage(imgName), 0, yOffset
-    //                                       * mConfig.mPixelMeterRatio, width, height);
-    //                                       pl.mXRepeat = xSpeed != 0;
-    //                                       mGame.mManager.mBackground.mLayers.add(pl);
-    //                                     }
-    //
-    //                                     /**
-    //                                     * Add a picture that may repeat in the X dimension, and which moves automatically
-    //                                     *
-    //                                     * @param xSpeed  Speed, in pixels per second
-    //                                     * @param imgName The name of the image file to use as the background
-    //                                     * @param yOffset The default is to draw the image at y=0. This field allows the picture to be
-    //                                     *                moved up or down.
-    //                                     * @param width   The width of the image being used as a background layer
-    //                                     * @param height  The height of the image being used as a background layer
-    //                                     */
-    //                                     public void addHorizontalAutoBackgroundLayer(float xSpeed, String imgName,
-    //                                       float yOffset, float width, float height) {
-    //                                         ParallaxLayer pl = new ParallaxLayer(xSpeed, 0,
-    //                                           mMedia.getImage(imgName), 0, yOffset
-    //                                           * mConfig.mPixelMeterRatio, width, height);
-    //                                           pl.mAutoX = true;
-    //                                           pl.mXRepeat = xSpeed != 0;
-    //                                           mGame.mManager.mBackground.mLayers.add(pl);
-    //                                         }
-    //
-    //                                         /**
-    //                                         * Add a picture that may repeat in the Y dimension
-    //                                         *
-    //                                         * @param xSpeed  Speed that the picture seems to move in the X direction. "1" is the same speed
-    //                                         *                as the hero; "0" is not at all; ".5f" is at half the hero's speed
-    //                                         * @param ySpeed  Speed that the picture seems to move in the Y direction. "1" is the same speed
-    //                                         *                as the hero; "0" is not at all; ".5f" is at half the hero's speed
-    //                                         * @param imgName The name of the image file to use as the background
-    //                                         * @param xOffset The default is to draw the image at x=0. This field allows the picture to be
-    //                                         *                moved left or right.
-    //                                         * @param width   The width of the image being used as a background layer
-    //                                         * @param height  The height of the image being used as a background layer
-    //                                         */
-    //                                         public void addVerticalBackgroundLayer(float xSpeed, float ySpeed, String imgName,
-    //                                           float xOffset, float width, float height) {
-    //                                             ParallaxLayer pl = new ParallaxLayer(xSpeed, ySpeed,
-    //                                               mMedia.getImage(imgName),
-    //                                               xOffset * mConfig.mPixelMeterRatio, 0, width, height);
-    //                                               pl.mYRepeat = ySpeed != 0;
-    //                                               mGame.mManager.mBackground.mLayers.add(pl);
-    //                                             }
-    //
-    //                                             /**
-    //                                             * Create a particle effect system
-    //                                             *
-    //                                             * @param filename The file holding the particle definition
-    //                                             * @param zIndex   The z index of the particle system.
-    //                                             * @param x        The x coordinate of the starting point of the particle system
-    //                                             * @param y        The y coordinate of the starting point of the particle system
-    //                                             * @return the Effect, so that it can be modified further
-    //                                             */
-    //                                             public Effect makeParticleSystem(String filename, int zIndex, float x, float y) {
-    //                                               Effect e = new Effect();
-    //
-    //                                               // create the particle effect system.
-    //                                               ParticleEffect pe = new ParticleEffect();
-    //                                               pe.load(Gdx.files.internal(filename), Gdx.files.internal(""));
-    //                                               e.mParticleEffect = pe;
-    //
-    //                                               // update the effect's coordinates to reflect world coordinates
-    //                                               pe.getEmitters().first().setPosition(x, y);
-    //
-    //                                               // NB: we pretend effects are Actors, so that we can have them in front of or behind Actors
-    //                                               mGame.mManager.mWorld.addActor(e, zIndex);
-    //
-    //                                               // start emitting particles
-    //                                               pe.start();
-    //                                               return e;
-    //                                             }
-    //
-    //                                             /**
-    //                                             * Add a picture that may repeat in the X dimension
-    //                                             *
-    //                                             * @param xSpeed  Speed that the picture seems to move in the X direction. "1" is the same speed
-    //                                             *                as the hero; "0" is not at all; ".5f" is at half the hero's speed
-    //                                             * @param ySpeed  Speed that the picture seems to move in the Y direction. "1" is the same speed
-    //                                             *                as the hero; "0" is not at all; ".5f" is at half the hero's speed
-    //                                             * @param imgName The name of the image file to use as the foreground
-    //                                             * @param yOffset The default is to draw the image at y=0. This field allows the picture to be
-    //                                             *                moved up or down.
-    //                                             * @param width   The width of the image being used as a foreground layer
-    //                                             * @param height  The height of the image being used as a foreground layer
-    //                                             */
-    //                                             public void addHorizontalForegroundLayer(float xSpeed, float ySpeed, String imgName,
-    //                                               float yOffset, float width, float height) {
-    //                                                 ParallaxLayer pl = new ParallaxLayer(xSpeed, ySpeed,
-    //                                                   mMedia.getImage(imgName), 0, yOffset
-    //                                                   * mConfig.mPixelMeterRatio, width, height);
-    //                                                   pl.mXRepeat = xSpeed != 0;
-    //                                                   mGame.mManager.mForeground.mLayers.add(pl);
-    //                                                 }
-    //
-    //                                                 /**
-    //                                                 * Add a picture that may repeat in the X dimension, and which moves automatically
-    //                                                 *
-    //                                                 * @param xSpeed  Speed, in pixels per second
-    //                                                 * @param imgName The name of the image file to use as the foreground
-    //                                                 * @param yOffset The default is to draw the image at y=0. This field allows the picture to be
-    //                                                 *                moved up or down.
-    //                                                 * @param width   The width of the image being used as a foreground layer
-    //                                                 * @param height  The height of the image being used as a foreground layer
-    //                                                 */
-    //                                                 public void addHorizontalAutoForegroundLayer(float xSpeed, String imgName,
-    //                                                   float yOffset, float width, float height) {
-    //                                                     ParallaxLayer pl = new ParallaxLayer(xSpeed, 0,
-    //                                                       mMedia.getImage(imgName), 0, yOffset
-    //                                                       * mConfig.mPixelMeterRatio, width, height);
-    //                                                       pl.mAutoX = true;
-    //                                                       pl.mXRepeat = xSpeed != 0;
-    //                                                       mGame.mManager.mForeground.mLayers.add(pl);
-    //                                                     }
-    //
-    //                                                     /**
-    //                                                     * Add a picture that may repeat in the Y dimension
-    //                                                     *
-    //                                                     * @param xSpeed  Speed that the picture seems to move in the Y direction. "1" is the same speed
-    //                                                     *                as the hero; "0" is not at all; ".5f" is at half the hero's speed
-    //                                                     * @param ySpeed  Speed that the picture seems to move in the Y direction. "1" is the same speed
-    //                                                     *                as the hero; "0" is not at all; ".5f" is at half the hero's speed
-    //                                                     * @param imgName The name of the image file to use as the foreground
-    //                                                     * @param xOffset The default is to draw the image at x=0. This field allows the picture to be
-    //                                                     *                moved left or right.
-    //                                                     * @param width   The width of the image being used as a foreground layer
-    //                                                     * @param height  The height of the image being used as a foreground layer
-    //                                                     */
-    //                                                     public void addVerticalForegroundLayer(float xSpeed, float ySpeed, String imgName,
-    //                                                       float xOffset, float width, float height) {
-    //                                                         ParallaxLayer pl = new ParallaxLayer(xSpeed, ySpeed,
-    //                                                           mMedia.getImage(imgName),
-    //                                                           xOffset * mConfig.mPixelMeterRatio, 0, width, height);
-    //                                                           pl.mYRepeat = ySpeed != 0;
-    //                                                           mGame.mManager.mForeground.mLayers.add(pl);
-    //                                                         }
-    //
-    //                                                         /**
-    //                                                         * Get the LoseScene that is configured for the current level, or create a blank one if none
-    //                                                         * exists.
-    //                                                         *
-    //                                                         * @return The current LoseScene
-    //                                                         */
-    //                                                         public QuickScene getLoseScene() {
-    //                                                           return mGame.mManager.mLoseScene;
-    //                                                         }
-    //
-    //                                                         /**
-    //                                                         * Get the PreScene that is configured for the current level, or create a blank one if none
-    //                                                         * exists.
-    //                                                         *
-    //                                                         * @return The current PreScene
-    //                                                         */
-    //                                                         public QuickScene getPreScene() {
-    //                                                           mGame.mManager.mPreScene.mVisible = true;
-    //                                                           mGame.mManager.mPreScene.suspendClock();
-    //                                                           return mGame.mManager.mPreScene;
-    //                                                         }
-    //
-    //                                                         /**
-    //                                                         * Get the PauseScene that is configured for the current level, or create a blank one if none
-    //                                                         * exists.
-    //                                                         *
-    //                                                         * @return The current PauseScene
-    //                                                         */
-    //                                                         public QuickScene getPauseScene() {
-    //                                                           return mGame.mManager.mPauseScene;
-    //                                                         }
-    //
-    //                                                         /**
-    //                                                         * Get the WinScene that is configured for the current level, or create a blank one if none
-    //                                                         * exists.
-    //                                                         *
-    //                                                         * @return The current WinScene
-    //                                                         */
-    //                                                         public QuickScene getWinScene() {
-    //                                                           return mGame.mManager.mWinScene;
-    //                                                         }
     /**
     * Make an enemy that has an underlying rectangular shape.
     *
-    * @param x       The X coordinate of the bottom left corner
-    * @param y       The Y coordinate of the bottom right corner
+    * @param x       The X coordinate of the top left corner
+    * @param y       The Y coordinate of the top right corner
     * @param width   The width of the enemy
     * @param height  The height of the enemy
     * @param imgName The name of the image to display
@@ -2391,52 +1439,48 @@ class Level {
         this.mGame.mManager.mWorld.addActor(e, 0);
         return e;
     }
-    //
-    //                                                         /**
-    //                                                         * Draw an enemy with an underlying polygon shape
-    //                                                         *
-    //                                                         * @param x       X coordinate of the bottom left corner
-    //                                                         * @param y       Y coordinate of the bottom left corner
-    //                                                         * @param width   Width of the obstacle
-    //                                                         * @param height  Height of the obstacle
-    //                                                         * @param imgName Name of image file to use
-    //                                                         * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
-    //                                                         *                x0,y0,x1,y1,x2,y2,...
-    //                                                         * @return The enemy, so that it can be further modified
-    //                                                         */
-    //                                                         public Enemy makeEnemyAsPolygon(float x, float y, float width, float height, String imgName,
-    //                                                           float... verts) {
-    //                                                             Enemy e = new Enemy(mGame, mGame.mManager.mWorld, width, height, imgName);
-    //                                                             mGame.mManager.mEnemiesCreated++;
-    //                                                             e.setPolygonPhysics(BodyDef.BodyType.StaticBody, x, y, verts);
-    //                                                             mGame.mManager.mWorld.addActor(e, 0);
-    //                                                             return e;
-    //                                                           }
-    //
-    //                                                           /**
-    //                                                           * Make an enemy that has an underlying circular shape.
-    //                                                           *
-    //                                                           * @param x       The X coordinate of the bottom left corner
-    //                                                           * @param y       The Y coordinate of the bottom right corner
-    //                                                           * @param width   The width of the enemy
-    //                                                           * @param height  The height of the enemy
-    //                                                           * @param imgName The name of the image to display
-    //                                                           * @return The enemy, so that it can be modified further
-    //                                                           */
-    //                                                           public Enemy makeEnemyAsCircle(float x, float y, float width, float height, String imgName) {
-    //                                                             float radius = Math.max(width, height);
-    //                                                             Enemy e = new Enemy(mGame, mGame.mManager.mWorld, radius, radius, imgName);
-    //                                                             mGame.mManager.mEnemiesCreated++;
-    //                                                             e.setCirclePhysics(BodyDef.BodyType.StaticBody, x, y, radius / 2);
-    //                                                             mGame.mManager.mWorld.addActor(e, 0);
-    //                                                             return e;
-    //                                                           }
-    //
+    /**
+    * Draw an enemy with an underlying polygon shape
+    *
+    * @param x       X coordinate of the top left corner
+    * @param y       Y coordinate of the top left corner
+    * @param width   Width of the obstacle
+    * @param height  Height of the obstacle
+    * @param imgName Name of image file to use
+    * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
+    *                x0,y0,x1,y1,x2,y2,...
+    * @return The enemy, so that it can be further modified
+    */
+    makeEnemyAsPolygon(x, y, width, height, imgName, verts) {
+        let e = new Enemy(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+        this.mGame.mManager.mEnemiesCreated++;
+        e.setPolygonPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, verts);
+        this.mGame.mManager.mWorld.addActor(e, 0);
+        return e;
+    }
+    /**
+    * Make an enemy that has an underlying circular shape.
+    *
+    * @param x       The X coordinate of the top left corner
+    * @param y       The Y coordinate of the top right corner
+    * @param width   The width of the enemy
+    * @param height  The height of the enemy
+    * @param imgName The name of the image to display
+    * @return The enemy, so that it can be modified further
+    */
+    makeEnemyAsCircle(x, y, width, height, imgName) {
+        let radius = Math.max(width, height);
+        let e = new Enemy(this.mGame, this.mGame.mManager.mWorld, radius, radius, imgName);
+        this.mGame.mManager.mEnemiesCreated++;
+        e.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, radius / 2);
+        this.mGame.mManager.mWorld.addActor(e, 0);
+        return e;
+    }
     /**
     * Make a destination that has an underlying rectangular shape.
     *
-    * @param x       The X coordinate of the bottom left corner
-    * @param y       The Y coordinate of the bottom right corner
+    * @param x       The X coordinate of the top left corner
+    * @param y       The Y coordinate of the top right corner
     * @param width   The width of the destination
     * @param height  The height of the destination
     * @param imgName The name of the image to display
@@ -2449,52 +1493,48 @@ class Level {
         this.mGame.mManager.mWorld.addActor(d, 0);
         return d;
     }
-    //                                                             /**
-    //                                                             * Draw a destination with an underlying polygon shape
-    //                                                             *
-    //                                                             * @param x       X coordinate of the bottom left corner
-    //                                                             * @param y       Y coordinate of the bottom left corner
-    //                                                             * @param width   Width of the obstacle
-    //                                                             * @param height  Height of the obstacle
-    //                                                             * @param imgName Name of image file to use
-    //                                                             * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
-    //                                                             *                x0,y0,x1,y1,x2,y2,...
-    //                                                             * @return The destination, so that it can be further modified
-    //                                                             */
-    //                                                             public Destination makeDestinationAsPolygon(float x, float y, float width, float height,
-    //                                                               String imgName, float... verts) {
-    //                                                                 Destination d = new Destination(mGame, mGame.mManager.mWorld, width, height, imgName);
-    //                                                                 d.setPolygonPhysics(BodyDef.BodyType.StaticBody, x, y, verts);
-    //                                                                 d.setCollisionsEnabled(false);
-    //                                                                 mGame.mManager.mWorld.addActor(d, 0);
-    //                                                                 return d;
-    //                                                               }
-    //
-    //                                                               /**
-    //                                                               * Make a destination that has an underlying circular shape.
-    //                                                               *
-    //                                                               * @param x       The X coordinate of the bottom left corner
-    //                                                               * @param y       The Y coordinate of the bottom right corner
-    //                                                               * @param width   The width of the destination
-    //                                                               * @param height  The height of the destination
-    //                                                               * @param imgName The name of the image to display
-    //                                                               * @return The destination, so that it can be modified further
-    //                                                               */
-    //                                                               public Destination makeDestinationAsCircle(float x, float y, float width, float height,
-    //                                                                 String imgName) {
-    //                                                                   float radius = Math.max(width, height);
-    //                                                                   Destination d = new Destination(mGame, mGame.mManager.mWorld, radius, radius, imgName);
-    //                                                                   d.setCirclePhysics(BodyDef.BodyType.StaticBody, x, y, radius / 2);
-    //                                                                   d.setCollisionsEnabled(false);
-    //                                                                   mGame.mManager.mWorld.addActor(d, 0);
-    //                                                                   return d;
-    //                                                                 }
-    //
+    /**
+    * Draw a destination with an underlying polygon shape
+    *
+    * @param x       X coordinate of the top left corner
+    * @param y       Y coordinate of the top left corner
+    * @param width   Width of the obstacle
+    * @param height  Height of the obstacle
+    * @param imgName Name of image file to use
+    * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
+    *                x0,y0,x1,y1,x2,y2,...
+    * @return The destination, so that it can be further modified
+    */
+    makeDestinationAsPolygon(x, y, width, height, imgName, verts) {
+        let d = new Destination(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+        d.setPolygonPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, verts);
+        d.setCollisionsEnabled(false);
+        this.mGame.mManager.mWorld.addActor(d, 0);
+        return d;
+    }
+    /**
+    * Make a destination that has an underlying circular shape.
+    *
+    * @param x       The X coordinate of the top left corner
+    * @param y       The Y coordinate of the top right corner
+    * @param width   The width of the destination
+    * @param height  The height of the destination
+    * @param imgName The name of the image to display
+    * @return The destination, so that it can be modified further
+    */
+    makeDestinationAsCircle(x, y, width, height, imgName) {
+        let radius = Math.max(width, height);
+        let d = new Destination(this.mGame, this.mGame.mManager.mWorld, radius, radius, imgName);
+        d.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, radius / 2);
+        d.setCollisionsEnabled(false);
+        this.mGame.mManager.mWorld.addActor(d, 0);
+        return d;
+    }
     /**
     * Draw an obstacle with an underlying box shape
     *
-    * @param x       X coordinate of the bottom left corner
-    * @param y       Y coordinate of the bottom left corner
+    * @param x       X coordinate of the top left corner
+    * @param y       Y coordinate of the top left corner
     * @param width   Width of the obstacle
     * @param height  Height of the obstacle
     * @param imgName Name of image file to use
@@ -2506,104 +1546,95 @@ class Level {
         this.mGame.mManager.mWorld.addActor(o, 0);
         return o;
     }
-    //
-    //                                                                 /**
-    //                                                                 * Draw an obstacle with an underlying polygon shape
-    //                                                                 *
-    //                                                                 * @param x       X coordinate of the bottom left corner
-    //                                                                 * @param y       Y coordinate of the bottom left corner
-    //                                                                 * @param width   Width of the obstacle
-    //                                                                 * @param height  Height of the obstacle
-    //                                                                 * @param imgName Name of image file to use
-    //                                                                 * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
-    //                                                                 *                x0,y0,x1,y1,x2,y2,...
-    //                                                                 * @return The obstacle, so that it can be further modified
-    //                                                                 */
-    //                                                                 public Obstacle makeObstacleAsPolygon(float x, float y, float width, float height,
-    //                                                                   String imgName, float... verts) {
-    //                                                                     Obstacle o = new Obstacle(mGame, mGame.mManager.mWorld, width, height, imgName);
-    //                                                                     o.setPolygonPhysics(BodyDef.BodyType.StaticBody, x, y, verts);
-    //                                                                     mGame.mManager.mWorld.addActor(o, 0);
-    //                                                                     return o;
-    //                                                                   }
-    //
-    //                                                                   /**
-    //                                                                   * Draw an obstacle with an underlying circle shape
-    //                                                                   *
-    //                                                                   * @param x       X coordinate of the bottom left corner
-    //                                                                   * @param y       Y coordinate of the bottom left corner
-    //                                                                   * @param width   Width of the obstacle
-    //                                                                   * @param height  Height of the obstacle
-    //                                                                   * @param imgName Name of image file to use
-    //                                                                   * @return The obstacle, so that it can be further modified
-    //                                                                   */
-    //                                                                   public Obstacle makeObstacleAsCircle(float x, float y, float width, float height,
-    //                                                                     String imgName) {
-    //                                                                       float radius = Math.max(width, height);
-    //                                                                       Obstacle o = new Obstacle(mGame, mGame.mManager.mWorld, width, height, imgName);
-    //                                                                       o.setCirclePhysics(BodyDef.BodyType.StaticBody, x, y, radius / 2);
-    //                                                                       mGame.mManager.mWorld.addActor(o, 0);
-    //                                                                       return o;
-    //                                                                     }
-    //
-    //                                                                     /**
-    //                                                                     * Draw a goodie with an underlying box shape, and a default score of [1,0,0,0]
-    //                                                                     *
-    //                                                                     * @param x       X coordinate of bottom left corner
-    //                                                                     * @param y       Y coordinate of bottom left corner
-    //                                                                     * @param width   Width of the image
-    //                                                                     * @param height  Height of the image
-    //                                                                     * @param imgName Name of image file to use
-    //                                                                     * @return The goodie, so that it can be further modified
-    //                                                                     */
-    //                                                                     public Goodie makeGoodieAsBox(float x, float y, float width, float height, String imgName) {
-    //                                                                       Goodie g = new Goodie(mGame, mGame.mManager.mWorld, width, height, imgName);
-    //                                                                       g.setBoxPhysics(BodyDef.BodyType.StaticBody, x, y);
-    //                                                                       g.setCollisionsEnabled(false);
-    //                                                                       mGame.mManager.mWorld.addActor(g, 0);
-    //                                                                       return g;
-    //                                                                     }
-    //
-    //                                                                     /**
-    //                                                                     * Draw a goodie with an underlying circle shape, and a default score of [1,0,0,0]
-    //                                                                     *
-    //                                                                     * @param x       X coordinate of bottom left corner
-    //                                                                     * @param y       Y coordinate of bottom left corner
-    //                                                                     * @param width   Width of the image
-    //                                                                     * @param height  Height of the image
-    //                                                                     * @param imgName Name of image file to use
-    //                                                                     * @return The goodie, so that it can be further modified
-    //                                                                     */
-    //                                                                     public Goodie makeGoodieAsCircle(float x, float y, float width, float height, String imgName) {
-    //                                                                       float radius = Math.max(width, height);
-    //                                                                       Goodie g = new Goodie(mGame, mGame.mManager.mWorld, width, height, imgName);
-    //                                                                       g.setCirclePhysics(BodyDef.BodyType.StaticBody, x, y, radius / 2);
-    //                                                                       g.setCollisionsEnabled(false);
-    //                                                                       mGame.mManager.mWorld.addActor(g, 0);
-    //                                                                       return g;
-    //                                                                     }
-    //
-    //                                                                     /**
-    //                                                                     * Draw a goodie with an underlying polygon shape
-    //                                                                     *
-    //                                                                     * @param x       X coordinate of the bottom left corner
-    //                                                                     * @param y       Y coordinate of the bottom left corner
-    //                                                                     * @param width   Width of the obstacle
-    //                                                                     * @param height  Height of the obstacle
-    //                                                                     * @param imgName Name of image file to use
-    //                                                                     * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
-    //                                                                     *                x0,y0,x1,y1,x2,y2,...
-    //                                                                     * @return The goodie, so that it can be further modified
-    //                                                                     */
-    //                                                                     public Goodie makeGoodieAsPolygon(float x, float y, float width, float height, String imgName,
-    //                                                                       float... verts) {
-    //                                                                         Goodie g = new Goodie(mGame, mGame.mManager.mWorld, width, height, imgName);
-    //                                                                         g.setPolygonPhysics(BodyDef.BodyType.StaticBody, x, y, verts);
-    //                                                                         g.setCollisionsEnabled(false);
-    //                                                                         mGame.mManager.mWorld.addActor(g, 0);
-    //                                                                         return g;
-    //                                                                       }
-    //
+    /**
+    * Draw an obstacle with an underlying polygon shape
+    *
+    * @param x       X coordinate of the top left corner
+    * @param y       Y coordinate of the top left corner
+    * @param width   Width of the obstacle
+    * @param height  Height of the obstacle
+    * @param imgName Name of image file to use
+    * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
+    *                x0,y0,x1,y1,x2,y2,...
+    * @return The obstacle, so that it can be further modified
+    */
+    makeObstacleAsPolygon(x, y, width, height, imgName, verts) {
+        let o = new Obstacle(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+        o.setPolygonPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, verts);
+        this.mGame.mManager.mWorld.addActor(o, 0);
+        return o;
+    }
+    /**
+    * Draw an obstacle with an underlying circle shape
+    *
+    * @param x       X coordinate of the top left corner
+    * @param y       Y coordinate of the top left corner
+    * @param width   Width of the obstacle
+    * @param height  Height of the obstacle
+    * @param imgName Name of image file to use
+    * @return The obstacle, so that it can be further modified
+    */
+    makeObstacleAsCircle(x, y, width, height, imgName) {
+        let radius = Math.max(width, height);
+        let o = new Obstacle(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+        o.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, radius / 2);
+        this.mGame.mManager.mWorld.addActor(o, 0);
+        return o;
+    }
+    /**
+    * Draw a goodie with an underlying box shape, and a default score of [1,0,0,0]
+    *
+    * @param x       X coordinate of top left corner
+    * @param y       Y coordinate of top left corner
+    * @param width   Width of the image
+    * @param height  Height of the image
+    * @param imgName Name of image file to use
+    * @return The goodie, so that it can be further modified
+    */
+    makeGoodieAsBox(x, y, width, height, imgName) {
+        let g = new Goodie(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+        g.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y);
+        g.setCollisionsEnabled(false);
+        this.mGame.mManager.mWorld.addActor(g, 0);
+        return g;
+    }
+    /**
+    * Draw a goodie with an underlying circle shape, and a default score of [1,0,0,0]
+    *
+    * @param x       X coordinate of top left corner
+    * @param y       Y coordinate of top left corner
+    * @param width   Width of the image
+    * @param height  Height of the image
+    * @param imgName Name of image file to use
+    * @return The goodie, so that it can be further modified
+    */
+    makeGoodieAsCircle(x, y, width, height, imgName) {
+        let radius = Math.max(width, height);
+        let g = new Goodie(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+        g.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, radius / 2);
+        g.setCollisionsEnabled(false);
+        this.mGame.mManager.mWorld.addActor(g, 0);
+        return g;
+    }
+    /**
+    * Draw a goodie with an underlying polygon shape
+    *
+    * @param x       X coordinate of the top left corner
+    * @param y       Y coordinate of the top left corner
+    * @param width   Width of the obstacle
+    * @param height  Height of the obstacle
+    * @param imgName Name of image file to use
+    * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
+    *                x0,y0,x1,y1,x2,y2,...
+    * @return The goodie, so that it can be further modified
+    */
+    makeGoodieAsPolygon(x, y, width, height, imgName, verts) {
+        let g = new Goodie(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+        g.setPolygonPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, verts);
+        g.setCollisionsEnabled(false);
+        this.mGame.mManager.mWorld.addActor(g, 0);
+        return g;
+    }
     /**
     * Make a Hero with an underlying rectangular shape
     *
@@ -2621,290 +1652,204 @@ class Level {
         this.mGame.mManager.mWorld.addActor(h, 0);
         return h;
     }
-    // /**
-    // * Make a Hero with an underlying circular shape
-    // *
-    // * @param x       X coordinate of the hero
-    // * @param y       Y coordinate of the hero
-    // * @param width   width of the hero
-    // * @param height  height of the hero
-    // * @param imgName File name of the default image to display
-    // * @return The hero that was created
-    // */
-    // public Hero makeHeroAsCircle(float x, float y, float width, float height, String imgName) {
-    //   float radius = Math.max(width, height);
-    //   Hero h = new Hero(mGame, mGame.mManager.mWorld, width, height, imgName);
-    //   mGame.mManager.mHeroesCreated++;
-    //   h.setCirclePhysics(BodyDef.BodyType.DynamicBody, x, y, radius / 2);
-    //   mGame.mManager.mWorld.addActor(h, 0);
-    //   return h;
-    // }
-    // /**
-    // * Draw a hero with an underlying polygon shape
-    // *
-    // * @param x       X coordinate of the bottom left corner
-    // * @param y       Y coordinate of the bottom left corner
-    // * @param width   Width of the obstacle
-    // * @param height  Height of the obstacle
-    // * @param imgName Name of image file to use
-    // * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
-    // *                x0,y0,x1,y1,x2,y2,...
-    // * @return The hero, so that it can be further modified
-    // */
-    // public Hero makeHeroAsPolygon(float x, float y, float width, float height, String imgName,
-    //   float... verts) {
-    //     Hero h = new Hero(mGame, mGame.mManager.mWorld, width, height, imgName);
-    //     mGame.mManager.mHeroesCreated++;
-    //     h.setPolygonPhysics(BodyDef.BodyType.StaticBody, x, y, verts);
-    //     mGame.mManager.mWorld.addActor(h, 0);
-    //     return h;
-    //   }
-    //                                                                         /**
-    //                                                                         * Specify a limit on how far away from the Hero a projectile can go.  Without this, projectiles
-    //                                                                         * could keep on traveling forever.
-    //                                                                         *
-    //                                                                         * @param distance Maximum distance from the hero that a projectile can travel
-    //                                                                         */
-    //                                                                         public void setProjectileRange(float distance) {
-    //                                                                           for (Projectile p : mGame.mManager.mWorld.mProjectilePool.mPool)
-    //                                                                           p.mRange = distance;
-    //                                                                         }
-    //
-    //                                                                         /**
-    //                                                                         * Indicate that projectiles should feel the effects of gravity. Otherwise, they will be (more
-    //                                                                         * or less) immune to gravitational forces.
-    //                                                                         */
-    //                                                                         public void setProjectileGravityOn() {
-    //                                                                           for (Projectile p : mGame.mManager.mWorld.mProjectilePool.mPool)
-    //                                                                           p.mBody.setGravityScale(1);
-    //                                                                         }
-    //
-    //                                                                         /**
-    //                                                                         * Specify the image file from which to randomly choose projectile images
-    //                                                                         *
-    //                                                                         * @param imgName The file to use when picking images
-    //                                                                         */
-    //                                                                         // TODO: this is probably broken now that we removed Animatable images
-    //                                                                         public void setProjectileImageSource(String imgName) {
-    //                                                                           for (Projectile p : mGame.mManager.mWorld.mProjectilePool.mPool)
-    //                                                                           p.mAnimator.updateImage(mGame.mMedia, imgName);
-    //                                                                           mGame.mManager.mWorld.mProjectilePool.mRandomizeImages = true;
-    //                                                                         }
-    //
-    //                                                                         /**
-    //                                                                         * The "directional projectile" mechanism might lead to the projectiles moving too fast. This
-    //                                                                         * will cause the speed to be multiplied by a factor
-    //                                                                         *
-    //                                                                         * @param factor The value to multiply against the projectile speed.
-    //                                                                         */
-    //                                                                         public void setProjectileVectorDampeningFactor(float factor) {
-    //                                                                           mGame.mManager.mWorld.mProjectilePool.mDirectionalDamp = factor;
-    //                                                                         }
-    //
-    //                                                                         /**
-    //                                                                         * Indicate that all projectiles should participate in collisions, rather than disappearing when
-    //                                                                         * they collide with other actors
-    //                                                                         */
-    //                                                                         public void enableCollisionsForProjectiles() {
-    //                                                                           mGame.mManager.mWorld.mProjectilePool.mSensorProjectiles = false;
-    //                                                                         }
-    //
-    //                                                                         /**
-    //                                                                         * Indicate that projectiles thrown with the "directional" mechanism should have a fixed
-    //                                                                         * velocity
-    //                                                                         *
-    //                                                                         * @param velocity The magnitude of the velocity for projectiles
-    //                                                                         */
-    //                                                                         public void setFixedVectorThrowVelocityForProjectiles(float velocity) {
-    //                                                                           mGame.mManager.mWorld.mProjectilePool.mEnableFixedVectorVelocity = true;
-    //                                                                           mGame.mManager.mWorld.mProjectilePool.mFixedVectorVelocity = velocity;
-    //                                                                         }
-    //
-    //                                                                         /**
-    //                                                                         * Indicate that projectiles thrown via the "directional" mechanism should be rotated to face in
-    //                                                                         * their direction or movement
-    //                                                                         */
-    //                                                                         public void setRotateVectorThrowForProjectiles() {
-    //                                                                           mGame.mManager.mWorld.mProjectilePool.mRotateVectorThrow = true;
-    //                                                                         }
-    //
-    //                                                                         /**
-    //                                                                         * Indicate that when two projectiles collide, they should both remain on screen
-    //                                                                         */
-    //                                                                         public void setCollisionOkForProjectiles() {
-    //                                                                           for (Projectile p : mGame.mManager.mWorld.mProjectilePool.mPool)
-    //                                                                           p.mDisappearOnCollide = false;
-    //                                                                         }
-    //
-    //                                                                         /**
-    //                                                                         * Describe the behavior of projectiles in a scene. You must call this if you intend to use
-    //                                                                         * projectiles in your scene.
-    //                                                                         *
-    //                                                                         * @param size     number of projectiles that can be thrown at once
-    //                                                                         * @param width    width of a projectile
-    //                                                                         * @param height   height of a projectile
-    //                                                                         * @param imgName  image to use for projectiles
-    //                                                                         * @param strength specifies the amount of damage that a projectile does to an enemy
-    //                                                                         * @param zIndex   The z plane on which the projectiles should be drawn
-    //                                                                         * @param isCircle Should projectiles have an underlying circle or box shape?
-    //                                                                         */
-    //                                                                         public void configureProjectiles(int size, float width, float height, String imgName,
-    //                                                                           int strength, int zIndex, boolean isCircle) {
-    //                                                                             mGame.mManager.mWorld.mProjectilePool = new ProjectilePool(mGame, mGame.mManager.mWorld,
-    //                                                                               size, width, height, imgName, strength, zIndex, isCircle);
-    //                                                                             }
-    //
-    //                                                                             /**
-    //                                                                             * Set a limit on the total number of projectiles that can be thrown
-    //                                                                             *
-    //                                                                             * @param number How many projectiles are available
-    //                                                                             */
-    //                                                                             public void setNumberOfProjectiles(int number) {
-    //                                                                               mGame.mManager.mWorld.mProjectilePool.mProjectilesRemaining = number;
-    //                                                                             }
-    //
-    //                                                                             /**
-    //                                                                             * Specify a sound to play when the projectile is thrown
-    //                                                                             *
-    //                                                                             * @param soundName Name of the sound file to play
-    //                                                                             */
-    //                                                                             public void setThrowSound(String soundName) {
-    //                                                                               mGame.mManager.mWorld.mProjectilePool.mThrowSound = mMedia.getSound(soundName);
-    //                                                                             }
-    //
-    //                                                                             /**
-    //                                                                             * Specify the sound to play when a projectile disappears
-    //                                                                             *
-    //                                                                             * @param soundName the name of the sound file to play
-    //                                                                             */
-    //                                                                             public void setProjectileDisappearSound(String soundName) {
-    //                                                                               mGame.mManager.mWorld.mProjectilePool.mProjectileDisappearSound =
-    //                                                                               mMedia.getSound(soundName);
-    //                                                                             }
-    //
-    //                                                                             /**
-    //                                                                             * Specify how projectiles should be animated
-    //                                                                             *
-    //                                                                             * @param animation The animation object to use for each projectile that is thrown
-    //                                                                             */
-    //                                                                             public void setProjectileAnimation(Animation animation) {
-    //                                                                               for (Projectile p : mGame.mManager.mWorld.mProjectilePool.mPool)
-    //                                                                               p.setDefaultAnimation(animation);
-    //                                                                             }
-    //
-    //                                                                             /**
-    //                                                                             * Draw a box on the scene
-    //                                                                             * <p>
-    //                                                                             * Note: the box is actually four narrow rectangles
-    //                                                                             *
-    //                                                                             * @param x0         X coordinate of top left corner
-    //                                                                             * @param y0         Y coordinate of top left corner
-    //                                                                             * @param x1         X coordinate of bottom right corner
-    //                                                                             * @param y1         Y coordinate of bottom right corner
-    //                                                                             * @param imgName    name of the image file to use when drawing the rectangles
-    //                                                                             * @param density    Density of the rectangle. When in doubt, use 1
-    //                                                                             * @param elasticity Elasticity of the rectangle. When in doubt, use 0
-    //                                                                             * @param friction   Friction of the rectangle. When in doubt, use 1
-    //                                                                             */
-    //                                                                             public void drawBoundingBox(float x0, float y0, float x1, float y1, String imgName,
-    //                                                                               float density, float elasticity, float friction) {
-    //                                                                                 Obstacle bottom = makeObstacleAsBox(x0 - 1, y0 - 1, Math.abs(x0 - x1) + 2, 1, imgName);
-    //                                                                                 bottom.setPhysics(density, elasticity, friction);
-    //
-    //                                                                                 Obstacle top = makeObstacleAsBox(x0 - 1, y1, Math.abs(x0 - x1) + 2, 1, imgName);
-    //                                                                                 top.setPhysics(density, elasticity, friction);
-    //
-    //                                                                                 Obstacle left = makeObstacleAsBox(x0 - 1, y0 - 1, 1, Math.abs(y0 - y1) + 2, imgName);
-    //                                                                                 left.setPhysics(density, elasticity, friction);
-    //
-    //                                                                                 Obstacle right = makeObstacleAsBox(x1, y0 - 1, 1, Math.abs(y0 - y1) + 2, imgName);
-    //                                                                                 right.setPhysics(density, elasticity, friction);
-    //                                                                               }
-    //
-    //                                                                               /**
-    //                                                                               * Load an SVG line drawing generated from Inkscape. The SVG will be loaded as a bunch of
-    //                                                                               * Obstacles. Note that not all Inkscape drawings will work as expected... if you need more
-    //                                                                               * power than this provides, you'll have to modify Svg.java
-    //                                                                               *
-    //                                                                               * @param svgName    Name of the svg file to load. It should be in the assets folder
-    //                                                                               * @param stretchX   Stretch the drawing in the X dimension by this percentage
-    //                                                                               * @param stretchY   Stretch the drawing in the Y dimension by this percentage
-    //                                                                               * @param transposeX Shift the drawing in the X dimension. NB: shifting occurs after stretching
-    //                                                                               * @param transposeY Shift the drawing in the Y dimension. NB: shifting occurs after stretching
-    //                                                                               * @param callback   A callback for customizing each (obstacle) line segment of the SVG
-    //                                                                               */
-    //                                                                               public void importLineDrawing(String svgName, float stretchX, float stretchY,
-    //                                                                                 float transposeX, float transposeY, LolActorEvent callback) {
-    //                                                                                   // Create an SVG object to hold all the parameters, then use it to parse the file
-    //                                                                                   Svg s = new Svg(this, stretchX, stretchY, transposeX, transposeY, callback);
-    //                                                                                   s.parse(svgName);
-    //                                                                                 }
-    //
-    //                                                                                 /**
-    //                                                                                 * Use this to manage the state of Mute
-    //                                                                                 */
-    //                                                                                 public void toggleMute() {
-    //                                                                                   // volume is either 1 or 0
-    //                                                                                   if (getGameFact("volume", 1) == 1) {
-    //                                                                                     // set volume to 0, set image to 'unmute'
-    //                                                                                     putGameFact("volume", 0);
-    //                                                                                   } else {
-    //                                                                                     // set volume to 1, set image to 'mute'
-    //                                                                                     putGameFact("volume", 1);
-    //                                                                                   }
-    //                                                                                   // update all music
-    //                                                                                   mMedia.resetMusicVolume();
-    //                                                                                 }
-    //
-    //                                                                                 /**
-    //                                                                                 * Use this to determine if the game is muted or not. True corresponds to not muted, false
-    //                                                                                 * corresponds to muted.
-    //                                                                                 */
-    //                                                                                 public boolean getVolume() {
-    //                                                                                   return getGameFact("volume", 1) == 1;
-    //                                                                                 }
-    // /**
-    // * Draw a picture on the current level
-    // * <p>
-    // * Note: the order in which this is called relative to other actors will determine whether they
-    // * go under or over this picture.
-    // *
-    // * @param x       X coordinate of bottom left corner
-    // * @param y       Y coordinate of bottom left corner
-    // * @param width   Width of the picture
-    // * @param height  Height of this picture
-    // * @param imgName Name of the picture to display
-    // * @param zIndex  The z index of the image. There are 5 planes: -2, -2, 0, 1, and 2. By default,
-    // *                everything goes to plane 0
-    // */
-    // public void drawPicture(final float x, final float y, final float width, final float height,
-    //   final String imgName, int zIndex) {
-    //     mGame.mManager.mWorld.makePicture(x, y, width, height, imgName, zIndex);
-    //   }
-    // /**
-    // * Draw some text in the scene, using a bottom-left coordinate
-    // *
-    // * @param x         The x coordinate of the bottom left corner
-    // * @param y         The y coordinate of the bottom left corner
-    // * @param fontName  The name of the font to use
-    // * @param fontColor The color of the font
-    // * @param fontSize  The size of the font
-    // * @param prefix    Prefix text to put before the generated text
-    // * @param suffix    Suffix text to put after the generated text
-    // * @param tp        A TextProducer that will generate the text to display
-    // * @param zIndex    The z index of the text
-    // * @return A Renderable of the text, so it can be enabled/disabled by program code
-    // */
-    // public Renderable addText(float x, float y, String fontName, String fontColor, int fontSize,
-    //   String prefix, String suffix, TextProducer tp, int zIndex) {
-    //     return mGame.mManager.mWorld.addText(x, y, fontName, fontColor, fontSize, prefix, suffix,
-    //       tp, zIndex);
-    //     }
     /**
-    * Draw some text in the scene, using a bottom-left coordinate
+    * Make a Hero with an underlying circular shape
     *
-    * @param x         The x coordinate of the bottom left corner
-    * @param y         The y coordinate of the bottom left corner
+    * @param x       X coordinate of the hero
+    * @param y       Y coordinate of the hero
+    * @param width   width of the hero
+    * @param height  height of the hero
+    * @param imgName File name of the default image to display
+    * @return The hero that was created
+    */
+    makeHeroAsCircle(x, y, width, height, imgName) {
+        let radius = Math.max(width, height);
+        let h = new Hero(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+        this.mGame.mManager.mHeroesCreated++;
+        h.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.DYNAMIC, x, y, radius / 2);
+        this.mGame.mManager.mWorld.addActor(h, 0);
+        return h;
+    }
+    /**
+    * Draw a hero with an underlying polygon shape
+    *
+    * @param x       X coordinate of the top left corner
+    * @param y       Y coordinate of the top left corner
+    * @param width   Width of the obstacle
+    * @param height  Height of the obstacle
+    * @param imgName Name of image file to use
+    * @param verts   Up to 16 coordinates representing the vertexes of this polygon, listed as
+    *                x0,y0,x1,y1,x2,y2,...
+    * @return The hero, so that it can be further modified
+    */
+    makeHeroAsPolygon(x, y, width, height, imgName, verts) {
+        let h = new Hero(this.mGame, this.mGame.mManager.mWorld, width, height, imgName);
+        this.mGame.mManager.mHeroesCreated++;
+        h.setPolygonPhysics(PhysicsType2d.Dynamics.BodyType.STATIC, x, y, verts);
+        this.mGame.mManager.mWorld.addActor(h, 0);
+        return h;
+    }
+    /**
+    * Specify a limit on how far away from the Hero a projectile can go.  Without this, projectiles
+    * could keep on traveling forever.
+    *
+    * @param distance Maximum distance from the hero that a projectile can travel
+    */
+    setProjectileRange(distance) {
+        for (let p of this.mGame.mManager.mWorld.mProjectilePool.mPool)
+            p.mRange = distance;
+    }
+    /**
+    * Indicate that projectiles should feel the effects of gravity. Otherwise, they will be (more
+    * or less) immune to gravitational forces.
+    */
+    setProjectileGravityOn() {
+        for (let p of this.mGame.mManager.mWorld.mProjectilePool.mPool)
+            p.mBody.SetGravityScale(1);
+    }
+    /**
+    * The "directional projectile" mechanism might lead to the projectiles moving too fast. This
+    * will cause the speed to be multiplied by a factor
+    *
+    * @param factor The value to multiply against the projectile speed.
+    */
+    setProjectileVectorDampeningFactor(factor) {
+        this.mGame.mManager.mWorld.mProjectilePool.mDirectionalDamp = factor;
+    }
+    /**
+    * Indicate that all projectiles should participate in collisions, rather than disappearing when
+    * they collide with other actors
+    */
+    enableCollisionsForProjectiles() {
+        this.mGame.mManager.mWorld.mProjectilePool.mSensorProjectiles = false;
+    }
+    /**
+    * Indicate that projectiles thrown with the "directional" mechanism should have a fixed
+    * velocity
+    *
+    * @param velocity The magnitude of the velocity for projectiles
+    */
+    setFixedVectorThrowVelocityForProjectiles(velocity) {
+        this.mGame.mManager.mWorld.mProjectilePool.mEnableFixedVectorVelocity = true;
+        this.mGame.mManager.mWorld.mProjectilePool.mFixedVectorVelocity = velocity;
+    }
+    /**
+    * Indicate that projectiles thrown via the "directional" mechanism should be rotated to face in
+    * their direction or movement
+    */
+    setRotateVectorThrowForProjectiles() {
+        this.mGame.mManager.mWorld.mProjectilePool.mRotateVectorThrow = true;
+    }
+    /**
+    * Indicate that when two projectiles collide, they should both remain on screen
+    */
+    setCollisionOkForProjectiles() {
+        for (let p of this.mGame.mManager.mWorld.mProjectilePool.mPool)
+            p.mDisappearOnCollide = false;
+    }
+    /**
+    * Describe the behavior of projectiles in a scene. You must call this if you intend to use
+    * projectiles in your scene.
+    *
+    * @param size     number of projectiles that can be thrown at once
+    * @param width    width of a projectile
+    * @param height   height of a projectile
+    * @param imgName  image to use for projectiles
+    * @param strength specifies the amount of damage that a projectile does to an enemy
+    * @param zIndex   The z plane on which the projectiles should be drawn
+    * @param isCircle Should projectiles have an underlying circle or box shape?
+    */
+    configureProjectiles(size, width, height, imgName, strength, zIndex, isCircle) {
+        this.mGame.mManager.mWorld.mProjectilePool = new ProjectilePool(this.mGame, this.mGame.mManager.mWorld, size, width, height, imgName, strength, zIndex, isCircle);
+    }
+    /**
+    * Set a limit on the total number of projectiles that can be thrown
+    *
+    * @param number How many projectiles are available
+    */
+    setNumberOfProjectiles(number) {
+        this.mGame.mManager.mWorld.mProjectilePool.mProjectilesRemaining = number;
+    }
+    /**
+    * Specify a sound to play when the projectile is thrown
+    *
+    * @param soundName Name of the sound file to play
+    */
+    setThrowSound(soundName) {
+        this.mGame.mManager.mWorld.mProjectilePool.mThrowSound = this.mMedia.getSound(soundName);
+    }
+    /**
+    * Specify the sound to play when a projectile disappears
+    *
+    * @param soundName the name of the sound file to play
+    */
+    setProjectileDisappearSound(soundName) {
+        this.mGame.mManager.mWorld.mProjectilePool.mProjectileDisappearSound =
+            this.mMedia.getSound(soundName);
+    }
+    /**
+    * Draw a box on the scene
+    * <p>
+    * Note: the box is actually four narrow rectangles
+    *
+    * @param x0         X coordinate of left side
+    * @param y0         Y coordinate of top
+    * @param x1         X coordinate of right side
+    * @param y1         Y coordinate of bottom
+    * @param imgName    name of the image file to use when drawing the rectangles
+    * @param density    Density of the rectangle. When in doubt, use 1
+    * @param elasticity Elasticity of the rectangle. When in doubt, use 0
+    * @param friction   Friction of the rectangle. When in doubt, use 1
+    */
+    drawBoundingBox(x0, y0, x1, y1, imgName, density, elasticity, friction) {
+        let bottom = this.makeObstacleAsBox(x0 - 1, y1, Math.abs(x0 - x1) + 2, 1, imgName);
+        bottom.setPhysics(density, elasticity, friction);
+        let top = this.makeObstacleAsBox(x0 - 1, y0 - 1, Math.abs(x0 - x1) + 2, 1, imgName);
+        top.setPhysics(density, elasticity, friction);
+        let left = this.makeObstacleAsBox(x0 - 1, y0 - 1, 1, Math.abs(y0 - y1) + 2, imgName);
+        left.setPhysics(density, elasticity, friction);
+        let right = this.makeObstacleAsBox(x1, y0 - 1, 1, Math.abs(y0 - y1) + 2, imgName);
+        right.setPhysics(density, elasticity, friction);
+    }
+    /**
+    * Draw a picture on the current level
+    * <p>
+    * Note: the order in which this is called relative to other actors will determine whether they
+    * go under or over this picture.
+    *
+    * @param x       X coordinate of top left corner
+    * @param y       Y coordinate of top left corner
+    * @param width   Width of the picture
+    * @param height  Height of this picture
+    * @param imgName Name of the picture to display
+    * @param zIndex  The z index of the image. There are 5 planes: -2, -2, 0, 1, and 2. By default,
+    *                everything goes to plane 0
+    */
+    drawPicture(x, y, width, height, imgName, zIndex) {
+        this.mGame.mManager.mWorld.makePicture(x, y, width, height, imgName, zIndex);
+    }
+    /**
+    * Draw some text in the scene, using a top-left coordinate
+    *
+    * @param x         The x coordinate of the top left corner
+    * @param y         The y coordinate of the top left corner
+    * @param fontName  The name of the font to use
+    * @param fontColor The color of the font
+    * @param fontSize  The size of the font
+    * @param prefix    Prefix text to put before the generated text
+    * @param suffix    Suffix text to put after the generated text
+    * @param tp        A TextProducer that will generate the text to display
+    * @param zIndex    The z index of the text
+    * @return A Renderable of the text, so it can be enabled/disabled by program code
+    */
+    addText(x, y, fontName, fontColor, fontSize, prefix, suffix, tp, zIndex) {
+        return this.mGame.mManager.mWorld.addText(x, y, fontName, fontColor, fontSize, prefix, suffix, tp, zIndex);
+    }
+    /**
+    * Draw some text in the scene, using a top-left coordinate
+    *
+    * @param x         The x coordinate of the top left corner
+    * @param y         The y coordinate of the top left corner
     * @param fontName  The name of the font to use
     * @param fontColor The color of the font
     * @param fontSize  The size of the font
@@ -2915,43 +1860,47 @@ class Level {
     addStaticText(x, y, fontName, fontColor, fontSize, text, zIndex) {
         return this.mGame.mManager.mWorld.addStaticText(x, y, fontName, fontColor, fontSize, text, zIndex);
     }
-    // /**
-    // * Draw some text in the scene, centering it on a specific point
-    // *
-    // * @param centerX   The x coordinate of the center
-    // * @param centerY   The y coordinate of the center
-    // * @param fontName  The name of the font to use
-    // * @param fontColor The color of the font
-    // * @param fontSize  The size of the font
-    // * @param prefix    Prefix text to put before the generated text
-    // * @param suffix    Suffix text to put after the generated text
-    // * @param tp        A TextProducer that will generate the text to display
-    // * @param zIndex    The z index of the text
-    // * @return A Renderable of the text, so it can be enabled/disabled by program code
-    // */
-    // public Renderable addTextCentered(float centerX, float centerY, String fontName,
-    //   String fontColor, int fontSize, String prefix, String suffix,
-    //   TextProducer tp, int zIndex) {
-    //     return mGame.mManager.mWorld.addTextCentered(centerX, centerY, fontName, fontColor,
-    //       fontSize, prefix, suffix, tp, zIndex);
-    //     }
-    //                                                                                           /**
-    //                                                                                           * Generate a random number x in the range [0,max)
-    //                                                                                           *
-    //                                                                                           * @param max The largest number returned will be one less than max
-    //                                                                                           * @return a random integer
-    //                                                                                           */
-    //                                                                                           public int getRandom(int max) {
-    //                                                                                             return mGame.mManager.mWorld.mGenerator.nextInt(max);
-    //                                                                                           }
-    //
-    //                                                                                           /**
-    //                                                                                           * Report whether all levels should be treated as unlocked. This is useful in Chooser, where we
-    //                                                                                           * might need to prevent some levels from being played.
-    //                                                                                           */
-    //                                                                                           public boolean getUnlockMode() {
-    //                                                                                             return mConfig.mUnlockAllLevels;
-    //                                                                                           }
+    /**
+    * Draw some text in the scene, centering it
+    *
+    * @param x         The x coordinate of the middle
+    * @param y         The y coordinate of the middle
+    * @param fontName  The name of the font to use
+    * @param fontColor The color of the font
+    * @param fontSize  The size of the font
+    * @param text      Text text to put before the generated text
+    * @param zIndex    The z index of the text
+    * @return A Renderable of the text, so it can be enabled/disabled by program code
+    */
+    addStaticTextCentered(x, y, fontName, fontColor, fontSize, text, zIndex) {
+        return this.mGame.mManager.mWorld.addStaticTextCentered(x, y, fontName, fontColor, fontSize, text, zIndex);
+    }
+    /**
+    * Draw some text in the scene, centering it on a specific point
+    *
+    * @param centerX   The x coordinate of the center
+    * @param centerY   The y coordinate of the center
+    * @param fontName  The name of the font to use
+    * @param fontColor The color of the font
+    * @param fontSize  The size of the font
+    * @param prefix    Prefix text to put before the generated text
+    * @param suffix    Suffix text to put after the generated text
+    * @param tp        A TextProducer that will generate the text to display
+    * @param zIndex    The z index of the text
+    * @return A Renderable of the text, so it can be enabled/disabled by program code
+    */
+    addTextCentered(centerX, centerY, fontName, fontColor, fontSize, prefix, suffix, tp, zIndex) {
+        return this.mGame.mManager.mWorld.addTextCentered(centerX, centerY, fontName, fontColor, fontSize, prefix, suffix, tp, zIndex);
+    }
+    /**
+    * Generate a random number x in the range [0,max)
+    *
+    * @param max The largest number returned will be one less than max
+    * @return a random integer
+    */
+    getRandom(max) {
+        return Math.floor(Math.random() * max);
+    }
     /**
     * load the splash screen
     */
@@ -2994,26 +1943,7 @@ class Level {
 class Config {
     constructor() { }
 }
-/**
- * TouchEventHandler is a wrapper for code that ought to run in response to a touch event.
- *
- * We can use TouchEventHandlers to specify how a game should respond to a taps, pan stops, and
- * other touch events
- */
-class TouchEventHandler {
-    constructor() {
-        /// A flag to control whether the event is allowed to execute or not
-        this.mIsActive = true;
-        /// The actor who generated this touch event
-        this.mSource = null;
-    }
-}
 /// <reference path="./BaseActor.ts"/>
-/// <reference path="./TouchEventHandler.ts"/>
-//// <reference path="./Lol.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 class WorldActor extends BaseActor {
     /**
     * Create a new actor that does not yet have physics, but that has a renderable picture
@@ -3029,9 +1959,6 @@ class WorldActor extends BaseActor {
         /// When the camera follows the actor without centering on it, this gives us the difference
         /// between the actor and camera
         this.mCameraOffset = new PhysicsType2d.Vector2(0, 0);
-        /// Track if Heros stick to this WorldActor. The array has 4 positions, corresponding to top,
-        /// right, bottom, left
-        //boolean[] mIsSticky = new boolean[4];
         /// Disable 3 of 4 sides of a Actors, to allow walking through walls. The value reflects the
         /// side that remains active. 0 is top, 1 is right, 2 is bottom, 3 is left
         this.mIsOneSided = -1;
@@ -3090,6 +2017,64 @@ class WorldActor extends BaseActor {
         // turn off sensor behavior, so this collides with stuff...
         this.setCollisionsEnabled(true);
     }
+    /**
+    * Indicate that this obstacle only registers collisions on one side.
+    *
+    * @param side The side that registers collisions. 0 is top, 1 is right, 2 is bottom, 3 is left,
+    *             -1 means "none"
+    */
+    setOneSided(side) {
+        this.mIsOneSided = side;
+    }
+    /**
+    * Indicate that this actor should not have collisions with any other actor that has the same ID
+    *
+    * @param id The number for this class of non-interacting actors
+    */
+    setPassThrough(id) {
+        this.mPassThroughId = id;
+    }
+    /**
+    * Specify that this actor is supposed to chase another actor, but using fixed X/Y velocities
+    *
+    * @param target     The actor to chase
+    * @param xMagnitude The magnitude in the x direction, if ignoreX is false
+    * @param yMagnitude The magnitude in the y direction, if ignoreY is false
+    * @param ignoreX    False if we should apply xMagnitude, true if we should keep the hero's
+    *                   existing X velocity
+    * @param ignoreY    False if we should apply yMagnitude, true if we should keep the hero's
+    *                   existing Y velocity
+    */
+    setChaseFixedMagnitude(target, xMagnitude, yMagnitude, ignoreX, ignoreY) {
+        this.mChaseTarget = target;
+        this.mBody.SetType(PhysicsType2d.Dynamics.BodyType.DYNAMIC);
+        let out_this = this;
+        this.mScene.mRepeatEvents.push(new (class _ extends LolAction {
+            go() {
+                // don't chase something that isn't visible
+                if (!target.mEnabled)
+                    return;
+                // don't run if this actor isn't visible
+                if (!out_this.mEnabled)
+                    return;
+                // determine directions for X and Y
+                let xDir = (target.getXPosition() > out_this.getXPosition()) ? 1 : -1;
+                let yDir = (target.getYPosition() > out_this.getYPosition()) ? 1 : -1;
+                let x = (ignoreX) ? out_this.getXVelocity() : xDir * xMagnitude;
+                let y = (ignoreY) ? out_this.getYVelocity() : yDir * yMagnitude;
+                // apply velocity
+                out_this.updateVelocity(x, y);
+            }
+        })());
+    }
+    /**
+    * Get the actor being chased by this actor
+    *
+    * @return The actor being chased
+    */
+    getChaseActor() {
+        return this.mChaseTarget;
+    }
 }
 /// <reference path="./WorldActor.ts"/>
 /**
@@ -3097,8 +2082,6 @@ class WorldActor extends BaseActor {
  * Hero disappears, and the score updates.
  */
 class Destination extends WorldActor {
-    /// Sound to play when a hero arrives at this destination
-    //Sound mArrivalSound;
     /**
      * Create a basic Destination.  The destination won't yet have any physics attached to it.
      *
@@ -3152,11 +2135,16 @@ class Destination extends WorldActor {
     setHeroCount(heroes) {
         this.mCapacity = heroes;
     }
+    /**
+    * Specify the sound to play when a hero arrives at this destination
+    *
+    * @param soundName The name of the sound file that should play
+    */
+    setArrivalSound(soundName) {
+        this.mArrivalSound = this.mScene.mMedia.getSound(soundName);
+    }
 }
 /// <reference path="./WorldActor.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 /**
  * Enemies are things to be avoided or defeated by the Hero. Enemies do damage to heroes when they
  * collide with heroes, and enemies can be defeated by heroes, in a variety of ways.
@@ -3176,79 +2164,75 @@ class Enemy extends WorldActor {
         this.mDamage = 2;
         this.mOnDefeatHeroText = "";
     }
-    // /**
-    //  * Code to run when an Enemy collides with a WorldActor.
-    //  * <p>
-    //  * Based on our WorldActor numbering scheme, the only concerns are collisions with Obstacles
-    //  * and Projectiles
-    //  *
-    //  * @param other   Other actor involved in this collision
-    //  * @param contact A description of the collision
-    //  */
-    // @Override
+    /**
+     * Code to run when an Enemy collides with a WorldActor.
+     * <p>
+     * Based on our WorldActor numbering scheme, the only concerns are collisions with Obstacles
+     * and Projectiles
+     *
+     * @param other   Other actor involved in this collision
+     * @param contact A description of the collision
+     */
+    //@Override
     onCollide(other, contact) {
-        //     // collision with obstacles
-        //     if (other instanceof Obstacle)
-        //         onCollideWithObstacle((Obstacle) other, contact);
-        //     // collision with projectiles
-        //     if (other instanceof Projectile)
-        //         onCollideWithProjectile((Projectile) other);
+        // collision with obstacles
+        if (other instanceof Obstacle)
+            this.onCollideWithObstacle(other, contact);
+        // collision with projectiles
+        if (other instanceof Projectile)
+            this.onCollideWithProjectile(other);
     }
-    //
-    // /**
-    //  * Dispatch method for handling Enemy collisions with Obstacles
-    //  *
-    //  * @param obstacle The obstacle with which this Enemy collided
-    //  * @param contact A description of the collision
-    //  */
-    // private void onCollideWithObstacle(final Obstacle obstacle, Contact contact) {
-    //     // handle any callbacks the obstacle has
-    //     if (obstacle.mEnemyCollision != null)
-    //         obstacle.mEnemyCollision.go(obstacle, this, contact);
-    // }
-    //
-    // /**
-    //  * Dispatch method for handling Enemy collisions with Projectiles
-    //  *
-    //  * @param projectile The projectile with which this Enemy collided
-    //  */
-    // private void onCollideWithProjectile(Projectile projectile) {
-    //     // ignore inactive projectiles
-    //     if (!projectile.mEnabled)
-    //         return;
-    //     // compute damage to determine if the enemy is defeated
-    //     mDamage -= projectile.mDamage;
-    //     if (mDamage <= 0) {
-    //         // hide the projectile quietly, so that the sound of the enemy can
-    //         // be heard
-    //         projectile.remove(true);
-    //         // remove this enemy
-    //         defeat(true);
-    //     } else {
-    //         // hide the projectile
-    //         projectile.remove(false);
-    //     }
-    // }
-    //
-    // /**
-    //  * Set the amount of damage that this enemy does to a hero
-    //  *
-    //  * @param amount Amount of damage. The default is 2, since heroes have a default strength of 1,
-    //  *               so that the enemy defeats the hero but does not disappear.
-    //  */
-    // public void setDamage(int amount) {
-    //     mDamage = amount;
-    // }
-    //
-    // /**
-    //  * If this enemy defeats the last hero of the board, this is the message that will be displayed
-    //  *
-    //  * @param message The message to display
-    //  */
-    // public void setDefeatHeroText(String message) {
-    //     mOnDefeatHeroText = message;
-    // }
-    //
+    /**
+     * Dispatch method for handling Enemy collisions with Obstacles
+     *
+     * @param obstacle The obstacle with which this Enemy collided
+     * @param contact A description of the collision
+     */
+    onCollideWithObstacle(obstacle, contact) {
+        // handle any callbacks the obstacle has
+        if (obstacle.mEnemyCollision != null)
+            obstacle.mEnemyCollision.go(obstacle, this, contact);
+    }
+    /**
+     * Dispatch method for handling Enemy collisions with Projectiles
+     *
+     * @param projectile The projectile with which this Enemy collided
+     */
+    onCollideWithProjectile(projectile) {
+        // ignore inactive projectiles
+        if (!projectile.mEnabled)
+            return;
+        // compute damage to determine if the enemy is defeated
+        this.mDamage -= projectile.mDamage;
+        if (this.mDamage <= 0) {
+            // hide the projectile quietly, so that the sound of the enemy can
+            // be heard
+            projectile.remove(true);
+            // remove this enemy
+            this.defeat(true);
+        }
+        else {
+            // hide the projectile
+            projectile.remove(false);
+        }
+    }
+    /**
+     * Set the amount of damage that this enemy does to a hero
+     *
+     * @param amount Amount of damage. The default is 2, since heroes have a default strength of 1,
+     *               so that the enemy defeats the hero but does not disappear.
+     */
+    setDamage(amount) {
+        this.mDamage = amount;
+    }
+    /**
+     * If this enemy defeats the last hero of the board, this is the message that will be displayed
+     *
+     * @param message The message to display
+     */
+    setDefeatHeroText(message) {
+        this.mOnDefeatHeroText = message;
+    }
     /**
      * When an enemy is defeated, this this code figures out how gameplay should change.
      *
@@ -3265,11 +2249,43 @@ class Enemy extends WorldActor {
         if (this.mDefeatCallback != null)
             this.mDefeatCallback.go(this);
     }
+    /**
+     * Indicate that this enemy can be defeated by crawling into it
+     */
+    setDefeatByCrawl() {
+        this.mDefeatByCrawl = true;
+        // make sure heroes don't ricochet off of this enemy when defeating it via crawling
+        this.setCollisionsEnabled(false);
+    }
+    /**
+     * Mark this enemy as one that can be defeated by jumping
+     */
+    setDefeatByJump() {
+        this.mDefeatByJump = true;
+    }
+    /**
+     * Make this enemy resist invincibility
+     */
+    setResistInvincibility() {
+        this.mImmuneToInvincibility = true;
+    }
+    /**
+     * Make this enemy damage the hero even when the hero is invincible
+     */
+    setImmuneToInvincibility() {
+        this.mAlwaysDoesDamage = true;
+    }
+    /**
+    * Provide code to run when this Enemy is defeated
+    *
+    * @param callback The callback to run when the enemy is defeated.  Note that a value of
+    *                 <code>null</code> will remove a previously-set callback
+    */
+    setDefeatCallback(callback) {
+        this.mDefeatCallback = callback;
+    }
 }
 /// <reference path="./WorldActor.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 /**
 * Goodies are actors that a hero can collect.
 * <p>
@@ -3322,10 +2338,6 @@ class LolAction {
 }
 /// <reference path="./Camera.ts" />
 /// <reference path="./LolAction.ts" />
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
-// ^this isn't working properly right now
 /**
  * LolScene is the parent of all Scene types
  * <p>
@@ -3346,16 +2358,17 @@ class LolScene {
         this.mContainer = new PIXI.Container();
         this.mConfig = config;
         this.mMedia = media;
-        let w = config.mWidth / config.mPixelMeterRatio;
-        let h = config.mHeight / config.mPixelMeterRatio;
+        let w = config.mWidth; // config.mPixelMeterRatio;
+        let h = config.mHeight; // config.mPixelMeterRatio;
         this.mContainer.position.x = 0;
         this.mContainer.position.y = 0;
         // set up the event lists
         this.mOneTimeEvents = new Array();
-        //this.mRepeatEvents = new ArrayList<>();
-        // set up the game camera, with (0, 0) in the bottom left
+        this.mRepeatEvents = new Array();
+        // set up the game camera, with (0, 0) in the top left
         this.mCamera = new Camera(w, h);
-        this.mCamera.setPosition(w / 2, h / 2);
+        //this.mCamera.centerOn(w / 2, h / 2);
+        this.mCamera.setPosition(0, 0);
         this.mCamera.setZoom(1);
         // set default camera bounds
         this.mCamBound = new PhysicsType2d.Vector2(w, h);
@@ -3378,10 +2391,16 @@ class LolScene {
         zIndex = (zIndex < -2) ? -2 : zIndex;
         zIndex = (zIndex > 2) ? 2 : zIndex;
         this.mRenderables[zIndex + 2].push(actor);
-        if (actor.mSprite)
-            this.mContainer.addChild(actor.mSprite);
-        if (actor.mText)
-            this.mContainer.addChild(actor.mText);
+        this.mCamera.mContainer.removeChildren();
+        this.mContainer.removeChildren();
+        for (let i = 0; i < 5; i++) {
+            for (let a of this.mRenderables[i]) {
+                if (a.mSprite)
+                    this.mContainer.addChild(a.mSprite);
+                if (a.mText)
+                    this.mContainer.addChild(a.mText);
+            }
+        }
         this.mCamera.mContainer.addChild(this.mContainer);
     }
     /**
@@ -3396,6 +2415,11 @@ class LolScene {
         zIndex = (zIndex > 2) ? 2 : zIndex;
         let i = this.mRenderables[zIndex + 2].indexOf(actor);
         this.mRenderables[zIndex + 2].splice(i, 1);
+        if (actor.mSprite)
+            this.mContainer.removeChild(actor.mSprite);
+        if (actor.mText)
+            this.mContainer.removeChild(actor.mText);
+        this.mCamera.mContainer.addChild(this.mContainer);
     }
     /**
     * Reset a scene by clearing all of its lists
@@ -3408,47 +2432,71 @@ class LolScene {
             a.length = 0;
         }
     }
-    // /**
-    //  * Draw some text in the scene, using a bottom-left coordinate
-    //  *
-    //  * @param x         The x coordinate of the bottom left corner
-    //  * @param y         The y coordinate of the bottom left corner
-    //  * @param fontName  The name of the font to use
-    //  * @param fontColor The color of the font
-    //  * @param fontSize  The size of the font
-    //  * @param prefix    Prefix text to put before the generated text
-    //  * @param suffix    Suffix text to put after the generated text
-    //  * @param tp        A TextProducer that will generate the text to display
-    //  * @param zIndex    The z index of the text
-    //  * @return A Renderable of the text, so it can be enabled/disabled by program code
-    //  */
-    // public addText(x: number, y: number, fontName: string, fontColor: string,
-    //                           fontSize: number, prefix: string, suffix: string,
-    //                           tp: Object, zIndex: number): Renderable {
-    //     // Choose a font color and get the BitmapFont
-    //     //final Color mColor = Color.valueOf(fontColor);
-    //     //final BitmapFont mFont = mMedia.getFont(fontName, fontSize);
-    //     // Create a renderable that updates its text on every render, and add it to the scene
-    //     var superThis = this;
-    //     let d: Renderable = new (class _ extends Renderable {
-    //         //@Override
-    //         onRender(): void {
-    //             //mFont.setColor(mColor);
-    //             //String txt = prefix + tp.makeText() + suffix;
-    //             //renderText(x, y, txt, mFont, sb);
-    //             let txt = prefix + tp.toString() + suffix;
-    //             let newText = new PIXI.Text(txt, {fontFamily: fontName, fontSize: fontSize, fill: 0xffffff, align: 'center'});
-    //             superThis.mContainer.addChild(newText);
-    //         }
-    //     })();
-    //     this.addActor(d, zIndex);
-    //     return d;
-    // }
     /**
-     * Draw some text in the scene, using a bottom-left coordinate
+    * Add an image to the scene.  The image will not have any physics attached to it.
+    *
+    * @param x       The X coordinate of the top left corner, in meters
+    * @param y       The Y coordinate of the top left corner, in meters
+    * @param width   The image width, in meters
+    * @param height  The image height, in meters
+    * @param imgName The file name for the image, or ""
+    * @param zIndex  The z index of the text
+    * @return A Renderable of the image, so it can be enabled/disabled by program code
+    */
+    makePicture(x, y, width, height, imgName, zIndex) {
+        // set up the image to display
+        // NB: this will fail gracefully (no crash) for invalid file names
+        //final TextureRegion tr = mMedia.getImage(imgName);
+        let r = new (class _ extends Renderable {
+            //@Override
+            onRender() {
+            }
+        })();
+        r.mSprite = new PIXI.Sprite(PIXI.loader.resources[imgName].texture);
+        r.mSprite.position.x = x;
+        r.mSprite.position.y = y;
+        r.mSprite.height = height;
+        r.mSprite.width = width;
+        this.addActor(r, zIndex);
+        return r;
+    }
+    /**
+     * Draw some text in the scene, using a top-left coordinate
      *
-     * @param x         The x coordinate of the bottom left corner
-     * @param y         The y coordinate of the bottom left corner
+     * @param x         The x coordinate of the top left corner
+     * @param y         The y coordinate of the top left corner
+     * @param fontName  The name of the font to use
+     * @param fontColor The color of the font
+     * @param fontSize  The size of the font
+     * @param prefix    Prefix text to put before the generated text
+     * @param suffix    Suffix text to put after the generated text
+     * @param tp        A TextProducer that will generate the text to display
+     * @param zIndex    The z index of the text
+     * @return A Renderable of the text, so it can be enabled/disabled by program code
+     */
+    addText(x, y, fontName, fontColor, fontSize, prefix, suffix, tp, zIndex) {
+        let out_this = this;
+        // Create a renderable that updates its text on every render, and add it to the scene
+        let d = new (class _ extends Renderable {
+            //@Override
+            onRender() {
+                let txt = prefix + tp.makeText() + suffix;
+                this.mText.text = txt;
+            }
+        })();
+        let txt = prefix + tp.makeText() + suffix;
+        let newText = new PIXI.Text(txt, { fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'left' });
+        d.mText = newText;
+        d.mText.position.x = x;
+        d.mText.position.y = y;
+        this.addActor(d, zIndex);
+        return d;
+    }
+    /**
+     * Draw some text in the scene, using a top-left coordinate
+     *
+     * @param x         The x coordinate of the top left corner
+     * @param y         The y coordinate of the top left corner
      * @param fontName  The name of the font to use
      * @param fontColor The color of the font
      * @param fontSize  The size of the font
@@ -3460,17 +2508,71 @@ class LolScene {
         // Create a renderable that updates its text on every render, and add it to the scene
         let d = new (class _ extends Renderable {
             //@Override
-            onRender() {
-                // let newText = new PIXI.Text("Hello Darkness My Old Friend", {fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center'});
-                // newText.position.x = x;
-                // newText.position.y = y;
-                // this.mText = newText;
-            }
+            onRender() { }
         })();
-        let newText = new PIXI.Text(text, { fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center' });
+        let newText = new PIXI.Text(text, { fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'left' });
         d.mText = newText;
         d.mText.position.x = x;
         d.mText.position.y = y;
+        this.addActor(d, zIndex);
+        return d;
+    }
+    /**
+     * Draw some text in the scene, using the middle coordinate
+     *
+     * @param x         The x coordinate of the middle of the text
+     * @param y         The y coordinate of the middle of the text
+     * @param fontName  The name of the font to use
+     * @param fontColor The color of the font
+     * @param fontSize  The size of the font
+     * @param text      Text to put on screen
+     * @param zIndex    The z index of the text
+     * @return A Renderable of the text, so it can be enabled/disabled by program code
+     */
+    addStaticTextCentered(x, y, fontName, fontColor, fontSize, text, zIndex) {
+        // Create a renderable that updates its text on every render, and add it to the scene
+        let d = new (class _ extends Renderable {
+            //@Override
+            onRender() { }
+        })();
+        let newText = new PIXI.Text(text, { fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center' });
+        d.mText = newText;
+        d.mText.anchor.x = 0.5;
+        d.mText.anchor.y = 0.5;
+        d.mText.position.x = x;
+        d.mText.position.y = y;
+        this.addActor(d, zIndex);
+        return d;
+    }
+    /**
+     * Draw some text in the scene, centering it on a specific point
+     *
+     * @param centerX   The x coordinate of the center
+     * @param centerY   The y coordinate of the center
+     * @param fontName  The name of the font to use
+     * @param fontColor The color of the font
+     * @param fontSize  The size of the font
+     * @param prefix    Prefix text to put before the generated text
+     * @param suffix    Suffix text to put after the generated text
+     * @param tp        A TextProducer that will generate the text to display
+     * @param zIndex    The z index of the text
+     * @return A Renderable of the text, so it can be enabled/disabled by program code
+     */
+    addTextCentered(centerX, centerY, fontName, fontColor, fontSize, prefix, suffix, tp, zIndex) {
+        let out_this = this;
+        // Create a renderable that updates its text on every render, and add it to the scene
+        let d = new (class _ extends Renderable {
+            //@Override
+            onRender() {
+                let txt = prefix + tp.makeText() + suffix;
+                this.mText.text = txt;
+            }
+        })();
+        let txt = prefix + tp.makeText() + suffix;
+        let newText = new PIXI.Text(txt, { fontFamily: fontName, fontSize: fontSize, fill: fontColor, align: 'center' });
+        d.mText = newText;
+        d.mText.position.x = centerX;
+        d.mText.position.y = centerY;
         this.addActor(d, zIndex);
         return d;
     }
@@ -3483,33 +2585,56 @@ class Media {
      * @param config The game-wide configuration object, which contains lists of images and sounds
      */
     constructor(config) {
-        // mConfig = config;
-        // for (String imgName : config.mImageNames) {
-        //     TextureRegion tr = new TextureRegion(new Texture(Gdx.files.internal(imgName)));
-        //     mImages.put(imgName, tr);
-        // }
-        // for (String soundName : config.mSoundNames) {
-        //     Sound s = Gdx.audio.newSound(Gdx.files.internal(soundName));
-        //     mSounds.put(soundName, s);
-        // }
-        // int volume = Lol.getGameFact(mConfig, "volume", 1);
-        // for (String musicName : config.mMusicNames) {
-        //     Music m = Gdx.audio.newMusic(Gdx.files.internal(musicName));
-        //     m.setLooping(true);
-        //     m.setVolume(volume);
-        //     mTunes.put(musicName, m);
-        // }
+        this.mConfig = config;
+        this.mSounds = new Map();
+        this.mTunes = new Map();
+        for (let imgName of config.mImageNames) {
+            // PIXI has a built-in image loader
+            PIXI.loader.add(imgName);
+            //let texture: PIXI.Texture
+            //this.mImages.set(imgName, texture);
+        }
+        //PIXI.loader.load();
+        for (let soundName of config.mSoundNames) {
+            let s = new Sound(soundName);
+            this.mSounds.set(soundName, s);
+        }
+        for (let musicName of config.mMusicNames) {
+            let m = new Sound(musicName);
+            m.setLooping(true);
+            this.mTunes.set(musicName, m);
+        }
+    }
+    /**
+     * Get a previously loaded Sound object
+     *
+     * @param soundName Name of the sound file to retrieve
+     * @return a Sound object that can be used for sound effects
+     */
+    getSound(soundName) {
+        let ret = this.mSounds.get(soundName);
+        if (ret == null) {
+            Lol.message(this.mConfig, "ERROR", "Error retrieving sound '" + soundName + "'");
+        }
+        return ret;
+    }
+    /**
+     * Get a previously loaded Music object
+     *
+     * @param musicName Name of the music file to retrieve
+     * @return a Music object that can be used to play background music
+     */
+    getMusic(musicName) {
+        let ret = this.mTunes.get(musicName);
+        if (ret == null) {
+            Lol.message(this.mConfig, "ERROR", "Error retrieving music '" + musicName + "'");
+        }
+        return ret;
     }
 }
 /// <reference path="./LolScene.ts" />
 /// <reference path="./Media.ts" />
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 class HudScene extends LolScene {
-    /// The set of all controls that have toggle handlers.  We need this, so we can "lift" toggles
-    /// on screen change evenrs
-    //readonly mToggleControls: Array<SceneActor>;
     /**
     * Create a new heads-up display by providing the dimensions for its camera
     *
@@ -3518,7 +2643,6 @@ class HudScene extends LolScene {
     */
     constructor(config, media) {
         super(config, media);
-        //this.mToggleControls = new Array<SceneActor>();
     }
     /**
     * Draw the Hud
@@ -3527,188 +2651,40 @@ class HudScene extends LolScene {
     * @param delta The time since the last render
     */
     render() {
-        //this.mCamera.updatePosition();
         // Advance the physics world by 1/45 of a second (1/45 is the recommended rate)
         this.mWorld.Step(1 / 45, 8, 3);
-        // Render all actors and text
-        //sb.setProjectionMatrix(mCamera.combined);
-        //sb.begin();
         for (let zA of this.mRenderables) {
             for (let r of zA) {
                 r.render();
             }
         }
-        //sb.end();
-        // TODO: box2d shape renderer for controls2
-        // if (mConfig.mShowDebugBoxes) {
-        // }
         return true;
     }
 }
-//// <reference path="./Hero.ts"/>
-//// <reference path="./Enemy.ts"/>
+/**
+ * TouchEventHandler is a wrapper for code that ought to run in response to a touch event.
+ *
+ * We can use TouchEventHandlers to specify how a game should respond to a taps, pan stops, and
+ * other touch events
+ */
+class TouchEventHandler {
+    constructor() {
+        /// A flag to control whether the event is allowed to execute or not
+        this.mIsActive = true;
+        /// The actor who generated this touch event
+        this.mSource = null;
+    }
+}
 /// <reference path="./TouchEventHandler.ts"/>
-//// <reference path="./LolAction.ts"/>
 /// <reference path="./LolScene.ts"/>
-//// <reference path="./Config.ts"/>
-//// <reference path="./Media.ts"/>
 /// <reference path="./WorldActor.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 class MainScene extends LolScene {
-    /// A handler to run in response to a screen Pan event.  An actor will install this, if needed
-    //readonly mPanHandlers: Array<PanEventHandler>;
-    /// A pool of projectiles for use by the hero
-    //ProjectilePool mProjectilePool;
-    /// The music, if any
-    //Music mMusic;
-    /// Whether the music is playing or not
-    //private boolean mMusicPlaying;
-    /// A random number generator... We provide this so that new game developers don't create lots
-    /// of Random()s throughout their code
-    //final Random mGenerator;
     constructor(config, media) {
         super(config, media);
         /// A multiplier to make gravity change faster or slower than the accelerometer default
         this.mTiltMultiplier = 1;
         this.configureCollisionHandlers();
     }
-    // chaseActor(hero: WorldActor) {
-    //   this.mChaseActor = hero;
-    //   this.mCamera.setChase(hero);
-    // }
-    //   /**
-    //  * The main render loop calls this to determine what to do when there is a phone tilt
-    //  */
-    // void handleTilt() {
-    //     if (mTiltMax == null)
-    //         return;
-    //
-    //     // these temps are for storing the accelerometer forces we measure
-    //     float xGravity = 0;
-    //     float yGravity = 0;
-    //
-    //     // if we're on a phone, read from the accelerometer device, taking into account the rotation
-    //     // of the device
-    //     Application.ApplicationType appType = Gdx.app.getType();
-    //     if (appType == Application.ApplicationType.Android || appType == Application.ApplicationType.iOS) {
-    //         float rot = Gdx.input.getRotation();
-    //         if (rot == 0) {
-    //             xGravity = -Gdx.input.getAccelerometerX();
-    //             yGravity = -Gdx.input.getAccelerometerY();
-    //         } else if (rot == 90) {
-    //             xGravity = Gdx.input.getAccelerometerY();
-    //             yGravity = -Gdx.input.getAccelerometerX();
-    //         } else if (rot == 180) {
-    //             xGravity = Gdx.input.getAccelerometerX();
-    //             yGravity = Gdx.input.getAccelerometerY();
-    //         } else if (rot == 270) {
-    //             xGravity = -Gdx.input.getAccelerometerY();
-    //             yGravity = Gdx.input.getAccelerometerX();
-    //         }
-    //     }
-    //     // if we're on a computer, we simulate tilt with the arrow keys
-    //     else {
-    //         if (Gdx.input.isKeyPressed(Input.Keys.DPAD_LEFT))
-    //             xGravity = -15f;
-    //         else if (Gdx.input.isKeyPressed(Input.Keys.DPAD_RIGHT))
-    //             xGravity = 15f;
-    //         else if (Gdx.input.isKeyPressed(Input.Keys.DPAD_UP))
-    //             yGravity = 15f;
-    //         else if (Gdx.input.isKeyPressed(Input.Keys.DPAD_DOWN))
-    //             yGravity = -15f;
-    //     }
-    //
-    //     // Apply the gravity multiplier
-    //     xGravity *= mTiltMultiplier;
-    //     yGravity *= mTiltMultiplier;
-    //
-    //     // ensure x is within the -GravityMax.x : GravityMax.x range
-    //     xGravity = (xGravity > mConfig.mPixelMeterRatio * mTiltMax.x) ?
-    //             mConfig.mPixelMeterRatio * mTiltMax.x : xGravity;
-    //     xGravity = (xGravity < mConfig.mPixelMeterRatio * -mTiltMax.x) ?
-    //             mConfig.mPixelMeterRatio * -mTiltMax.x : xGravity;
-    //
-    //     // ensure y is within the -GravityMax.y : GravityMax.y range
-    //     yGravity = (yGravity > mConfig.mPixelMeterRatio * mTiltMax.y) ?
-    //             mConfig.mPixelMeterRatio * mTiltMax.y : yGravity;
-    //     yGravity = (yGravity < mConfig.mPixelMeterRatio * -mTiltMax.y) ?
-    //             mConfig.mPixelMeterRatio * -mTiltMax.y : yGravity;
-    //
-    //     // If we're in 'velocity' mode, apply the accelerometer reading to each
-    //     // actor as a fixed velocity
-    //     if (mTiltVelocityOverride) {
-    //         // if X is clipped to zero, set each actor's Y velocity, leave X
-    //         // unchanged
-    //         if (mTiltMax.x == 0) {
-    //             for (WorldActor gfo : mTiltActors)
-    //                 if (gfo.mBody.isActive())
-    //                     gfo.updateVelocity(gfo.mBody.getLinearVelocity().x, yGravity);
-    //         }
-    //         // if Y is clipped to zero, set each actor's X velocity, leave Y
-    //         // unchanged
-    //         else if (mTiltMax.y == 0) {
-    //             for (WorldActor gfo : mTiltActors)
-    //                 if (gfo.mBody.isActive())
-    //                     gfo.updateVelocity(xGravity, gfo.mBody.getLinearVelocity().y);
-    //         }
-    //         // otherwise we set X and Y velocity
-    //         else {
-    //             for (WorldActor gfo : mTiltActors)
-    //                 if (gfo.mBody.isActive())
-    //                     gfo.updateVelocity(xGravity, yGravity);
-    //         }
-    //     }
-    //     // when not in velocity mode, apply the accelerometer reading to each
-    //     // actor as a force
-    //     else {
-    //         for (WorldActor gfo : mTiltActors)
-    //             if (gfo.mBody.isActive())
-    //                 gfo.mBody.applyForceToCenter(xGravity, yGravity, true);
-    //     }
-    // }
-    //
-    // /**
-    //  * When a hero collides with a "sticky" obstacle, this figures out what to do
-    //  *
-    //  * @param sticky  The sticky actor... it should always be an obstacle for now
-    //  * @param other   The other actor... it should always be a hero for now
-    //  * @param contact A description of the contact event
-    //  */
-    // private void handleSticky(final WorldActor sticky, final WorldActor other, Contact contact) {
-    //     // don't create a joint if we've already got one
-    //     if (other.mDJoint != null)
-    //         return;
-    //     // don't create a joint if we're supposed to wait
-    //     if (System.currentTimeMillis() < other.mStickyDelay)
-    //         return;
-    //     // go sticky obstacles... only do something if we're hitting the
-    //     // obstacle from the correct direction
-    //     if ((sticky.mIsSticky[0] && other.getYPosition() >= sticky.getYPosition() + sticky.mSize.y)
-    //             || (sticky.mIsSticky[1] && other.getXPosition() + other.mSize.x <= sticky.getXPosition())
-    //             || (sticky.mIsSticky[3] && other.getXPosition() >= sticky.getXPosition() + sticky.mSize.x)
-    //             || (sticky.mIsSticky[2] && other.getYPosition() + other.mSize.y <= sticky.getYPosition())) {
-    //         // create distance and weld joints... somehow, the combination is needed to get this to
-    //         // work. Note that this function runs during the box2d step, so we need to make the
-    //         // joint in a callback that runs later
-    //         final Vector2 v = contact.getWorldManifold().getPoints()[0];
-    //         mOneTimeEvents.add(new LolAction() {
-    //             @Override
-    //             public void go() {
-    //                 other.mBody.setLinearVelocity(0, 0);
-    //                 DistanceJointDef d = new DistanceJointDef();
-    //                 d.initialize(sticky.mBody, other.mBody, v, v);
-    //                 d.collideConnected = true;
-    //                 other.mDJoint = (DistanceJoint) mWorld.createJoint(d);
-    //                 WeldJointDef w = new WeldJointDef();
-    //                 w.initialize(sticky.mBody, other.mBody, v);
-    //                 w.collideConnected = true;
-    //                 other.mWJoint = (WeldJoint) mWorld.createJoint(w);
-    //             }
-    //         });
-    //     }
-    // }
     /**
     * Configure physics for the current level
     */
@@ -3726,7 +2702,6 @@ class MainScene extends LolScene {
             */
             //@Override
             BeginContact(contact) {
-                console.log("Begin Contact");
                 // Get the bodies, make sure both are actors
                 let a = contact.GetFixtureA().GetBody().GetUserData(); //any type
                 let b = contact.GetFixtureB().GetBody().GetUserData(); //any type
@@ -3755,12 +2730,14 @@ class MainScene extends LolScene {
                 else if (b instanceof Enemy) {
                     c0 = b;
                     c1 = a;
-                    // } else if (a instanceof Projectile) {
-                    //   c0 = a as WorldActor;
-                    //   c1 = b as WorldActor;
-                    // } else if (b instanceof Projectile) {
-                    //   c0 = b as WorldActor;
-                    //   c1 = a as WorldActor;
+                }
+                else if (a instanceof Projectile) {
+                    c0 = a;
+                    c1 = b;
+                }
+                else if (b instanceof Projectile) {
+                    c0 = b;
+                    c1 = a;
                 }
                 else {
                     return;
@@ -3784,7 +2761,6 @@ class MainScene extends LolScene {
             */
             //@Override
             EndContact(contact) {
-                console.log("End Contact");
             }
             /**
             * Presolve is a hook for disabling certain collisions. We use it
@@ -3796,13 +2772,12 @@ class MainScene extends LolScene {
             //@Override
             PreSolve(contact, oldManifold) {
                 // get the bodies, make sure both are actors
-                //  let a = contact.GetFixtureA().GetBody().GetUserData();
-                //  let b = contact.GetFixtureB().GetBody().GetUserData();
-                //  if (!(a instanceof WorldActor) || !(b instanceof WorldActor))
-                //      return;
-                //  let gfoA = a as WorldActor;
-                //  let gfoB = b as WorldActor;
-                //TODO: This stuff here
+                let a = contact.GetFixtureA().GetBody().GetUserData();
+                let b = contact.GetFixtureB().GetBody().GetUserData();
+                if (!(a instanceof WorldActor) || !(b instanceof WorldActor))
+                    return;
+                let gfoA = a;
+                let gfoB = b;
                 //  // go sticky obstacles... only do something if at least one actor is a sticky actor
                 //  if (gfoA.mIsSticky[0] || gfoA.mIsSticky[1] || gfoA.mIsSticky[2] || gfoA.mIsSticky[3]) {
                 //      handleSticky(gfoA, gfoB, contact);
@@ -3811,41 +2786,41 @@ class MainScene extends LolScene {
                 //      handleSticky(gfoB, gfoA, contact);
                 //      return;
                 //  }
-                //
-                //  // if the actors have the same passthrough ID, and it's  not zero, then disable the
-                //  // contact
-                //  if (gfoA.mPassThroughId != 0 && gfoA.mPassThroughId == gfoB.mPassThroughId) {
-                //      contact.SetEnabled(false);
-                //      return;
-                //  }
-                //
-                //  // is either one-sided? If not, we're done
-                //  let oneSided: WorldActor;
-                // let other: WorldActor;
-                //  if (gfoA.mIsOneSided > -1) {
-                //      oneSided = gfoA;
-                //      other = gfoB;
-                //  } else if (gfoB.mIsOneSided > -1) {
-                //      oneSided = gfoB;
-                // other = gfoA;
-                //  } else {
-                //      return;
-                //  }
-                // if we're here, see if we should be disabling a one-sided obstacle collision
-                //let worldManiFold = contact.GetWorldManifold();
-                //  let numPoints = worldManiFold.points.length;
-                //  for (let i = 0; i < numPoints; i++) {
-                //      let vector2 = other.mBody.GetLinearVelocityFromWorldPoint(worldManiFold.points[i]);
-                //      // disable based on the value of isOneSided and the vector between the actors
-                //      if (oneSided.mIsOneSided == 0 && vector2.y < 0)
-                //          contact.SetEnabled(false);
-                //      else if (oneSided.mIsOneSided == 2 && vector2.y > 0)
-                //          contact.SetEnabled(false);
-                //      else if (oneSided.mIsOneSided == 1 && vector2.x > 0)
-                //          contact.SetEnabled(false);
-                //      else if (oneSided.mIsOneSided == 3 && vector2.x < 0)
-                //          contact.SetEnabled(false);
-                //  }
+                // if the actors have the same passthrough ID, and it's  not zero, then disable the
+                // contact
+                if (gfoA.mPassThroughId != 0 && gfoA.mPassThroughId == gfoB.mPassThroughId) {
+                    contact.SetEnabled(false);
+                    return;
+                }
+                // is either one-sided? If not, we're done
+                let oneSided;
+                let other;
+                if (gfoA.mIsOneSided > -1) {
+                    oneSided = gfoA;
+                    other = gfoB;
+                }
+                else if (gfoB.mIsOneSided > -1) {
+                    oneSided = gfoB;
+                    other = gfoA;
+                }
+                else {
+                    return;
+                }
+                //if we're here, see if we should be disabling a one-sided obstacle collision
+                let worldManiFold = contact.GetWorldManifold();
+                let numPoints = worldManiFold.points.length;
+                for (let i = 0; i < numPoints; i++) {
+                    let vector2 = other.mBody.GetLinearVelocityFromWorldPoint(worldManiFold.points[i]);
+                    // disable based on the value of isOneSided and the vector between the actors
+                    if (oneSided.mIsOneSided == 0 && vector2.y < 0)
+                        contact.SetEnabled(false);
+                    else if (oneSided.mIsOneSided == 2 && vector2.y > 0)
+                        contact.SetEnabled(false);
+                    else if (oneSided.mIsOneSided == 1 && vector2.x > 0)
+                        contact.SetEnabled(false);
+                    else if (oneSided.mIsOneSided == 3 && vector2.x < 0)
+                        contact.SetEnabled(false);
+                }
             }
             /**
             * We ignore postsolve
@@ -3858,35 +2833,33 @@ class MainScene extends LolScene {
             }
         })(this));
     }
-    // /**
-    //  * If the level has music attached to it, this starts playing it
-    //  */
-    // void playMusic() {
-    //     if (!mMusicPlaying && mMusic != null) {
-    //         mMusicPlaying = true;
-    //         mMusic.play();
-    //     }
-    // }
-    //
-    // /**
-    //  * If the level has music attached to it, this pauses it
-    //  */
-    // void pauseMusic() {
-    //     if (mMusicPlaying) {
-    //         mMusicPlaying = false;
-    //         mMusic.pause();
-    //     }
-    // }
-    //
-    // /**
-    //  * If the level has music attached to it, this stops it
-    //  */
-    // void stopMusic() {
-    //     if (mMusicPlaying) {
-    //         mMusicPlaying = false;
-    //         mMusic.stop();
-    //     }
-    // }
+    /**
+     * If the level has music attached to it, this starts playing it
+     */
+    playMusic() {
+        if (!this.mMusicPlaying && this.mMusic) {
+            this.mMusicPlaying = true;
+            this.mMusic.play();
+        }
+    }
+    /**
+     * If the level has music attached to it, this pauses it
+     */
+    pauseMusic() {
+        if (this.mMusicPlaying) {
+            this.mMusicPlaying = false;
+            this.mMusic.stop();
+        }
+    }
+    /**
+     * If the level has music attached to it, this stops it
+     */
+    stopMusic() {
+        if (this.mMusicPlaying) {
+            this.mMusicPlaying = false;
+            this.mMusic.stop();
+        }
+    }
     /**
     * If the camera is supposed to follow an actor, this code will handle updating the camera
     * position
@@ -3898,160 +2871,29 @@ class MainScene extends LolScene {
         // figure out the actor's position
         let x = this.mChaseActor.mBody.GetWorldCenter().x + this.mChaseActor.mCameraOffset.x;
         let y = this.mChaseActor.mBody.GetWorldCenter().y + this.mChaseActor.mCameraOffset.y;
-        // // if x or y is too close to MAX,MAX, stick with max acceptable values
-        // if (x > this.mCamBound.x - this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-        //   x = this.mCamBound.x - this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-        // }
-        // if (y > this.mCamBound.y - this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-        //   y = this.mCamBound.y - this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-        // }
-        // // if x or y is too close to 0,0, stick with minimum acceptable values
-        // //
-        // // NB: we do MAX before MIN, so that if we're zoomed out, we show extra
-        // // space at the top instead of the bottom
-        // if (x < this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-        //   x = this.mConfig.mWidth * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-        // }
-        // if (y < this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2) {
-        //   y = this.mConfig.mHeight * this.mCamera.getZoom() / this.mConfig.mPixelMeterRatio / 2;
-        // }
+        // if x or y is too close to MAX,MAX, stick with max acceptable values
+        if (x > this.mCamBound.x - (this.mConfig.mWidth / 2) * this.mCamera.getZoom()) {
+            x = this.mCamBound.x - (this.mConfig.mWidth / 2) * this.mCamera.getZoom();
+        }
+        if (y > this.mCamBound.y - (this.mConfig.mHeight / 2) * this.mCamera.getZoom()) {
+            y = this.mCamBound.y - (this.mConfig.mHeight / 2) * this.mCamera.getZoom();
+        }
+        // if x or y is too close to 0,0, stick with minimum acceptable values
+        //
+        // NB: we do MAX before MIN, so that if we're zoomed out, we show extra
+        // space at the top instead of the bottom
+        if (x < (this.mConfig.mWidth / 2) * this.mCamera.getZoom()) {
+            x = (this.mConfig.mWidth / 2) * this.mCamera.getZoom();
+        }
+        if (y < (this.mConfig.mHeight / 2) * this.mCamera.getZoom()) {
+            y = (this.mConfig.mHeight / 2) * this.mCamera.getZoom();
+        }
         // update the camera position
         this.mCamera.centerOn(x, y);
         this.mCamera.setPosition(this.mConfig.mWidth / 2, this.mConfig.mHeight / 2);
     }
-    // /**
-    // * Respond to a fling gesture
-    // *
-    // * @param velocityX The X velocity of the fling
-    // * @param velocityY The Y velocity of the fling
-    // * @return True if the gesture was handled
-    // */
-    // handleFling(velocityX: number, velocityY: number): boolean {
-    //   // we only fling at the whole-level layer
-    //   mCamera.unproject(mTouchVec.set(velocityX, velocityY, 0));
-    //   for (TouchEventHandler ga : mFlingHandlers) {
-    //     if (ga.go(mTouchVec.x, mTouchVec.y))
-    //     return true;
-    //   }
-    //   return false;
-    // }
-    // /**
-    // * Respond to a Pan gesture
-    // *
-    // * @param x      The screen X of the pan
-    // * @param y      The screen Y of the pan
-    // * @param deltaX The change in X since last pan
-    // * @param deltaY The change in Y since last pan
-    // * @return True if the pan was handled, false otherwise
-    // */
-    // boolean handlePan(float x, float y, float deltaX, float deltaY) {
-    //   mCamera.unproject(mTouchVec.set(x, y, 0));
-    //   for (PanEventHandler ga : mPanHandlers) {
-    //     if (ga.go(mTouchVec.x, mTouchVec.y, deltaX, deltaY))
-    //     return true;
-    //   }
-    //   return false;
-    // }
-    // /**
-    // * Respond to a pan stop event
-    // *
-    // * @param x The screen X of the pan stop event
-    // * @param y The screen Y of the pan stop event
-    // * @return True if the pan stop was handled, false otherwise
-    // */
-    // boolean handlePanStop(float x, float y) {
-    //   // go panstop on level
-    //   mCamera.unproject(mTouchVec.set(x, y, 0));
-    //   for (TouchEventHandler ga : mPanStopHandlers)
-    //   if (ga.go(mTouchVec.x, mTouchVec.y))
-    //   return true;
-    //   return false;
-    // }
-    // /**
-    // * Respond to a Down screenpress
-    // *
-    // * @param screenX The screen X coordinate of the Down
-    // * @param screenY The screen Y coordinate of the Down
-    // * @return True if the Down was handled, false otherwise
-    // */
-    // handleDown(screenX: number, screenY: number): boolean {
-    //   // check for actor touch by looking at gameCam coordinates... on touch, hitActor will change
-    //   this.mHitActor = null;
-    //   //this.mCamera.unproject(mTouchVec.set(screenX, screenY, 0));
-    //   this.mWorld.QueryAABB(this.mTouchCallback, new PhysicsType2d.Collision.AxisAlignedBoundingBox(this.mTouchVec.x - 0.1, this.mTouchVec.y - 0.1,
-    //     this.mTouchVec.x + 0.1, this.mTouchVec.y + 0.1));
-    //
-    //     // actors don't respond to DOWN... if it's a down on an actor, we are supposed to remember
-    //     // the most recently touched actor, and that's it
-    //     if (this.mHitActor != null) {
-    //       if (this.mHitActor.mToggleHandler != null) {
-    //         if (this.mHitActor.mToggleHandler.go(false, this.mTouchVec.x, this.mTouchVec.y)) {
-    //           return true;
-    //         }
-    //       }
-    //     }
-    //
-    //     // forward to the level's handler
-    //     for (TouchEventHandler ga : mDownHandlers) {
-    //       if (ga.go(mTouchVec.x, mTouchVec.y)) {
-    //         return true;
-    //       }
-    //     }
-    //     return false;
-    //   }
-    // /**
-    //  * Respond to a Up screen event
-    //  *
-    //  * @param screenX The screen X coordinate of the Up
-    //  * @param screenY The screen Y coordinate of the Up
-    //  * @return True if the Up was handled, false otherwise
-    //  */
-    // boolean handleUp(float screenX, float screenY) {
-    //     mCamera.unproject(mTouchVec.set(screenX, screenY, 0));
-    //     if (mHitActor != null) {
-    //         if (mHitActor.mToggleHandler != null) {
-    //             if (mHitActor.mToggleHandler.go(true, mTouchVec.x, mTouchVec.y)) {
-    //                 mHitActor = null;
-    //                 return true;
-    //             }
-    //         }
-    //     }
-    //     return false;
-    // }
-    // /**
-    //  * Respond to a Drag screen event
-    //  *
-    //  * @param screenX The screen X coordinate of the Drag
-    //  * @param screenY The screen Y coordinate of the Drag
-    //  * @return True if the Drag was handled, false otherwise
-    //  */
-    // boolean handleDrag(float screenX, float screenY) {
-    //     if (mHitActor != null && ((WorldActor) mHitActor).mDragHandler != null) {
-    //         mCamera.unproject(mTouchVec.set(screenX, screenY, 0));
-    //         return ((WorldActor) mHitActor).mDragHandler.go(mTouchVec.x, mTouchVec.y);
-    //     }
-    //     return false;
-    // }
-    //
-    // /**
-    //  * A hack for stopping events when a pause screen is opened
-    //  *
-    //  * @param touchX The x coordinate of the touch that is being lifted
-    //  * @param touchY The y coordinate of the touch that is being lifted
-    //  */
-    // void liftAllButtons(float touchX, float touchY) {
-    //     for (TouchEventHandler ga : mPanStopHandlers) {
-    //         ga.go(touchX, touchY);
-    //     }
-    //     for (TouchEventHandler ga : mUpHandlers) {
-    //         ga.go(touchX, touchY);
-    //     }
-    // }
     /**
     * Draw the actors in this world
-    *
-    * @param sb    The spritebatch to use when drawing
-    * @param delta The time since the last render
     */
     render() {
         for (let zA of this.mRenderables) {
@@ -4078,150 +2920,27 @@ class QuickScene extends LolScene {
         let out_this = this;
         // Set the default dismiss action to clear the screen and fix the timers
         this.mDismissAction = new (class _ extends LolAction {
-            //@Override
             go() {
                 if (out_this.mClickToClear) {
                     let showTime = (new Date()).getTime() - out_this.mDisplayTime;
-                    //Timer.instance().delay(showTime);
-                    //Timer.instance().start();
                     PIXI.ticker.shared.start();
                 }
             }
         })();
-        // Set the default show action to put the default text on the screen
-        // mShowAction = new LolAction() {
-        //     @Override
-        //     public void go() {
-        //         // If the scene has been disabled, just return
-        //         if (mDisable) {
-        //             dismiss();
-        //             return;
-        //         }
-        //         // play the show sound
-        //         if (mSound != null)
-        //             mSound.play(Lol.getGameFact(mConfig, "volume", 1));
-        //         // The default text to display can change at the last second, so we compute it here
-        //         addTextCentered(mConfig.mWidth / mConfig.mPixelMeterRatio / 2, mConfig.mHeight / mConfig.mPixelMeterRatio / 2,
-        //                 mConfig.mDefaultFontFace, mConfig.mDefaultFontColor, mConfig.mDefaultFontSize, "", "", new TextProducer() {
-        //                     @Override
-        //                     public String makeText() {
-        //                         return mText;
-        //                     }
-        //                 }, 0);
-        //     }
-        // };
     }
-    //
-    // /**
-    //  * Pause the timer when this screen is shown
-    //  */
-    // void suspendClock() {
-    //     Timer.instance().stop();
-    //     mDisplayTime = System.currentTimeMillis();
-    // }
-    //
     /**
      * Render the QuickScene, or return false if it is not supposed to be shown
-     *
-     * @param sb    The SpriteBatch used to draw the text and pictures
-     * @param delta The time since the last render
      * @return true if the PauseScene was drawn, false otherwise
      */
     render() {
-        // if the scene is not visible, do nothing
-        // if (!mVisible)
-        //     return false;
-        //
-        // // clear screen and draw images/text via HudCam
-        // Gdx.gl.glClearColor(0, 0, 0, 1);
-        // Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        // mCamera.update();
-        // sb.setProjectionMatrix(mCamera.combined);
-        // sb.begin();
-        // for (ArrayList<Renderable> a : mRenderables) {
-        //     for (Renderable r : a) {
-        //         r.render(sb, delta);
-        //     }
-        // }
-        // sb.end();
-        // TODO: debug rendering?
         return true;
     }
-    //
-    // /**
-    //  * Handler to run when the screen is tapped while the scene is being displayed
-    //  *
-    //  * @param screenX The x coordinate on screen where the touch happened
-    //  * @param screenY The y coordinate on screen where the touch happened
-    //  * @param game    The top-level game object
-    //  * @return True if the tap was handled, false otherwise
-    //  */
-    // boolean onTap(float screenX, float screenY, Lol game) {
-    //     // ignore if not visible
-    //     if (!mVisible)
-    //         return false;
-    //
-    //     // check for taps to the buttons
-    //     mHitActor = null;
-    //     mCamera.unproject(mTouchVec.set(screenX, screenY, 0));
-    //     mWorld.QueryAABB(mTouchCallback, mTouchVec.x - 0.1f, mTouchVec.y - 0.1f, mTouchVec.x + 0.1f, mTouchVec.y + 0.1f);
-    //     if (mHitActor != null && mHitActor.mTapHandler != null) {
-    //         dismiss(); // TODO: make this the responsibility of the programmer?
-    //         mHitActor.onTap(mTouchVec);
-    //         return true;
-    //     }
-    //
-    //     // hide the scene only if it's click-to-clear
-    //     if (mClickToClear) {
-    //         dismiss();
-    //         game.liftAllButtons(mTouchVec.x, mTouchVec.y);
-    //     }
-    //     return true;
-    // }
-    //
-    // /**
-    //  * Set the sound to play when the screen is displayed
-    //  *
-    //  * @param soundName Name of the sound file to play
-    //  */
-    // public void setSound(String soundName) {
-    //     mSound = mMedia.getSound(soundName);
-    // }
-    //
     /**
      * Indicate that this scene should not be displayed
      */
     disable() {
         this.mDisable = true;
     }
-    //
-    // /**
-    //  * Indicate that tapping the non-button parts of the scene shouldn't return immediately to the
-    //  * game.
-    //  */
-    // public void suppressClearClick() {
-    //     mClickToClear = false;
-    // }
-    //
-    // /**
-    //  * The default is for a Scene to show until the user touches it to dismiss it. To have the
-    //  * Scene disappear after a fixed time instead, use this.
-    //  *
-    //  * @param duration The time, in seconds, before the PreScene should disappear.
-    //  */
-    // public void setExpire(float duration) {
-    //     if (duration > 0) {
-    //         mClickToClear = false;
-    //         // resume timers, or this won't work
-    //         Timer.instance().start();
-    //         Timer.schedule(new Timer.Task() {
-    //             @Override
-    //             public void run() {
-    //                 dismiss();
-    //             }
-    //         }, duration);
-    //     }
-    // }
     /**
      * Set the text that should be drawn, centered, when the Scene is shown
      *
@@ -4279,13 +2998,11 @@ class QuickScene extends LolScene {
 /// <reference path="./HudScene.ts"/>
 /// <reference path="./MainScene.ts"/>
 /// <reference path="./Enemy.ts"/>
+/// <reference path="./Hero.ts"/>
 /// <reference path="./Goodie.ts"/>
 /// <reference path="./QuickScene.ts"/>
 /// <reference path="./Media.ts"/>
 /// <reference path="./Lol.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 /**
 * These are the ways you can complete a level: you can reach the destination, you can collect
 * enough stuff, or you can reach a certain number of enemies defeated.
@@ -4316,6 +3033,11 @@ class LolManager {
         this.PLAY = 4;
         /// The level within each mode (e.g., we are in PLAY scene 4, and will return to CHOOSER 2)
         this.mModeStates = new Array(5);
+        /// The events placed on the webpage
+        this.mFunctions = new Array();
+        this.mEventTypes = new Array();
+        /// Keys being pressed
+        this.mKeysPressed = new Array();
         this.mGame = game;
         this.mConfig = config;
         this.mMedia = media;
@@ -4328,8 +3050,6 @@ class LolManager {
         for (let i = 0; i < 5; ++i)
             this.mModeStates[i] = 1;
         this.resetScores();
-        //
-        // this.mGoodiesCollected = new Array<number>();
     }
     /**
     * Reset all scores.  This should be called at the beginning of every level.
@@ -4360,46 +3080,26 @@ class LolManager {
     * Create all scenes for a playable level.
     */
     createScenes() {
-        // Create the easy scenes
+        // Create the main scene and hud
         this.mWorld = new MainScene(this.mConfig, this.mMedia);
         this.mHud = new HudScene(this.mConfig, this.mMedia);
-        //this.mBackground = new ParallaxScene(this.mConfig);
-        //this.mForeground = new ParallaxScene(this.mConfig);
-        // the win/lose/pre/pause scenes are a little bit complicated
-        // this.mWinScene = new QuickScene(this.mConfig, this.mMedia, this.mConfig.mDefaultWinText);
-        // let out_this = this;
-        // this.mWinScene.setDismissAction(new (class _ extends LolAction {
-        //   //@Override
-        //   public go(): void {
-        //     out_this.doChooser(1);
-        //   }
-        // })());
-        // this.mLoseScene = new QuickScene(this.mConfig, this.mMedia, this.mConfig.mDefaultLoseText);
-        // this.mLoseScene.setDismissAction(new (class _ extends LolAction {
-        //   //@Override
-        //   public go(): void {
-        //     out_this.repeatLevel();
-        //   }
-        // })());
         this.mContainer = new PIXI.Container();
+        // All of a scene's renderables should be in its camera's container
         this.mContainer.addChild(this.mWorld.mCamera.mContainer);
         this.mContainer.addChild(this.mHud.mCamera.mContainer);
-        //this.mWorld.mContainer.addChild(new PIXI.Text("Hello", {fontFamily: "Arial", fontSize: 24, fill: 0x0000FF, align: 'center'}));
-        // this.mPreScene = new QuickScene(this.mConfig, this.mMedia, "");
-        // this.mPreScene.setShowAction(null);
-        // this.mPauseScene = new QuickScene(this.mConfig, this.mMedia, "");
-        // this.mPauseScene.setAsPauseScene();
     }
     /**
     * Before we call programmer code to load a new scene, we call this to ensure that everything is
     * in a clean state.
     */
     onScreenChange() {
-        //this.mWorld.pauseMusic();
+        for (let i = 0; i < this.mFunctions.length; i++) {
+            document.removeEventListener(this.mEventTypes[i], this.mFunctions[i]);
+        }
+        this.mFunctions.length = 0;
+        this.mEventTypes.length = 0;
+        this.mWorld.pauseMusic();
         this.createScenes();
-        // When debug mode is on, print the frames per second
-        // if (this.mConfig.mShowDebugBoxes)
-        //   this.mLevel.addDisplay(800, 15, mConfig.mDefaultFontFace, mConfig.mDefaultFontColor, 12, "fps: ", "", mLevel.DisplayFPS, 2);
     }
     // /**
     // * If the level that follows this level has not yet been unlocked, unlock it.
@@ -4417,7 +3117,7 @@ class LolManager {
     */
     advanceLevel() {
         // Make sure to stop the music!
-        //this.mWorld.stopMusic();
+        this.mWorld.stopMusic();
         if (this.mModeStates[this.PLAY] == this.mConfig.mNumLevels) {
             this.doChooser(1);
         }
@@ -4491,19 +3191,21 @@ class LolManager {
     /**
     * Load a lose scene
     *
-    * @param index The index of the help level to load
+    * @param index The index of the level that was lost
     */
     doLose(index) {
         this.onScreenChange();
+        this.resetScores();
         this.mConfig.mLose.display(index, this.mLevel);
     }
     /**
     * Load a win scene
     *
-    * @param index The index of the help level to load
+    * @param index The index of the level that was won
     */
     doWin(index) {
         this.onScreenChange();
+        this.resetScores();
         this.mConfig.mWin.display(index, this.mLevel);
     }
     /**
@@ -4517,14 +3219,11 @@ class LolManager {
         this.onScreenChange();
         this.mConfig.mStore.display(index, this.mLevel);
     }
-    // TODO: What does quitting the game look like??
-    // With a webpage, closing the browser tab should be sufficient?
     /**
     * Quit the game
     */
     doQuit() {
-        //this.mWorld.stopMusic();
-        //Gdx.app.exit();
+        this.mWorld.stopMusic();
     }
     /**
     * Indicate that a hero has been defeated
@@ -4548,7 +3247,7 @@ class LolManager {
     */
     onGoodieCollected(goodie) {
         // Update goodie counts
-        for (let i = 0; i < 4; ++i) {
+        for (let i = 0; i < 4; i++) {
             this.mGoodiesCollected[i] += goodie.mScore[i];
         }
         // possibly win the level, but only if we win on goodie count and all
@@ -4596,6 +3295,12 @@ class LolManager {
             this.endLevel(true);
         }
     }
+    /*
+     *  Returns number of enemies defeated
+     */
+    getEnemiesDefeated() {
+        return this.mEnemiesDefeated;
+    }
     /**
     * When a level ends, we run this code to shut it down, print a message, and
     * then let the user resume play
@@ -4609,112 +3314,57 @@ class LolManager {
         else {
             this.doLose(this.mModeStates[this.PLAY]);
         }
-        // if (this.mEndGameEvent == null) {
-        //   let out_this = this;
-        //   this.mEndGameEvent = new (class _ extends LolAction {
-        //     //@Override
-        //     public go(): void {
-        //       // Safeguard: only call this method once per level
-        //       if (out_this.mGameOver){
-        //         return;
-        //       }
-        //       out_this.mGameOver = true;
-        //
-        //       // Run the level-complete callback
-        //       if (win && out_this.mWinCallback != null){
-        //         out_this.mWinCallback.go();
-        //       } else if (!win && out_this.mLoseCallback != null){
-        //         out_this.mLoseCallback.go();
-        //       }
-        //       // if we won, unlock the next level
-        //       // if (win){
-        //       //   out_this.mGame.mManager.unlockNext();
-        //       // }
-        //       // drop everything from the hud
-        //       out_this.mGame.mManager.mHud.reset();
-        //
-        //       //TODO: clear setInterval calls or create a timer class
-        //       // clear any pending timers
-        //       //PhysicsType2d.Timer.clear();
-        //
-        //       // display the PostScene before we retry/start the next level
-        //       if (win) {
-        //         out_this.mGame.mManager.mWinScene.show();
-        //       } else {
-        //         out_this.mGame.mManager.mLoseScene.show();
-        //       }
-        //     }
-        //   })();
-        //}
     }
     /**
     * Update all timer counters associated with the current level
     */
-    // TODO: This uses PIXI.ticker, which may require some adjustments
     updateTimeCounts() {
         // Check the countdown timers
         if (this.mLoseCountDownRemaining != -100) {
-            this.mLoseCountDownRemaining -= PIXI.ticker.shared.deltaTime; //Gdx.graphics.getDeltaTime();
+            this.mLoseCountDownRemaining -= (PIXI.ticker.shared.deltaTime / 100);
             if (this.mLoseCountDownRemaining < 0) {
-                if (this.mLoseCountDownText !== "") {
-                    this.mLoseScene.setDefaultText(this.mLoseCountDownText);
-                }
                 this.endLevel(false);
             }
         }
         if (this.mWinCountRemaining != -100) {
-            this.mWinCountRemaining -= PIXI.ticker.shared.deltaTime; //Gdx.graphics.getDeltaTime();
+            this.mWinCountRemaining -= PIXI.ticker.shared.deltaTime / 100;
             if (this.mWinCountRemaining < 0) {
-                if (this.mWinCountText !== "") {
-                    this.mWinScene.setDefaultText(this.mWinCountText);
-                }
                 this.endLevel(true);
             }
         }
         if (this.mStopWatchProgress != -100) {
-            this.mStopWatchProgress += PIXI.ticker.shared.deltaTime; //Gdx.graphics.getDeltaTime();
+            this.mStopWatchProgress += PIXI.ticker.shared.deltaTime / 100;
         }
     }
 }
 /// <reference path="./LolManager.ts"/>
 /// <reference path="./LolScene.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 class Lol {
     constructor(config) {
         this.mConfig = config;
         this.mRenderer = PIXI.autoDetectRenderer(config.mWidth, config.mHeight);
     }
     /**
+     * We use this to write messages to the console
+     *
+     * @param config The game-wide configuration
+     * @param tag    The message tag
+     * @param text   The message text
+     */
+    static message(config, tag, text) {
+        console.log(tag + " " + text);
+    }
+    /**
      * App creation lifecycle event.
      * NB: This is an internal method for initializing a game. User code should never call this.
      */
     create() {
-        // We want to intercept 'back' button presses, so that we can poll for them in
-        // <code>render</code> and react accordingly
-        //Gdx.input.setCatchBackKey(true);
         // The config object has already been set, so we can load all assets
         this.mMedia = new Media(this.mConfig);
-        // Configure the objects we need in order to render
-        //mDebugRender = new Box2DDebugRenderer();
-        //mSpriteBatch = new SpriteBatch();
-        // Configure the input handlers.  We process gestures first, and if no gesture occurs, then
-        // we look for a non-gesture touch event
-        //InputMultiplexer mux = new InputMultiplexer();
-        //mux.addProcessor(new GestureDetector(new LolGestureManager()));
-        //mux.addProcessor(new LolInputManager());
-        //Gdx.input.setInputProcessor(mux);
-        // configure the volume
-        //if (getGameFact(mConfig, "volume", 1) == 1)
-        //    putGameFact(mConfig, "volume", 1);
-        // this.mConfig.mImageNames.forEach( (e) => {
-        //   PIXI.loader.add(e);
-        // } );
-        // PIXI.loader.load();
         // Create the level manager, and instruct it to transition to the Splash screen
         this.mManager = new LolManager(this.mConfig, this.mMedia, this);
-        this.mManager.doSplash();
+        // This makes sure all textures are loaded before we show the splash screen
+        PIXI.loader.load(() => this.mManager.doSplash());
     }
     /**
      * This code is called every 1/45th of a second to update the game state and re-draw the screen
@@ -4723,24 +3373,33 @@ class Lol {
      */
     render() {
         this.mManager.mWorld.mWorld.Step(1 / 45, 8, 3);
+        // Make sure the music is playing... Note that we start music before the PreScene shows
+        this.mManager.mWorld.playMusic();
+        // Adjust camera in case it is following an actor
         this.mManager.mWorld.adjustCamera();
-        //this.mManager.mWorld.mCamera.updatePosition();
         this.mManager.mWorld.render();
         this.mManager.mHud.render();
+        // Render everything using the PIXI renderer
         this.mRenderer.render(this.mManager.mContainer);
+        // Execute any one time events
         this.mManager.mWorld.mOneTimeEvents.forEach((pe) => {
-            pe.go();
+            if (pe.mIsActive)
+                pe.go();
         });
+        // This empties the list so we don't execute the events again
         this.mManager.mWorld.mOneTimeEvents.length = 0;
+        this.mManager.mWorld.mRepeatEvents.forEach((pe) => {
+            if (pe.mIsActive)
+                pe.go();
+        });
+        // Update the win/lose timers
+        this.mManager.updateTimeCounts();
     }
 }
 /// <reference path="./WorldActor.ts"/>
 /// <reference path="./CollisionCallback.ts"/>
 /// <reference path="./Lol.ts"/>
 /// <reference path="./Level.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 /**
  * Obstacles are usually walls, except they can move, and can be used to run all sorts of arbitrary
  * code that changes the game, or the behavior of the things that collide with them. It's best to
@@ -4758,20 +3417,19 @@ class Obstacle extends WorldActor {
     constructor(game, level, width, height, imgName) {
         super(game, level, imgName, width, height);
     }
-    // /**
-    //  * Internal method for playing a sound when a hero collides with this obstacle
-    //  */
-    // playCollideSound(): void {
-    //     if (this.mCollideSound == null)
-    //         return;
-    //
-    //     // Make sure we have waited long enough since the last time we played the sound
-    //     let now = System.currentTimeMillis(); //TODO: find an equivalent for this
-    //     if (now < this.mLastCollideSoundTime + this.mCollideSoundDelay)
-    //         return;
-    //     this.mLastCollideSoundTime = now;
-    //     this.mCollideSound.play(Lol.getGameFact(this.mScene.mConfig, "volume", 1));
-    // }
+    /**
+     * Internal method for playing a sound when a hero collides with this obstacle
+     */
+    playCollideSound() {
+        if (this.mCollideSound == null)
+            return;
+        // Make sure we have waited long enough since the last time we played the sound
+        let now = (new Date()).getTime();
+        if (now < this.mLastCollideSoundTime + this.mCollideSoundDelay)
+            return;
+        this.mLastCollideSoundTime = now;
+        this.mCollideSound.play();
+    }
     /**
      * Code to run when an Obstacle collides with a WorldActor.
      *
@@ -4783,14 +3441,156 @@ class Obstacle extends WorldActor {
     //@Override
     onCollide(other, contact) {
     }
+    /**
+     * Make the Obstacle into a pad that changes the hero's speed when the hero glides over it.
+     * <p>
+     * These "pads" will multiply the hero's speed by the factor given as a parameter. Factors can
+     * be negative to cause a reverse direction, less than 1 to cause a slowdown (friction pads), or
+     * greater than 1 to serve as zoom pads.
+     *
+     * @param factor Value to multiply the hero's velocity when it collides with this Obstacle
+     */
+    setPad(factor) {
+        // disable collisions on this obstacle
+        this.setCollisionsEnabled(false);
+        // register a callback to multiply the hero's speed by factor
+        this.mHeroCollision = new (class _ {
+            //@Override
+            go(self, h, c) {
+                let v = h.mBody.GetLinearVelocity();
+                v.Multiply(factor);
+                h.updateVelocity(v.x, v.y);
+            }
+        })();
+    }
+    /**
+     * Call this on an obstacle to make it behave like a "pad" obstacle, except with a constant
+     * additive (or subtractive) effect on the hero's speed.
+     *
+     * @param boostAmountX  The amount to add to the hero's X velocity
+     * @param boostAmountY  The amount to add to the hero's Y velocity
+     * @param boostDuration How long should the speed boost last (use -1 to indicate "forever")
+     */
+    setSpeedBoost(boostAmountX, boostAmountY, boostDuration) {
+        // disable collisions on this obstacle
+        this.setCollisionsEnabled(false);
+        // register a callback to change the hero's speed
+        this.mHeroCollision = new (class _ {
+            //@Override
+            go(self, h, c) {
+                // boost the speed
+                let v = h.mBody.GetLinearVelocity();
+                v.x += boostAmountX;
+                v.y += boostAmountY;
+                h.updateVelocity(v.x, v.y);
+                // now set a timer to un-boost the speed
+                if (boostDuration > 0) {
+                    // set up a timer to shut off the boost
+                    setTimeout(() => {
+                        let v = h.mBody.GetLinearVelocity();
+                        v.x -= boostAmountX;
+                        v.y -= boostAmountY;
+                        h.updateVelocity(v.x, v.y);
+                    }, boostDuration);
+                }
+            }
+        })();
+    }
+    /**
+     * Control whether the hero can jump if it collides with this obstacle while in the air
+     *
+     * @param enable true if the hero can jump again, false otherwise
+     */
+    setReJump(enable) {
+        this.mNoJumpReenable = !enable;
+    }
+    /**
+     * Make the object a callback object, so that custom code will run when a hero collides with it
+     *
+     * @param activationGoodies1 Number of type-1 goodies needed before this callback works
+     * @param activationGoodies2 Number of type-2 goodies needed before this callback works
+     * @param activationGoodies3 Number of type-3 goodies needed before this callback works
+     * @param activationGoodies4 Number of type-4 goodies needed before this callback works
+     * @param delay              The time between when the collision happens, and when the callback
+     *                           code runs. Use 0 for immediately
+     * @param callback           The code to run when the collision happens
+     */
+    setHeroCollisionCallback(activationGoodies1, activationGoodies2, activationGoodies3, activationGoodies4, delay, callback) {
+        // save the required goodie counts, turn off collisions
+        const counts = [activationGoodies1, activationGoodies2, activationGoodies3, activationGoodies4];
+        this.setCollisionsEnabled(false);
+        let outer_this = this;
+        // register a callback
+        this.mHeroCollision = new (class _ {
+            //@Override
+            go(self, ps, c) {
+                // Make sure the contact is active (it's not if this is a pass-through event)
+                if (c.IsEnabled()) {
+                    // check if callback is activated, if so run Callback code
+                    let match = true;
+                    for (let i = 0; i < 4; ++i)
+                        match = match && (counts[i] <= outer_this.mGame.mManager.mGoodiesCollected[i]);
+                    if (match) {
+                        // run now, or delay?
+                        if (delay <= 0) {
+                            callback.go(self, ps, c);
+                        }
+                        else {
+                            setTimeout(() => {
+                                callback.go(self, ps, c);
+                            }, delay);
+                        }
+                    }
+                }
+            }
+        })();
+    }
+    /**
+     * Make the object a callback object, so custom code will run when an enemy collides with it
+     *
+     * @param delay    The time between when the collision happens, and when the callback code runs.
+     *                 Use 0 for immediately
+     * @param callback The code to run when an enemy collides with this obstacle
+     */
+    setEnemyCollisionCallback(delay, callback) {
+        this.mEnemyCollision = new (class _ {
+            //@Override
+            go(self, ps, c) {
+                // run the callback after a delay, or immediately?
+                if (delay <= 0) {
+                    callback.go(self, ps, c);
+                }
+                else {
+                    setTimeout(() => {
+                        callback.go(self, ps, c);
+                    }, delay);
+                }
+            }
+        })();
+    }
+    /**
+     * Make the object a callback object, so custom code will run when a projectile collides with it
+     *
+     * @param callback The code to run on a collision
+     */
+    setProjectileCollisionCallback(callback) {
+        this.mProjectileCollision = callback;
+    }
+    /**
+     * Indicate that when the hero collides with this obstacle, we should make a sound
+     *
+     * @param sound The name of the sound file to play
+     * @param delay How long to wait before playing the sound again, in milliseconds
+     */
+    setCollideSound(sound, delay) {
+        this.mCollideSound = this.mScene.mMedia.getSound(sound);
+        this.mCollideSoundDelay = delay * 1000000;
+    }
 }
 /// <reference path="./WorldActor.ts"/>
 /// <reference path="./Obstacle.ts"/>
 /// <reference path="./Destination.ts"/>
 /// <reference path="./LolActorEvent.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 /**
 * The Hero is the focal point of a game. While it is technically possible to have many heroes, or
 * invisible heroes that exist just so that the player has to keep bad things from happening to the
@@ -4810,36 +3610,13 @@ class Hero extends WorldActor {
     constructor(game, scene, width, height, imgName) {
         super(game, scene, imgName, width, height);
         this.mStrength = 1;
+        this.mJumpImpulses = new PhysicsType2d.Vector2(0, 0);
     }
     /**
     * Code to run when rendering the Hero.
-    *
-    * NB:  We can't just use the basic renderer, because we might need to adjust a one-off
-    *      animation (invincibility or throw) first
-    *
-    * @param sb    The SpriteBatch to use for drawing this hero
-    * @param delta The time since the last render
     */
     //@Override
     onRender() {
-        // determine when to turn off throw animations
-        // if (mThrowAnimationTimeRemaining > 0) {
-        //   mThrowAnimationTimeRemaining -= delta;
-        //   if (mThrowAnimationTimeRemaining <= 0) {
-        //     mThrowAnimationTimeRemaining = 0;
-        //     mAnimator.setCurrentAnimation(mDefaultAnimation);
-        //   }
-        // }
-        //
-        // // determine when to turn off invincibility and cease invincibility animation
-        // if (mInvincibleRemaining > 0) {
-        //   mInvincibleRemaining -= delta;
-        //   if (mInvincibleRemaining <= 0) {
-        //     mInvincibleRemaining = 0;
-        //     if (mInvincibleAnimation != null)
-        //     mAnimator.setCurrentAnimation(mDefaultAnimation);
-        //   }
-        // }
         super.onRender();
     }
     /**
@@ -4847,19 +3624,19 @@ class Hero extends WorldActor {
     */
     jump() {
         // NB: multi-jump prevents us from ever setting mInAir, so this is safe:
-        if (this.mInAir)
+        if (this.mInAir) {
             return;
+        }
         let v = this.mBody.GetLinearVelocity();
-        v.Add(this.mJumpImpulses);
+        v.x = v.x + this.mJumpImpulses.x;
+        v.y = v.y + this.mJumpImpulses.y;
         this.updateVelocity(v.x, v.y);
-        if (!this.mAllowMultiJump)
+        if (!this.mAllowMultiJump) {
             this.mInAir = true;
-        // if (this.mJumpAnimation != null)
-        //     this.mAnimator.setCurrentAnimation(this.mJumpAnimation);
-        // if (this.mJumpSound != null)
-        //     this.mJumpSound.play(Lol.getGameFact(this.mScene.mConfig, "volume", 1));
-        // suspend creation of sticky joints, so the hero can actually move
-        // this.mStickyDelay = System.currentTimeMillis() + 10;
+        }
+        if (this.mJumpSound != null) {
+            this.mJumpSound.play();
+        }
     }
     /**
     * Stop the jump animation for a hero, and make it eligible to jump again
@@ -4870,15 +3647,6 @@ class Hero extends WorldActor {
             // this.mAnimator.setCurrentAnimation(this.mDefaultAnimation);
         }
     }
-    // /**
-    // * Make the hero's throw animation play while it is throwing a projectile
-    // */
-    // void doThrowAnimation() {
-    //   if (mThrowAnimation != null) {
-    //     mAnimator.setCurrentAnimation(mThrowAnimation);
-    //     mThrowAnimationTimeRemaining = mThrowAnimateTotalLength;
-    //   }
-    // }
     /**
     * Put the hero in crawl mode. Note that we make the hero rotate when it is crawling
     */
@@ -4938,9 +3706,6 @@ class Hero extends WorldActor {
         else if (other instanceof Goodie) {
             this.onCollideWithGoodie(other);
         }
-        if (other instanceof Goodie) {
-            this.mGame.mManager.onGoodieCollected(other);
-        }
     }
     /**
     * Dispatch method for handling Hero collisions with Destinations
@@ -4957,9 +3722,9 @@ class Hero extends WorldActor {
             // hide the hero quietly, since the destination might make a sound
             this.remove(true);
             destination.mHolding++;
-            // if (destination.mArrivalSound != null) {
-            //   destination.mArrivalSound.play(Lol.getGameFact(this.mScene.mConfig, "volume", 1));
-            // }
+            if (destination.mArrivalSound != null) {
+                destination.mArrivalSound.play();
+            }
             this.mGame.mManager.onDestinationArrive();
         }
     }
@@ -4989,7 +3754,7 @@ class Hero extends WorldActor {
         else if (this.mCrawling && enemy.mDefeatByCrawl) {
             enemy.defeat(true);
         }
-        else if (this.mInAir && enemy.mDefeatByJump && this.getYPosition() > enemy.getYPosition() + enemy.mSize.y / 2) {
+        else if (this.mInAir && enemy.mDefeatByJump && this.getYPosition() + this.mSize.y <= enemy.getYPosition()) {
             enemy.defeat(true);
         }
         else if (enemy.mDamage >= this.mStrength) {
@@ -5022,14 +3787,10 @@ class Hero extends WorldActor {
     */
     onCollideWithObstacle(o, contact) {
         // do we need to play a sound?
-        //o.playCollideSound();
+        o.playCollideSound();
         let fixtures = o.mBody.GetFixtures();
         fixtures.MoveNext();
         let f = fixtures.Current();
-        // reset rotation of hero if this obstacle is not a sensor
-        if ((this.mCurrentRotation != 0) && !f.IsSensor()) {
-            this.increaseRotation(-this.mCurrentRotation);
-        }
         // if there is code attached to the obstacle for modifying the hero's behavior, run it
         if (o.mHeroCollision != null) {
             o.mHeroCollision.go(o, this, contact);
@@ -5105,7 +3866,7 @@ class Hero extends WorldActor {
      * @param y Velocity in Y direction
      */
     setJumpImpulses(x, y) {
-        this.mJumpImpulses = new PhysicsType2d.Vector2(x, y);
+        this.mJumpImpulses = new PhysicsType2d.Vector2(x, -y);
     }
     /**
      * Indicate that this hero can jump while it is in the air
@@ -5125,49 +3886,14 @@ class Hero extends WorldActor {
             }
         })();
     }
-    // /**
-    //  * Register an animation sequence for when the hero is jumping
-    //  *
-    //  * @param animation The animation to display
-    //  */
-    // public setJumpAnimation(Animation animation): void {
-    //     mJumpAnimation = animation;
-    // }
-    // /**
-    //  * Set the sound to play when a jump occurs
-    //  *
-    //  * @param soundName The name of the sound file to use
-    //  */
-    // public void setJumpSound(String soundName) {
-    //     mJumpSound = mScene.mMedia.getSound(soundName);
-    // }
-    // /**
-    //  * Register an animation sequence for when the hero is throwing a projectile
-    //  *
-    //  * @param animation The animation to display
-    //  */
-    // public void setThrowAnimation(Animation animation) {
-    //     mThrowAnimation = animation;
-    //     // compute the length of the throw sequence, so that we can get our
-    //     // timer right for restoring the default animation
-    //     mThrowAnimateTotalLength = animation.getDuration() / 1000;
-    // }
-    // /**
-    //  * Register an animation sequence for when the hero is crawling
-    //  *
-    //  * @param animation The animation to display
-    //  */
-    // public void setCrawlAnimation(Animation animation) {
-    //     mCrawlAnimation = animation;
-    // }
-    // /**
-    //  * Register an animation sequence for when the hero is invincible
-    //  *
-    //  * @param a The animation to display
-    //  */
-    // public void setInvincibleAnimation(Animation a) {
-    //     mInvincibleAnimation = a;
-    // }
+    /**
+     * Set the sound to play when a jump occurs
+     *
+     * @param soundName The name of the sound file to use
+     */
+    setJumpSound(soundName) {
+        this.mJumpSound = this.mScene.mMedia.getSound(soundName);
+    }
     /**
      * Indicate that the level should end immediately if this hero is defeated
      */
@@ -5185,9 +3911,6 @@ class Hero extends WorldActor {
 }
 /// <reference path="./WorldActor.ts"/>
 /// <reference path="./MainScene.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
 /**
  * Projectiles are actors that can be thrown from the hero's location in order to remove enemies.
  */
@@ -5207,19 +3930,19 @@ class Projectile extends WorldActor {
         super(game, level, imgName, width, height);
         if (isCircle) {
             let radius = Math.max(width, height);
-            //this.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.DYNAMIC, x, y, radius / 2);
+            this.setCirclePhysics(PhysicsType2d.Dynamics.BodyType.DYNAMIC, x, y, radius / 2);
         }
         else {
             this.setBoxPhysics(PhysicsType2d.Dynamics.BodyType.DYNAMIC, x, y);
         }
         this.setFastMoving(true);
         this.mBody.SetGravityScale(0);
-        //this.setCollisionsEnabled(false);
-        //this.disableRotation();
+        this.setCollisionsEnabled(false);
+        this.disableRotation();
         this.mScene.addActor(this, zIndex);
         this.mDisappearOnCollide = true;
-        //NB: in physicstype2d, Vector2 constructor must take two arguments
-        this.mRangeFrom = new PhysicsType2d.Vector2(-1, -1);
+        // In physicstype2d, Vector2 must take two arguments
+        this.mRangeFrom = new PhysicsType2d.Vector2(0, 0);
         this.mRange = 1000;
     }
     /**
@@ -5236,7 +3959,7 @@ class Projectile extends WorldActor {
         // if this is an obstacle, check if it is a projectile callback, and if so, do the callback
         if (other instanceof Obstacle) {
             let o = other;
-            if (o.mProjectileCollision != null) {
+            if (o.mProjectileCollision) {
                 o.mProjectileCollision.go(o, this, contact);
                 // return... don't remove the projectile
                 return;
@@ -5247,102 +3970,397 @@ class Projectile extends WorldActor {
                 return;
         }
         // only disappear if other is not a sensor
-        if (other.mBody.GetFixtures().Current().IsSensor())
+        let f = other.mBody.GetFixtures();
+        f.MoveNext();
+        if (f.Current().IsSensor()) {
+            f.Reset();
             return;
-        //this.remove(false);
+        }
+        this.remove(false);
     }
     /**
      * When drawing a projectile, we first check if it is too far from its starting point. We only
      * draw it if it is not.
-     *
-     * @param sb    The SpriteBatch to use for drawing this hero
-     * @param delta The time since the last render
      */
     //@Override
     onRender() {
         // eliminate the projectile quietly if it has traveled too far
-        //let dx = Math.abs(this.mBody.getPosition().x - this.mRangeFrom.x);
-        //let dy = Math.abs(this.mBody.getPosition().y - this.mRangeFrom.y);
-        //if (dx * dx + dy * dy > this.mRange * this.mRange) {
-        //    this.remove(true);
-        //    this.mBody.setActive(false);
-        //    return;
-        //}
-        //super.onRender();
+        let dx = Math.abs(this.mBody.GetPosition().x - this.mRangeFrom.x);
+        let dy = Math.abs(this.mBody.GetPosition().y - this.mRangeFrom.y);
+        if (dx * dx + dy * dy > this.mRange * this.mRange) {
+            this.remove(true);
+            return;
+        }
+        super.onRender();
+    }
+}
+/**
+* ProjectilePool stores a set of projectiles.  We can get into lots of trouble with Box2d if we
+* make too many actors, so the projectile pool is a useful mechanism for re-using projectiles after
+* they become defunct.
+*/
+class ProjectilePool {
+    /**
+    * Create a pool of projectiles, and set the way they are thrown.
+    *
+    * @param game    The currently active game
+    * @param size     number of projectiles that can be thrown at once
+    * @param width    width of a projectile
+    * @param height   height of a projectile
+    * @param imgName  image to use for projectiles
+    * @param strength specifies the amount of damage that a projectile does to an
+    *                 enemy
+    * @param zIndex   The z plane on which the projectiles should be drawn
+    * @param isCircle Should projectiles have an underlying circle or box shape?
+    */
+    constructor(game, level, size, width, height, imgName, strength, zIndex, isCircle) {
+        this.mLevel = level;
+        // set up the pool
+        this.mPool = new Array(size);
+        // don't draw all projectiles in same place...
+        for (let i = 0; i < size; ++i) {
+            this.mPool[i] = new Projectile(game, level, width, height, imgName, -100 - i * width, -100 - i * height, zIndex, isCircle);
+            this.mPool[i].mEnabled = false;
+            this.mPool[i].mSprite.visible = false;
+            this.mPool[i].mBody.SetBullet(true);
+            this.mPool[i].mBody.SetActive(false);
+            this.mPool[i].mDamage = strength;
+        }
+        this.mNextIndex = 0;
+        this.mPoolSize = size;
+        // record vars that describe how the projectile behaves
+        this.mThrowSound = null;
+        this.mProjectileDisappearSound = null;
+        this.mProjectilesRemaining = -1;
+        this.mSensorProjectiles = true;
+    }
+    /**
+    * Throw a projectile. This is for throwing in a single, predetermined direction
+    *
+    * @param h         The hero who is performing the throw
+    * @param offsetX   specifies the x distance between the top left of the
+    *                  projectile and the top left of the hero throwing the
+    *                  projectile
+    * @param offsetY   specifies the y distance between the top left of the
+    *                  projectile and the top left of the hero throwing the
+    *                  projectile
+    * @param velocityX The X velocity of the projectile when it is thrown
+    * @param velocityY The Y velocity of the projectile when it is thrown
+    */
+    throwFixed(h, offsetX, offsetY, velocityX, velocityY) {
+        // have we reached our limit?
+        if (this.mProjectilesRemaining == 0)
+            return;
+        // do we need to decrease our limit?
+        if (this.mProjectilesRemaining != -1)
+            this.mProjectilesRemaining--;
+        // is there an available projectile?
+        if (this.mPool[this.mNextIndex].mEnabled)
+            return;
+        // get the next projectile, reset sensor, set image
+        let b = this.mPool[this.mNextIndex];
+        this.mNextIndex = (this.mNextIndex + 1) % this.mPoolSize;
+        b.setCollisionsEnabled(!this.mSensorProjectiles);
+        // calculate offset for starting position of projectile, put it on screen
+        b.mRangeFrom.x = h.getXPosition() + offsetX;
+        b.mRangeFrom.y = h.getYPosition() + offsetY;
+        b.mBody.SetActive(true);
+        b.mSprite.visible = true;
+        b.mBody.SetTransform(b.mRangeFrom, 0);
+        // give the projectile velocity, show it, and play sound
+        b.updateVelocity(velocityX, velocityY);
+        b.mEnabled = true;
+        if (this.mThrowSound)
+            this.mThrowSound.play();
+        b.mDisappearSound = this.mProjectileDisappearSound;
+    }
+    /**
+    * Throw a projectile. This is for throwing in the direction of a specified point
+    *
+    * @param heroX   x coordinate of the top left corner of the thrower
+    * @param heroY   y coordinate of the top left corner of the thrower
+    * @param toX     x coordinate of the point at which to throw
+    * @param toY     y coordinate of the point at which to throw
+    * @param h       The hero who is performing the throw
+    * @param offsetX specifies the x distance between the top left of the
+    *                projectile and the top left of the hero throwing the
+    *                projectile
+    * @param offsetY specifies the y distance between the top left of the
+    *                projectile and the top left of the hero throwing the
+    *                projectile
+    */
+    throwAt(heroX, heroY, toX, toY, h, offsetX, offsetY) {
+        // have we reached our limit?
+        if (this.mProjectilesRemaining == 0)
+            return;
+        // do we need to decrease our limit?
+        if (this.mProjectilesRemaining != -1)
+            this.mProjectilesRemaining--;
+        // is there an available projectile?
+        if (this.mPool[this.mNextIndex].mEnabled)
+            return;
+        // get the next projectile, set sensor, set image
+        let b = this.mPool[this.mNextIndex];
+        this.mNextIndex = (this.mNextIndex + 1) % this.mPoolSize;
+        b.setCollisionsEnabled(!this.mSensorProjectiles);
+        // calculate offset for starting position of projectile, put it on screen
+        b.mRangeFrom.x = heroX + offsetX;
+        b.mRangeFrom.y = heroY + offsetY;
+        b.mBody.SetActive(true);
+        b.mSprite.visible = true;
+        b.mBody.SetTransform(b.mRangeFrom, 0);
+        // give the projectile velocity
+        if (this.mEnableFixedVectorVelocity) {
+            // compute a unit vector
+            let dX = toX - heroX - offsetX;
+            let dY = toY - heroY - offsetY;
+            let hypotenuse = Math.sqrt(dX * dX + dY * dY);
+            let tmpX = dX / hypotenuse;
+            let tmpY = dY / hypotenuse;
+            // multiply by fixed velocity
+            tmpX *= this.mFixedVectorVelocity;
+            tmpY *= this.mFixedVectorVelocity;
+            b.updateVelocity(tmpX, tmpY);
+        }
+        else {
+            let dX = toX - heroX - offsetX;
+            let dY = toY - heroY - offsetY;
+            // compute absolute vector, multiply by dampening factor
+            let tmpX = dX * this.mDirectionalDamp;
+            let tmpY = dY * this.mDirectionalDamp;
+            b.updateVelocity(tmpX, tmpY);
+        }
+        // rotate the projectile
+        if (this.mRotateVectorThrow) {
+            let angle = Math.atan2(toY - heroY - offsetY, toX - heroX - offsetX) - Math.atan2(-1, 0);
+            b.mBody.SetTransform(b.mBody.GetPosition(), angle);
+        }
+        // show the projectile, play sound, and animate the hero
+        b.mEnabled = true;
+        if (this.mThrowSound)
+            this.mThrowSound.play();
+        b.mDisappearSound = this.mProjectileDisappearSound;
     }
 }
 /// <reference path="./BaseActor.ts"/>
-//// <reference path="./typedefinitions/physicstype2d/PhysicsType2d.v0_9.d.ts"/>
-//// <reference path="./typedefinitions/pixi.js/index.d.ts"/>
-//// <reference types="pixi.js"/>
-class SceneActor extends BaseActor {
-    /// callback when this actor receives a pan event
-    //mPanHandler: PanEventHandler;
-    /// callback when this actor receives a pan stop event
-    //TouchEventHandler mPanStopHandler;
-    /// callback when this actor receives a zoom event
-    //TouchEventHandler mZoomHandler;
-    /// callback when this actor receives a Down event
-    //TouchEventHandler mDownHandler;
+/**
+* A Route specifies a set of points that an actor will move between at a fixed speed.
+*/
+class Route {
     /**
-    * Construct a SceneActor, but do not give it any physics yet
+    * Define a new path by specifying the number of points in the path.  The points in the path
+    * will be uninitialized until the "to" method is called on this Route.
     *
-    * @param scene   The scene into which this actor should be placed
-    * @param imgName The image to show for this actor
-    * @param width   The width of the actor's image and body, in meters
-    * @param height  The height of the actor's image and body, in meters
+    * @param numberOfPoints number of points in the path.  There should be at least two points
     */
-    constructor(scene, imgName, width, height) {
-        super(scene, imgName, width, height);
+    constructor(numberOfPoints) {
+        this.mPoints = 0;
+        this.mXIndices = new Array();
+        this.mYIndices = new Array();
     }
     /**
-    * Disable touch for this actor
+    * Add a new point to a path by giving (coordinates for where the center of the actor goes next
+    *
+    * @param x X value of the new coordinate
+    * @param y Y value of the new coordinate
     */
-    disableTouch() {
-        this.mIsTouchable = false;
+    to(x, y) {
+        this.mXIndices[this.mPoints] = x;
+        this.mYIndices[this.mPoints] = y;
+        this.mPoints++;
+        return this;
     }
+}
+(function (Route) {
     /**
-    * Enable touch for this actor
+    * Driver is an internal class, used by LOL to determine placement for a WorldActor whose motion
+    * is controlled by a Route.
     */
-    enableTouch() {
-        this.mIsTouchable = true;
+    class Driver {
+        /**
+        * Constructing a route driver also starts the route
+        *
+        * @param route    The route to apply
+        * @param velocity The speed at which the actor moves
+        * @param loop     Should the route repeat when it completes?
+        * @param actor    The actor to which the route should be applied
+        */
+        constructor(route, velocity, loop, actor) {
+            this.mRoute = route;
+            this.mRouteVelocity = velocity;
+            this.mRouteLoop = loop;
+            this.mActor = actor;
+            this.mRouteVec = new PhysicsType2d.Vector2(0, 0);
+            // kick off the route, indicate that we aren't all done yet
+            this.startRoute();
+            this.mRouteDone = false;
+        }
+        /**
+        * Stop a route, and stop the actor too
+        */
+        haltRoute() {
+            this.mRouteDone = true;
+            this.mActor.setAbsoluteVelocity(0, 0);
+        }
+        /**
+        * Begin running a route
+        */
+        startRoute() {
+            // move to the starting point
+            this.mActor.mBody.SetTransform(new PhysicsType2d.Vector2(this.mRoute.mXIndices[0] + this.mActor.mSize.x / 2, this.mRoute.mYIndices[0] + this.mActor.mSize.y / 2), 0);
+            // set up our next goal, start moving toward it
+            this.mNextRouteGoal = 1;
+            this.mRouteVec.x = this.mRoute.mXIndices[this.mNextRouteGoal] - this.mActor.getXPosition();
+            this.mRouteVec.y = this.mRoute.mYIndices[this.mNextRouteGoal] - this.mActor.getYPosition();
+            // normalize and scale the vector, then apply the velocity
+            this.mRouteVec.Normalize();
+            this.mRouteVec = this.mRouteVec.Multiply(this.mRouteVelocity);
+            this.mActor.mBody.SetLinearVelocity(this.mRouteVec);
+        }
+        /**
+        * Figure out where we need to go next when driving a route
+        */
+        drive() {
+            // quit if we're done and we don't loop
+            if (this.mRouteDone) {
+                return;
+            }
+            // if we haven't passed the goal, keep going. we tell if we've passed the goal by
+            // comparing the magnitudes of the vectors from source (s) to here and from goal (g) to
+            // here
+            let sx = this.mRoute.mXIndices[this.mNextRouteGoal - 1] - this.mActor.getXPosition();
+            let sy = this.mRoute.mYIndices[this.mNextRouteGoal - 1] - this.mActor.getYPosition();
+            let gx = this.mRoute.mXIndices[this.mNextRouteGoal] - this.mActor.getXPosition();
+            let gy = this.mRoute.mYIndices[this.mNextRouteGoal] - this.mActor.getYPosition();
+            let sameXSign = (gx >= 0 && sx >= 0) || (gx <= 0 && sx <= 0);
+            let sameYSign = (gy >= 0 && sy >= 0) || (gy <= 0 && sy <= 0);
+            if (((gx == gy) && (gx == 0)) || (sameXSign && sameYSign)) {
+                this.mNextRouteGoal++;
+                if (this.mNextRouteGoal == this.mRoute.mPoints) {
+                    // reset if it's a loop, else terminate Route
+                    if (this.mRouteLoop) {
+                        this.startRoute();
+                    }
+                    else {
+                        this.mRouteDone = true;
+                        this.mActor.mBody.SetLinearVelocity(new PhysicsType2d.Vector2(0, 0));
+                    }
+                }
+                else {
+                    // advance to next point
+                    this.mRouteVec.x = this.mRoute.mXIndices[this.mNextRouteGoal] - this.mActor.getXPosition();
+                    this.mRouteVec.y = this.mRoute.mYIndices[this.mNextRouteGoal] - this.mActor.getYPosition();
+                    this.mRouteVec.Normalize();
+                    this.mRouteVec = this.mRouteVec.Multiply(this.mRouteVelocity);
+                    this.mActor.mBody.SetLinearVelocity(this.mRouteVec);
+                }
+            }
+            // NB: 'else keep going at current velocity'
+        }
+    }
+    Route.Driver = Driver;
+})(Route || (Route = {}));
+/*
+ *  Wrapper class for HTML5 Audio
+ */
+class Sound {
+    constructor(srcFile) {
+        this.mSound = document.createElement("audio");
+        this.mSound.src = srcFile;
+        this.mSound.preload = "auto";
+        this.mSound.controls = false;
+        this.mSound.style.display = "none";
+        this.mSound.autoplay = false;
+        this.mSound.loop = false;
+        this.mSound.muted = false;
+        document.body.appendChild(this.mSound);
+    }
+    /*
+     *  Play the sound with no loop
+     */
+    play() {
+        this.mSound.play();
+    }
+    /*
+     *  Stop/pause the sound
+     */
+    stop() {
+        this.mSound.pause();
+    }
+    /*
+     *  Set if the sound will loop when played
+     *  @param loop True to loop, false to turn off looping
+     */
+    setLooping(loop) {
+        this.mSound.loop = loop;
+    }
+    /*
+     *  Mute or unmute sound
+     *  @param mute True to mute, false to unmute
+     */
+    mute(mute) {
+        this.mSound.muted = mute;
     }
 }
 /// <reference path="../library/ScreenManager.ts"/>
 /**
-* Chooser draws the level chooser screens. Our chooser code is pretty
-* straightforward. However, the different screens are drawn in different ways,
-* to show how we can write more effective code once we are comfortable with
-* loops and basic geometry.
+* Chooser draws the level chooser screens. Our chooser code is pretty straightforward.
 */
 class Chooser {
     /**
-    * Describe how to draw each level of the chooser. Our chooser will have 15
-    * levels per screen, so we need 7 screens.
+    * Describe how to draw the buttons to go to each level.
     */
     display(index, level) {
-        // screen 1: show 1-->15
-        //
-        // NB: in this screen, we assume you haven't done much programming, so
-        // we draw each button with its own line of code, and we don't use any
-        // variables.
         if (index == 1) {
-            // Back to splash
-            level.addStaticText(300, 200, "Arial", 0xFFFF00, 24, "Back to Menu", 0);
-            level.addTapControl(300, 200, 100, 50, "", new (class _ extends LolAction {
+            // Put in some catchy background muzak
+            level.setMusic("./GameAssets/TitleTheme.mp3");
+            // Add a background
+            level.drawPicture(0, 0, 960, 540, "./GameAssets/TitleBack.png", -2);
+            // Set variables for easy placement of objects
+            let midX = 960 / 2;
+            let midY = 540 / 2;
+            // Back to splash button
+            // This adds text for the button
+            level.addStaticTextCentered(midX, midY + 100, "Arial", 0x0000FF, 24, "Menu", 1);
+            // This makes the button functional
+            level.addTapControl(midX - 50, midY + 75, 100, 50, "", new (class _ extends LolAction {
                 go() {
                     level.doSplash();
                     return true;
                 }
             })());
-            // Play level 1
-            level.addStaticText(500, 200, "Arial", 0xFFFF00, 24, "Play Level 1", 0);
-            level.addTapControl(500, 200, 100, 50, "", new (class _ extends LolAction {
+            // This draws the button picture
+            level.drawPicture(midX - 50, midY + 75, 100, 50, "./GameAssets/button.png", -1);
+            // Play level 1 button
+            // Colors are written in hex values
+            level.addStaticTextCentered(150, midY - 100, "Arial", 0x0000FF, 24, "Sky Fighter", 1);
+            // No image, so that it doesn't cover the text
+            level.addTapControl(50, midY - 125, 200, 50, "", new (class _ extends LolAction {
                 go() {
                     level.doLevel(1);
                     return true;
                 }
             })());
+            // Draw the image behind the text
+            level.drawPicture(50, midY - 125, 200, 50, "./GameAssets/button.png", -1);
+            // Play level 2 button
+            level.addStaticTextCentered(midX, midY - 100, "Arial", 0x0000FF, 24, "Christmas Scramble", 1);
+            level.addTapControl(midX - 125, midY - 125, 250, 50, "", new (class _ extends LolAction {
+                go() {
+                    level.doLevel(2);
+                    return true;
+                }
+            })());
+            level.drawPicture(midX - 125, midY - 125, 250, 50, "./GameAssets/button.png", -1);
+            // Play level 3 button
+            level.addStaticTextCentered(960 - 150, midY - 100, "Arial", 0x0000FF, 24, "Dodgy Plane", 1);
+            level.addTapControl(960 - 250, midY - 125, 200, 50, "", new (class _ extends LolAction {
+                go() {
+                    level.doLevel(3);
+                    return true;
+                }
+            })());
+            level.drawPicture(960 - 250, midY - 125, 200, 50, "./GameAssets/button.png", -1);
         }
     }
 }
@@ -5355,27 +4373,38 @@ class Chooser {
  */
 class Help {
     /**
-     * Describe how to draw each level of help. Our help will have 2 screens
-     */
+   * Describe how to draw each level of help. Our help will have 2 screens
+   */
     display(index, level) {
         // Our first scene describes the color coding that we use for the
         // different entities in the game
         if (index == 1) {
-            // set up a basic screen
-            //level.setBackgroundColor(0x00FFFF);
-            //set up a control to go to the splash screen on screen press
-            level.addTapControl(0, 0, 960, 640, "", new (class _ extends LolAction {
+            // Put in some catchy background muzak
+            level.setMusic("./GameAssets/TitleTheme.mp3");
+            // Add a background
+            level.drawPicture(0, 0, 960, 540, "./GameAssets/TitleBack.png", -2);
+            // Set up variables for the middle of the page to aid placement
+            let midX = 960 / 2;
+            let midY = 540 / 2;
+            // Set up a control to go to the splash screen on screen press
+            level.addTapControl(0, 0, 960, 540, "", new (class _ extends LolAction {
                 go() {
                     level.doSplash();
                     return true;
                 }
             })());
-            //PIXI.loader.add("./images/fun.jpg").load();
-            //let Obstacle1 = level.makeObstacleAsBox(0, 0, 25, 25, "./images/fun.jpg");
-            level.addStaticText(280, 220, "Arial", 0xFFFFFF, 24, "This is an example Help screen", 0);
-            level.addStaticText(280, 320, "Arial", 0xFFFFFF, 24, "You are the heroic orange box", 0);
-            level.addStaticText(280, 420, "Arial", 0xFFFFFF, 24, "Your enemies are the evil blue boxes", 0);
-            //level.addImage(400, 490, 150, 150, "./images/fun.jpg");
+            // Add some help messages
+            level.addStaticTextCentered(midX, 50, "Arial", 0x0000FF, 24, "INSTRUCTIONS", 0);
+            level.addStaticTextCentered(midX, 100, "Arial", 0x0000FF, 24, "Sky Fight", 0);
+            level.addStaticTextCentered(midX, 130, "Arial", 0x0000FF, 24, "Drop pebbles on the bats using spacebar", 0);
+            level.addStaticTextCentered(midX, 160, "Arial", 0x0000FF, 24, "Rid the skies of all the bats before the time runs out", 0);
+            level.addStaticTextCentered(midX, 230, "Arial", 0x0000FF, 24, "Christmas Scramble", 0);
+            level.addStaticTextCentered(midX, 260, "Arial", 0x0000FF, 24, "Move with WASD", 0);
+            level.addStaticTextCentered(midX, 290, "Arial", 0x0000FF, 24, "Collect all the coins and reach the end to win", 0);
+            level.addStaticTextCentered(midX, 320, "Arial", 0x0000FF, 24, "Jump on santas to defeat them", 0);
+            level.addStaticTextCentered(midX, 390, "Arial", 0x0000FF, 24, "Dodgy Plane", 0);
+            level.addStaticTextCentered(midX, 420, "Arial", 0x0000FF, 24, "Move up with spacebar, dodge the rocks", 0);
+            level.addStaticTextCentered(midX, 450, "Arial", 0x0000FF, 24, "Reach the end to win", 0);
         }
     }
 }
@@ -5388,39 +4417,389 @@ class Help {
 */
 class Levels {
     /**
-    * We currently have 94 levels, each of which is described in part of the
+    * We currently have 3 levels, each of which is described in part of the
     * following function.
     */
     display(index, level) {
         /*
-        * In this level, all we have is a hero (the green ball) who needs to
-        * make it to the destination (a mustard colored ball). The game is
-        * configured to use tilt to control the level.
-        */
+         * For all levels we want a button to go back to the menu
+         */
+        level.addDisplay(895, 500, "Arial", "0x0000FF", 16, "", "", level.DisplayFixedText("Quit"), 2);
+        level.addTapControl(890, 500, 50, 20, "./GameAssets/button.png", new (class _ extends LolAction {
+            go() {
+                level.doChooser(1);
+                return true;
+            }
+        })());
+        /*
+         * LEVEL 1: the first demo game
+         * In this level, you play as an angel who must defeat the evil bats who have
+         * taken over your skies. Drop pebbles on them all to defeat them and win.
+         */
         if (index == 1) {
-            // set the screen to 48 meters wide by 32 meters high... this is
-            // important, because Config.java says the screen is 480x320, and
-            // LOL likes a 20:1 pixel to meter ratio. If we went smaller than
-            // 48x32, things would getLoseScene really weird. And, of course, if you make
-            // your screen resolution higher in Config.java, these numbers would
-            // need to getLoseScene bigger.
-            //
-            //level.configureGravity
-            //level.resetGravity(0, 90);
-            // now let's create a hero, and indicate that the hero can move by
-            // tilting the phone. "greenball.png" must be registered in
-            // the registerMedia() method, which is also in this file. It must
-            // also be in your android game's assets folder.
-            let h = level.makeHeroAsBox(960 / 2, 640 / 2, 30, 30, "./images/OrangeBox.png");
-            level.setCameraChase(h);
-            level.setArrowKeyControls(h, 50);
-            let e = level.makeEnemyAsBox(960 / 2 - 80, 640 / 2 + 100, 30, 30, "./images/BlueBox.png");
-            //let o: Obstacle = level.makeObstacleAsBox(0, 500, 960, 1, "./images/BlueBox.png");
-            // draw a destination, and indicate that the level is won
-            // when the hero reaches the level.
-            level.makeDestinationAsBox(960 / 2 + 55, 640 / 2 + 155, 100, 100, "./images/fun.jpg");
-            level.setVictoryDestination(1);
+            // Set the gravity of the game
+            level.resetGravity(0, 90);
+            // Add some quality theme music
+            level.setMusic("./GameAssets/AngelGame/AngelTheme.mp3");
+            // Add a background
+            level.drawPicture(0, 0, 960, 540, "./GameAssets/AngelGame/SkyBack.png", -2);
+            // Place a box around the arena to limit the play area
+            level.drawBoundingBox(0, 0, 960, 540, "", 1, 1, 1);
+            // Create a hero and assign it to the variable "h"
+            // (Here we explicitly state the type of the variable: "Hero")
+            let h = level.makeHeroAsBox(450, 400, 48, 48, "./GameAssets/AngelGame/Angel.png");
+            h.setStrength(1);
+            // Set 'w' to jump (this involves using keycodes)
+            // Find the keycode of any key by going to www.keycode.info
+            level.setKeyAction(87, level.jumpAction(h, 500), null, true);
+            // The sets the velocity of a jump
+            h.setJumpImpulses(0, 120);
+            // Let the hero jump in the air to simulate flying
+            h.setMultiJumpOn();
+            // 'a' key to move left
+            level.setKeyAction(65, level.makeXMotionAction(h, -50), null, true);
+            // 'd' key to move right
+            level.setKeyAction(68, level.makeXMotionAction(h, 50), null, true);
+            // Ten projectiles at a time, each has 1 power
+            level.configureProjectiles(10, 8, 8, "./GameAssets/AngelGame/Bullet.png", 1, 0, false);
+            // spacebar to shoot, you have to wait 0.8 seconds between throws
+            level.setKeyAction(32, level.makeRepeatThrow(h, 800, 24, 24, 0, 10), null, true);
+            level.setThrowSound("./GameAssets/AngelGame/Shooting.ogg");
+            level.setProjectileRange(540);
+            level.setProjectileGravityOn();
+            /// Creating the enemies
+            // Here we set up an array to make things easier:
+            let eArray = new Array();
+            eArray[0] = level.makeEnemyAsBox(50, 50, 45, 30, "./GameAssets/AngelGame/Bat.png");
+            eArray[1] = level.makeEnemyAsBox(100, 270, 45, 30, "./GameAssets/AngelGame/Bat.png");
+            eArray[2] = level.makeEnemyAsBox(500, 120, 45, 30, "./GameAssets/AngelGame/Bat.png");
+            eArray[3] = level.makeEnemyAsBox(850, 210, 45, 30, "./GameAssets/AngelGame/Bat.png");
+            eArray[4] = level.makeEnemyAsBox(350, 170, 45, 30, "./GameAssets/AngelGame/Bat.png");
+            eArray[5] = level.makeEnemyAsBox(650, 350, 45, 30, "./GameAssets/AngelGame/Bat.png");
+            // Loop through the elements of the array
+            for (let e of eArray) {
+                e.setDisappearSound("./GameAssets/AngelGame/EnemyKilled.wav");
+                // This makes each enemy need to be hit once to die
+                e.setDamage(1);
+                // Enemies can fly through each other
+                e.setPassThrough(2);
+            }
+            // Three of the enemies chase the hero
+            eArray[0].setChaseFixedMagnitude(h, 25, 25, false, false);
+            eArray[1].setChaseFixedMagnitude(h, 35, 35, false, false);
+            eArray[5].setChaseFixedMagnitude(h, 15, 15, false, false);
+            // While the other three follow a set route
+            eArray[2].setRoute((new Route(4)).to(500, 120)
+                .to(550, 250)
+                .to(800, 300)
+                .to(500, 120), 40, true);
+            eArray[3].setRoute((new Route(7)).to(850, 210)
+                .to(710, 430)
+                .to(150, 380)
+                .to(120, 200)
+                .to(300, 100)
+                .to(400, 250)
+                .to(850, 210), 50, true);
+            eArray[4].setRoute((new Route(5)).to(350, 170)
+                .to(380, 250)
+                .to(330, 410)
+                .to(370, 220)
+                .to(350, 170), 40, true);
+            /// Making the cloud obstacles
+            // Array for the obstacles
+            let oArray = new Array();
+            // Some variables to size them
+            let oSize = 48;
+            // Cloud 1
+            oArray[0] = level.makeObstacleAsCircle(0, 220, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[1] = level.makeObstacleAsCircle(24, 220, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[2] = level.makeObstacleAsCircle(48, 220, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            // Cloud 2
+            oArray[3] = level.makeObstacleAsCircle(150, 0, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[4] = level.makeObstacleAsCircle(174, 0, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[5] = level.makeObstacleAsCircle(162, 24, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            // Cloud 3
+            oArray[6] = level.makeObstacleAsCircle(512, 24, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[7] = level.makeObstacleAsCircle(524, 0, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[8] = level.makeObstacleAsCircle(536, 24, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            // Cloud 4
+            oArray[9] = level.makeObstacleAsCircle(764, 64, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[10] = level.makeObstacleAsCircle(788, 72, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[11] = level.makeObstacleAsCircle(812, 80, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[12] = level.makeObstacleAsCircle(768, 88, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[13] = level.makeObstacleAsCircle(792, 96, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[14] = level.makeObstacleAsCircle(816, 104, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            // Cloud 5
+            oArray[15] = level.makeObstacleAsCircle(224, 248, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[16] = level.makeObstacleAsCircle(248, 248, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[17] = level.makeObstacleAsCircle(212, 272, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[18] = level.makeObstacleAsCircle(236, 272, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[19] = level.makeObstacleAsCircle(260, 272, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            // Cloud 6
+            oArray[20] = level.makeObstacleAsCircle(512, 324, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[21] = level.makeObstacleAsCircle(536, 324, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[22] = level.makeObstacleAsCircle(524, 348, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[23] = level.makeObstacleAsCircle(548, 348, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            // Cloud 7
+            oArray[24] = level.makeObstacleAsCircle(80, 412, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[25] = level.makeObstacleAsCircle(104, 416, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[26] = level.makeObstacleAsCircle(128, 420, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[27] = level.makeObstacleAsCircle(152, 424, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            // Cloud 8
+            oArray[28] = level.makeObstacleAsCircle(836, 396, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[29] = level.makeObstacleAsCircle(860, 392, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[30] = level.makeObstacleAsCircle(884, 388, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[31] = level.makeObstacleAsCircle(908, 384, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[32] = level.makeObstacleAsCircle(932, 380, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            // Cloud 9
+            oArray[33] = level.makeObstacleAsCircle(700, 508, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            oArray[34] = level.makeObstacleAsCircle(724, 508, oSize, oSize, "./GameAssets/AngelGame/CloudBall.png");
+            // Set the cloud physics
+            for (let o of oArray) {
+                o.setPhysics(1, 5, 1);
+                // So our clouds can be fit together
+                o.setPassThrough(1);
+            }
+            // Player loses if the bats aren't defeated within 3 minutes
+            level.setLoseCountdown(180);
+            // Add a display for the timer
+            level.addDisplay(25, 25, "Arial", "0x0000FF", 24, "Time Remaining: ", "", level.DisplayLoseCountdown(), 0);
+            // Must kill all enemies to win
+            level.setVictoryEnemyCount(-1);
         }
+        else if (index == 2) {
+            // Add some quality theme music
+            level.setMusic("./GameAssets/ChristmasGame/ChristmasTheme.mp3");
+            // Zoom in
+            level.setZoom(0.4);
+            // Set the gravity of the game
+            level.resetGravity(0, 90);
+            // Add a background
+            level.drawPicture(0, 0, 960, 540, "./GameAssets/ChristmasGame/ChristmasBack.png", -2);
+            // Create a hero
+            let robot = level.makeHeroAsBox(32, 332, 16, 28, "./GameAssets/ChristmasGame/Miser.png");
+            robot.setStrength(1);
+            robot.setCameraOffset(20, -20);
+            // Set jump power
+            robot.setJumpImpulses(0, 110);
+            // Set 'w' to jump (this involves using keycodes)
+            // Find the keycode of any key by going to www.keycode.info
+            level.setKeyAction(87, level.jumpAction(robot, 0), null, false);
+            // Set 'spacebar' to jump
+            level.setKeyAction(32, level.jumpAction(robot, 0), null, false);
+            // 'a' key to move left
+            level.setKeyAction(65, level.makeXMotionAction(robot, -40), level.makeXMotionAction(robot, 0), true);
+            // 'd' key to move right
+            level.setKeyAction(68, level.makeXMotionAction(robot, 40), level.makeXMotionAction(robot, 0), true);
+            // Make the camera follow our hero
+            level.setCameraChase(robot);
+            // Set the camera bounds
+            level.setCameraBounds(1920, 540);
+            // Create an "enemy" to kill the hero if he falls off the screen
+            level.makeEnemyAsBox(0, 540, 960, 1, "");
+            // Set other bounds
+            level.makeObstacleAsBox(0, 0, 1, 540, "");
+            level.makeObstacleAsBox(960, 0, 1, 540, "");
+            level.makeObstacleAsBox(0, 0, 960, 1, "");
+            // Make the starting platform
+            makePlatform(5, 16, 0, 360);
+            level.drawPicture(16, 344, 16, 16, "./GameAssets/ChristmasGame/ArrowSign.png", -1);
+            // Make more platforms
+            makePlatform(5, 16, 80, 420);
+            // Add a tree decoration on the platform
+            level.drawPicture(85, 372, 32, 48, "./GameAssets/ChristmasGame/OneTree.png", -1);
+            // Add a coin goodie on the platform
+            level.makeGoodieAsCircle(120, 404, 16, 16, "./GameAssets/ChristmasGame/GoldCoin.png")
+                .setDisappearSound("./GameAssets/ChristmasGame/MoneyGet.wav");
+            // Platform 3
+            makePlatform(5, 16, 192, 404);
+            // Add a santa baddie
+            let s3 = level.makeEnemyAsBox(256, 376, 17, 28, "./GameAssets/ChristmasGame/Santa.png");
+            s3.setRoute(new Route(3).to(256, 376).to(192, 376).to(256, 376), 25, true);
+            s3.setDefeatByJump();
+            // Add a stone decoration
+            level.drawPicture(230, 388, 24, 16, "./GameAssets/ChristmasGame/Stone.png", -1);
+            // Platform 4
+            makePlatform(6, 16, 280, 380);
+            // Make crates
+            level.makeObstacleAsBox(350, 364, 16, 16, "./GameAssets/ChristmasGame/Crate.png");
+            level.makeObstacleAsBox(350, 348, 16, 16, "./GameAssets/ChristmasGame/Crate.png");
+            // Platform 5
+            makePlatform(7, 16, 360, 396);
+            let s5 = level.makeEnemyAsBox(360 + 16, 396 - 28, 17, 28, "./GameAssets/ChristmasGame/Santa.png");
+            s5.setRoute(new Route(3).to(360 + 16, 396 - 28).to(360 + 16 * 5, 396 - 28).to(360 + 16, 396 - 28), 40, true);
+            s5.setDefeatByJump();
+            // Platform 6
+            makePlatform(4, 16, 456, 380);
+            level.makeGoodieAsCircle(456 + 8, 380 - 16, 16, 16, "./GameAssets/ChristmasGame/GoldCoin.png")
+                .setDisappearSound("./GameAssets/ChristmasGame/MoneyGet.wav");
+            level.makeGoodieAsCircle(456 + 24, 380 - 16, 16, 16, "./GameAssets/ChristmasGame/GoldCoin.png")
+                .setDisappearSound("./GameAssets/ChristmasGame/MoneyGet.wav");
+            level.makeGoodieAsCircle(456 + 40, 380 - 16, 16, 16, "./GameAssets/ChristmasGame/GoldCoin.png")
+                .setDisappearSound("./GameAssets/ChristmasGame/MoneyGet.wav");
+            // Platform 7 - start the upper deck
+            makePlatform(3, 16, 120, 280);
+            level.makeGoodieAsCircle(120 + 16, 280 - 16, 16, 16, "./GameAssets/ChristmasGame/GoldCoin.png")
+                .setDisappearSound("./GameAssets/ChristmasGame/MoneyGet.wav");
+            let s7 = level.makeEnemyAsBox(120, 280 - 28, 17, 28, "./GameAssets/ChristmasGame/Santa.png");
+            s7.setRoute(new Route(3).to(120, 280 - 28).to(120 + 2 * 16, 280 - 28).to(120, 280 - 28), 20, true);
+            s7.setDefeatByJump();
+            // Platform 8
+            makePlatform(4, 16, 190, 310);
+            level.makeGoodieAsCircle(190 + 24, 310 - 44, 16, 16, "./GameAssets/ChristmasGame/GoldCoin.png")
+                .setDisappearSound("./GameAssets/ChristmasGame/MoneyGet.wav");
+            level.makeGoodieAsCircle(190 + 24, 310 - 60, 16, 16, "./GameAssets/ChristmasGame/GoldCoin.png")
+                .setDisappearSound("./GameAssets/ChristmasGame/MoneyGet.wav");
+            let s8 = level.makeEnemyAsBox(190, 310 - 28, 17, 28, "./GameAssets/ChristmasGame/Santa.png");
+            s8.setRoute(new Route(3).to(190, 310 - 28).to(190 + 16 * 3, 310 - 28).to(190, 310 - 28), 30, true);
+            s8.setDefeatByJump();
+            // Platform 9
+            makePlatform(2, 16, 288, 310);
+            // Platform 10
+            makePlatform(4, 16, 368, 290);
+            level.drawPicture(368 + 8, 290 - 16, 16, 16, "./GameAssets/ChristmasGame/ArrowSign.png", -1);
+            // Platform 11
+            makePlatform(7, 16, 432, 274);
+            level.drawPicture(480, 274 - 16, 24, 16, "./GameAssets/ChristmasGame/Stone.png", -1);
+            level.drawPicture(450, 274 - 50, 65, 50, "./GameAssets/ChristmasGame/ThreeTrees.png", -1);
+            level.makeObstacleAsBox(432 + 16 * 5, 274 - 16, 16, 16, "./GameAssets/ChristmasGame/Crate.png");
+            level.makeObstacleAsBox(432 + 16 * 5, 274 - 32, 16, 16, "./GameAssets/ChristmasGame/Crate.png");
+            level.makeObstacleAsBox(432 + 16 * 6, 274 - 16, 16, 16, "./GameAssets/ChristmasGame/Crate.png");
+            level.makeObstacleAsBox(432 + 16 * 6, 274 - 32, 16, 16, "./GameAssets/ChristmasGame/Crate.png");
+            level.makeObstacleAsBox(432 + 16 * 6, 274 - 48, 16, 16, "./GameAssets/ChristmasGame/Crate.png");
+            level.makeObstacleAsBox(432 + 16 * 6, 274 - 64, 16, 16, "./GameAssets/ChristmasGame/Crate.png");
+            // Platform 12
+            makePlatform(5, 16, 390, 200);
+            // Wall
+            level.makeObstacleAsBox(374, 152, 16, 16, "./GameAssets/ChristmasGame/MiddlePlat.png");
+            level.makeObstacleAsBox(374, 168, 16, 16, "./GameAssets/ChristmasGame/MiddlePlat.png");
+            level.makeObstacleAsBox(374, 184, 16, 16, "./GameAssets/ChristmasGame/MiddlePlat.png");
+            level.makeObstacleAsBox(374, 200, 16, 16, "./GameAssets/ChristmasGame/MiddlePlat.png");
+            level.drawPicture(395, 200 - 26, 24, 26, "./GameAssets/ChristmasGame/SnowMan.png", -1);
+            // The goal is an igloo
+            let dest = level.makeDestinationAsBox(416, 180, 50, 20, "./GameAssets/ChristmasGame/Igloo.png");
+            // Set it so you have to collect all the coins first
+            dest.setActivationScore(7, 0, 0, 0);
+            // The "1" means that only one hero must finish (we only have one in this game)
+            level.setVictoryDestination(1);
+            // Display coins collected
+            level.addDisplay(25, 25, "Arial", "0xFFFFFF", 24, "Coins: ", " out of 7", level.DisplayGoodies1(), 0);
+            /*
+             * Here we create a function for making platforms, this makes it easy
+             * because platforms consist of multiple blocks
+             */
+            function makePlatform(blocks, width, posX, posY) {
+                if (blocks < 1)
+                    return;
+                if (blocks == 1) {
+                    level.makeObstacleAsBox(posX, posY, width, width, "./GameAssets/ChristmasGame/MiddlePlat.png");
+                    return;
+                }
+                level.makeObstacleAsBox(posX, posY, width, width, "./GameAssets/ChristmasGame/LeftEndPlat.png");
+                level.makeObstacleAsBox(posX + width * (blocks - 1), posY, width, width, "./GameAssets/ChristmasGame/RightEndPlat.png");
+                for (let i = 1; i <= (blocks - 2); i++) {
+                    level.makeObstacleAsBox(posX + width * i, posY, width, width, "./GameAssets/ChristmasGame/MiddlePlat.png");
+                }
+            }
+        }
+        else if (index == 3) {
+            // Add some quality theme music
+            level.setMusic("./GameAssets/PlaneGame/PlaneTheme.ogg");
+            // Add a background
+            level.drawPicture(0, 0, 962, 540, "./GameAssets/PlaneGame/PlaneBack.png", -2);
+            level.drawPicture(960, 0, 962, 540, "./GameAssets/PlaneGame/PlaneBack.png", -2);
+            level.drawPicture(1920, 0, 962, 540, "./GameAssets/PlaneGame/PlaneBack.png", -2);
+            // Don't let the plane fly out of bounds!
+            level.drawBoundingBox(0, 0, 960 * 3, 540, "", 1, 0, 1);
+            level.makeEnemyAsPolygon(0, 0, 960 * 3, 20, "./GameAssets/PlaneGame/Ceiling.png", [-(960 * 3) / 2, -10, (960 * 3) / 2, -10, (960 * 3) / 2, 5, -(960 * 3) / 2, 5]);
+            level.makeEnemyAsPolygon(0, 520, 960 * 3, 20, "./GameAssets/PlaneGame/Floor.png", [-(960 * 3) / 2, 10, -(960 * 3) / 2, 5, (960 * 3) / 2, 5, (960 * 3) / 2, 10]);
+            // Don't let the camera go out of bounds!
+            level.setCameraBounds(960 * 3, 540);
+            // Make the plane
+            let plane = level.makeHeroAsBox(0, 540 / 2, 55, 37, "./GameAssets/PlaneGame/Plane.png");
+            plane.setAbsoluteVelocity(50, 70);
+            // 'w', spacebar, and up arrow keys to go up
+            level.setKeyAction(87, level.makeXYMotionAction(plane, 50, -60), level.makeXYMotionAction(plane, 50, 70), false);
+            level.setKeyAction(32, level.makeXYMotionAction(plane, 50, -60), level.makeXYMotionAction(plane, 50, 70), false);
+            level.setKeyAction(38, level.makeXYMotionAction(plane, 50, -60), level.makeXYMotionAction(plane, 50, 70), false);
+            // Make the camera follow the plane
+            level.setCameraChase(plane);
+            // Make rocks to crash into
+            makeRock(false, 450, 100, 300);
+            makeRock(true, 400, 100, 120);
+            makeRock(false, 750, 100, 200);
+            makeRock(true, 700, 100, 220);
+            makeRock(false, 850, 100, 200);
+            makeRock(true, 800, 100, 220);
+            makeRock(false, 1050, 70, 400);
+            makeRock(true, 1200, 70, 150);
+            makeRock(true, 900, 70, 100);
+            makeRock(false, 1250, 70, 100);
+            makeRock(false, 1400, 80, 100);
+            makeRock(true, 1300, 70, 300);
+            makeRock(false, 1600, 90, 300);
+            makeRock(true, 1700, 100, 100);
+            makeRock(false, 1850, 80, 150);
+            makeRock(true, 1850, 80, 320);
+            makeRock(false, 2000, 80, 200);
+            makeRock(true, 2000, 80, 250);
+            makeRock(false, 2150, 50, 320);
+            makeRock(true, 2400, 50, 300);
+            makeRock(false, 2500, 100, 220);
+            makeRock(true, 2500, 40, 220);
+            makeRock(false, 2600, 120, 300);
+            makeRock(true, 2820, 70, 380);
+            // Set a victory destination at the end of the level
+            let dest = level.makeDestinationAsBox(2860, 0, 20, 540, "");
+            level.setVictoryDestination(1);
+            /*
+             * Here we create a function for making rocks. This makes it easy because
+             * rocks are triangles, and this function does the vertex calculations for us
+             * We probably care most about where the point of the rock is, so we make
+             * the x position parameter the x position of the point
+             */
+            function makeRock(pointDown, posX, width, height) {
+                if (pointDown) {
+                    level.makeEnemyAsPolygon(posX - width / 2, -1, width, height, "./GameAssets/PlaneGame/RockDown.png", [-width / 2, -height / 2, width / 2, -height / 2, 0, height / 2]);
+                }
+                else {
+                    level.makeEnemyAsPolygon(posX - width / 2, 541 - height, width, height, "./GameAssets/PlaneGame/RockUp.png", [-width / 2, height / 2, 0, -height / 2, width / 2, height / 2]);
+                }
+            }
+        }
+    }
+}
+/// <reference path="../library/ScreenManager.ts"/>
+/**
+* This is the scene that is displayed when you lose a level
+*/
+class LoseScene {
+    /**
+    * Implement the display function
+    *
+    * @param index The level you lost on
+    * @param level The physics-based world that comprises the splash screen
+    */
+    display(index, level) {
+        // Configure our win screen
+        // Add a background
+        level.drawPicture(0, 0, 960, 540, "./GameAssets/TitleBack.png", -2);
+        // Add a degrading message to make the player feel bad about themself
+        level.addStaticTextCentered(960 / 2, 540 / 2, "Arial", 0x0000FF, 32, "You lost, try being better", 0);
+        // Make it so they can click to go back to the level select screen
+        level.addTapControl(0, 0, 960, 540, "", new (class _ extends LolAction {
+            go() {
+                level.doLevel(index);
+                return true;
+            }
+        })());
+        // Make it so we can use the spacebar
+        level.setKeyAction(32, new (class _ extends LolAction {
+            go() {
+                level.doLevel(index);
+                return true;
+            }
+        })(), null, false);
     }
 }
 /// <reference path="../library/ScreenManager.ts"/>
@@ -5428,7 +4807,7 @@ class Levels {
 * Splash encapsulates the code that will be run to configure the opening screen of the game.
 * Typically this has buttons for playing, getting help, and quitting.
 */
-class LoseScene {
+class Splash {
     /**
     * There is usually only one splash screen. However, the ScreenManager interface requires
     * display() to take a parameter for which screen to display.  We ignore it.
@@ -5437,22 +4816,76 @@ class LoseScene {
     * @param level The physics-based world that comprises the splash screen
     */
     display(index, level) {
-        // Configure our win screen
-        // This is the Play button... it switches to the first screen of the
-        // level chooser. You could jump straight to the first level by using
-        // "doLevel(1)", but check the configuration in MyConfig... there's a
-        // field you should change if you don't want the 'back' button to go
-        // from that level to the chooser.
-        level.addStaticText(960 / 2 - 100, 640 / 2 - 10, "Arial", 0x00FFFF, 32, "Try Again", 0);
-        level.addTapControl(0, 0, 960, 640, "", new (class _ extends LolAction {
+        // Put in some catchy background muzak
+        level.setMusic("./GameAssets/TitleTheme.mp3");
+        // Add a background
+        level.drawPicture(0, 0, 960, 540, "./GameAssets/TitleBack.png", -2);
+        // Set up variables for the middle of the page to aid placement
+        let midX = 960 / 2;
+        let midY = 540 / 2;
+        // Add a button for level select (text, button, and image are separate)
+        // The text is centered so the x and y will be of the center of the text
+        level.addStaticTextCentered(midX, midY - 50, "Arial", 0x0000FF, 24, "Play", 0);
+        // This control however will use cooridinates starting in the top left corner
+        level.addTapControl(midX - 50, midY - 75, 100, 50, "", new (class _ extends LolAction {
             go() {
-                level.doLevel(index);
+                level.doChooser(1);
                 return true;
             }
         })());
+        // The picture is also drawn from the top left corner
+        level.drawPicture(midX - 50, midY - 75, 100, 50, "./GameAssets/button.png", -1);
+        // This button is for the help screen
+        level.addStaticTextCentered(midX, midY + 50, "Arial", 0x0000FF, 24, "Help", 0);
+        level.addTapControl(midX - 50, midY + 25, 100, 50, "", new (class _ extends LolAction {
+            go() {
+                level.doHelp(1);
+                return true;
+            }
+        })());
+        level.drawPicture(midX - 50, midY + 25, 100, 50, "./GameAssets/button.png", -1);
+    }
+}
+/// <reference path="../library/ScreenManager.ts"/>
+/**
+* This is the scene that is displayed when you win a level
+*/
+class WinScene {
+    /**
+    * Implement the display function
+    *
+    * @param index Which level you won
+    * @param level The public api
+    */
+    display(index, level) {
+        // Configure our win screen
+        // Add a background
+        level.drawPicture(0, 0, 960, 540, "./GameAssets/TitleBack.png", -2);
+        // Add an uplifting message
+        level.addStaticTextCentered(960 / 2, 540 / 2, "Arial", 0x0000FF, 32, "You win!! You must be super cool!", 0);
+        // Make it so they can click to go back to the level select screen
+        level.addTapControl(0, 0, 960, 540, "", new (class _ extends LolAction {
+            go() {
+                level.doChooser(1);
+                return true;
+            }
+        })());
+        // Make it so we can use the spacebar
+        level.setKeyAction(32, new (class _ extends LolAction {
+            go() {
+                level.doChooser(1);
+                return true;
+            }
+        })(), null, false);
     }
 }
 /// <reference path="../library/Config.ts"/>
+/// <reference path="./Levels.ts"/>
+/// <reference path="./Chooser.ts"/>
+/// <reference path="./Help.ts"/>
+/// <reference path="./Splash.ts"/>
+/// <reference path="./WinScene.ts"/>
+/// <reference path="./LoseScene.ts"/>
 /**
 * Any configuration that the programmer needs to provide to Lol should go here.
 * <p/>
@@ -5474,9 +4907,7 @@ class MyConfig extends Config {
         super();
         // The size of the screen, and some game behavior configuration
         this.mWidth = 960;
-        this.mHeight = 640;
-        this.mPixelMeterRatio = 20;
-        this.mEnableVibration = true;
+        this.mHeight = 540;
         this.mGameTitle = "Micah's Basic Game";
         this.mDefaultWinText = "Good Job";
         this.mDefaultLoseText = "Try Again";
@@ -5490,11 +4921,11 @@ class MyConfig extends Config {
         this.mDefaultFontSize = 32;
         this.mDefaultFontColor = "#FFFFFF";
         // list the images that the game will use
-        this.mImageNames = new Array("./images/fun.jpg", "./images/BlueBox.png", "./images/OrangeBox.png");
+        this.mImageNames = new Array("./GameAssets/button.png", "./GameAssets/TitleBack.png", "./GameAssets/AngelGame/Angel.png", "./GameAssets/AngelGame/Bat.png", "./GameAssets/AngelGame/Bullet.png", "./GameAssets/AngelGame/CloudBall.png", "./GameAssets/AngelGame/SkyBack.png", "./GameAssets/ChristmasGame/ArrowSign.png", "./GameAssets/ChristmasGame/ChristmasBack.png", "./GameAssets/ChristmasGame/Crate.png", "./GameAssets/ChristmasGame/GoldCoin.png", "./GameAssets/ChristmasGame/LeftEndPlat.png", "./GameAssets/ChristmasGame/MiddlePlat.png", "./GameAssets/ChristmasGame/Miser.png", "./GameAssets/ChristmasGame/OneTree.png", "./GameAssets/ChristmasGame/RightEndPlat.png", "./GameAssets/ChristmasGame/Santa.png", "./GameAssets/ChristmasGame/SnowMan.png", "./GameAssets/ChristmasGame/Stone.png", "./GameAssets/ChristmasGame/ThreeTrees.png", "./GameAssets/ChristmasGame/Igloo.png", "./GameAssets/PlaneGame/Plane.png", "./GameAssets/PlaneGame/PlaneBack.png", "./GameAssets/PlaneGame/Ceiling.png", "./GameAssets/PlaneGame/Floor.png", "./GameAssets/PlaneGame/RockUp.png", "./GameAssets/PlaneGame/RockDown.png");
         // list the sound effects that the game will use
-        //this.mSoundNames = new string[]();
+        this.mSoundNames = new Array("./GameAssets/AngelGame/Shooting.ogg", "./GameAssets/AngelGame/EnemyKilled.wav", "./GameAssets/ChristmasGame/MoneyGet.wav", "./GameAssets/PlaneGame/Crash.ogg");
         // list the background music files that the game will use
-        //this.mMusicNames = new string[]();
+        this.mMusicNames = new Array("./GameAssets/TitleTheme.mp3", "./GameAssets/AngelGame/AngelTheme.mp3", "./GameAssets/ChristmasGame/ChristmasTheme.mp3", "./GameAssets/PlaneGame/PlaneTheme.ogg");
         // don't change these lines unless you know what you are doing
         this.mLevels = new Levels();
         this.mChooser = new Chooser();
@@ -5502,50 +4933,6 @@ class MyConfig extends Config {
         this.mSplash = new Splash();
         this.mWin = new WinScene();
         this.mLose = new LoseScene();
-    }
-}
-/// <reference path="../library/ScreenManager.ts"/>
-/**
-* Splash encapsulates the code that will be run to configure the opening screen of the game.
-* Typically this has buttons for playing, getting help, and quitting.
-*/
-class Splash {
-    /**
-    * There is usually only one splash screen. However, the ScreenManager interface requires
-    * display() to take a parameter for which screen to display.  We ignore it.
-    *
-    * @param index Which splash screen should be displayed (typically you can ignore this)
-    * @param level The physics-based world that comprises the splash screen
-    */
-    display(index, level) {
-        // set up a simple level. We could make interesting things happen, since
-        // we've got a physics world, but we won't.
-        // draw the background. Note that "Play", "Help", and "Quit" are part of
-        // this background image.
-        //level.drawPicture(0, 0, 48, 32, "splash.png", 0);
-        // start the music
-        //level.setMusic("tune.ogg");
-        // This is the Play button... it switches to the first screen of the
-        // level chooser. You could jump straight to the first level by using
-        // "doLevel(1)", but check the configuration in MyConfig... there's a
-        // field you should change if you don't want the 'back' button to go
-        // from that level to the chooser.
-        level.addStaticText(300, 200, "Arial", 0xFFFF00, 24, "Play", 0);
-        level.addTapControl(300, 200, 100, 50, "", new (class _ extends LolAction {
-            go() {
-                level.doChooser(1);
-                return true;
-            }
-        })());
-        // This is the Help button... it switches to the first screen of the
-        // help system
-        level.addStaticText(500, 200, "Arial", 0xFFFF00, 24, "Help", 0);
-        level.addTapControl(500, 200, 100, 50, "", new (class _ extends LolAction {
-            go() {
-                level.doHelp(1);
-                return true;
-            }
-        })());
     }
 }
 /// <reference path="../library/Config.ts"/>
@@ -5566,33 +4953,4 @@ document.addEventListener("DOMContentLoaded", () => {
 function gameLoop(game) {
     game.render();
     requestAnimationFrame(() => gameLoop(game));
-}
-/// <reference path="../library/ScreenManager.ts"/>
-/**
-* Splash encapsulates the code that will be run to configure the opening screen of the game.
-* Typically this has buttons for playing, getting help, and quitting.
-*/
-class WinScene {
-    /**
-    * There is usually only one splash screen. However, the ScreenManager interface requires
-    * display() to take a parameter for which screen to display.  We ignore it.
-    *
-    * @param index Which splash screen should be displayed (typically you can ignore this)
-    * @param level The physics-based world that comprises the splash screen
-    */
-    display(index, level) {
-        // Configure our win screen
-        // This is the Play button... it switches to the first screen of the
-        // level chooser. You could jump straight to the first level by using
-        // "doLevel(1)", but check the configuration in MyConfig... there's a
-        // field you should change if you don't want the 'back' button to go
-        // from that level to the chooser.
-        level.addStaticText(960 / 2 - 100, 640 / 2 - 10, "Arial", 0x00FFFF, 32, "You Win!!", 0);
-        level.addTapControl(0, 0, 960, 640, "", new (class _ extends LolAction {
-            go() {
-                level.doChooser(1);
-                return true;
-            }
-        })());
-    }
 }
