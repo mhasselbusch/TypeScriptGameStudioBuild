@@ -25,9 +25,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(__dirname + '/public'));
 
 var compileQ = [];
-var verifyURL = process.env.VERIFY_URL;
-var verifyLocalURL = process.env.VERIFY_LOCALURL;
-var database_url = process.env.MONGODB_URI;
+var database_url = process.env.MONGOLAB_URI;
 
 mongodb.MongoClient.connect(database_url, function(err, db) {
 
